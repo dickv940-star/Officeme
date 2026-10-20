@@ -286,6 +286,40 @@
 .worker-scene .scene-label{background:#ffffffdf!important;color:#315264!important;border-color:#9dbbc5!important}
 @media(max-width:650px){.worker-scene{height:500px!important}.worker-scene .worker-table{left:22%!important;right:22%!important;top:31%!important;height:40%!important}.worker-scene .worker-person:before{left:8px!important;top:34px!important;width:50px!important;height:44px!important}.worker-scene .worker-person:after{top:49px!important;left:7px!important;width:54px!important;height:15px!important}.worker-scene .person-photo{width:40px!important;height:43px!important}}
 
+
+/* SEATS POSITIONED AROUND THE TABLE — not around the room */
+/* Make the table smaller and central so every seat clearly surrounds it */
+.worker-scene .worker-table{left:31%!important;right:31%!important;top:35%!important;height:33%!important;z-index:2!important}
+.worker-scene .meeting-device{left:calc(50% - 14px)!important;top:39%!important}
+.worker-scene .worker-person{width:82px!important;z-index:6!important}
+.worker-scene .worker-person:before{top:35px!important;height:48px!important}
+.worker-scene .worker-person:after{top:51px!important}
+.worker-scene .worker-person.p1{left:calc(50% - 41px)!important;top:1%!important}
+.worker-scene .worker-person.p2{left:calc(73% - 41px)!important;top:12%!important}
+.worker-scene .worker-person.p3{left:calc(81% - 41px)!important;top:35%!important}
+.worker-scene .worker-person.p4{left:calc(73% - 41px)!important;top:63%!important;flex-direction:column-reverse!important}
+.worker-scene .worker-person.p5{left:calc(50% - 41px)!important;top:74%!important;flex-direction:column-reverse!important}
+.worker-scene .worker-person.p6{left:calc(27% - 41px)!important;top:63%!important;flex-direction:column-reverse!important}
+.worker-scene .worker-person.p7{left:calc(19% - 41px)!important;top:35%!important}
+.worker-scene .worker-person.p8{left:calc(27% - 41px)!important;top:12%!important}
+.worker-scene .worker-person.p4 .person-laptop,.worker-scene .worker-person.p5 .person-laptop,.worker-scene .worker-person.p6 .person-laptop{margin:0 0 1px!important}
+.worker-scene .worker-station-label{top:49%!important;z-index:4!important}
+@media(max-width:650px){
+ .worker-scene .worker-table{left:29%!important;right:29%!important;top:35%!important;height:32%!important}
+ .worker-scene .worker-person{width:68px!important}
+ .worker-scene .worker-person.p1{left:calc(50% - 34px)!important;top:1%!important}
+ .worker-scene .worker-person.p2{left:calc(76% - 34px)!important;top:12%!important}
+ .worker-scene .worker-person.p3{left:calc(84% - 34px)!important;top:35%!important}
+ .worker-scene .worker-person.p4{left:calc(76% - 34px)!important;top:64%!important}
+ .worker-scene .worker-person.p5{left:calc(50% - 34px)!important;top:76%!important}
+ .worker-scene .worker-person.p6{left:calc(24% - 34px)!important;top:64%!important}
+ .worker-scene .worker-person.p7{left:calc(16% - 34px)!important;top:35%!important}
+ .worker-scene .worker-person.p8{left:calc(24% - 34px)!important;top:12%!important}
+ .worker-scene .worker-person:before{top:32px!important;height:43px!important}
+ .worker-scene .worker-person:after{top:46px!important}
+ .worker-scene .worker-station-label{top:48%!important}
+}
+
 </style>
 </head>
 <body><main class="wrap">

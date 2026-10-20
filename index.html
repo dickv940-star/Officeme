@@ -383,6 +383,12 @@
 .worker-scene .worker-person{left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important}
 .worker-scene .worker-person:before{pointer-events:none!important}
 
+
+/* APP CONNECTOR HUB */
+.connector-toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}.connector-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.connector-card{background:#0c1425;border:1px solid var(--line);border-radius:14px;padding:15px;display:flex;flex-direction:column;gap:9px;min-width:0}.connector-card-top{display:flex;align-items:center;gap:10px}.connector-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#202f4b;font-size:21px;flex-shrink:0}.connector-card h3{font-size:15px;margin:0}.connector-card p{font-size:12px;color:var(--muted);margin:0;flex:1}.connector-meta{font-size:11px;color:#a9c4ff}.connector-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px}.connector-actions button,.connector-actions a{font-size:12px;text-decoration:none}.connector-actions a{display:inline-block;background:var(--accent);color:#091225;padding:9px 11px;border-radius:9px;font-weight:800}.connector-form{margin-top:14px;padding:15px;background:#0c1425;border:1px solid var(--line);border-radius:14px}.connector-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.connector-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}.connector-form input,.connector-form select,.connector-form textarea{width:100%;background:#0a1120;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px;font:inherit}.connector-form textarea{min-height:76px}.connector-status{font-size:12px;color:var(--green);margin-top:8px}.connector-empty{padding:13px;color:var(--muted);font-size:13px;border:1px dashed var(--line);border-radius:12px;margin-top:12px}
+@media(max-width:850px){.connector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.connector-grid,.connector-form-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body><main class="wrap">
@@ -432,6 +438,33 @@
     <div class="room-messages" id="roomMessages"></div>
     <form id="roomForm" class="room-compose"><textarea id="roomInput" maxlength="2000" required placeholder="Tulis arahan, catatan, atau hasil yang ingin disimpan di ruangan ini..."></textarea><button class="primary" type="submit">Simpan catatan</button></form>
     <div class="toast" id="roomToast" role="status" aria-live="polite"></div>
+  </div>
+</section>
+
+
+<section class="section" id="connectors">
+  <div class="panel">
+    <div class="connector-toolbar">
+      <div><div class="eyebrow">AppDIGI · Integrasi aplikasi</div><h2 style="margin:3px 0 5px">Pusat Plugin & Connector</h2><div class="muted">Buka alat kerja tim dari satu tempat dan tambahkan aplikasi lain kapan saja.</div></div>
+      <button class="primary" type="button" id="toggleConnectorForm">＋ Tambah aplikasi</button>
+    </div>
+    <div class="notice">Status awal: tautan peluncuran aplikasi. Ini belum memberikan akses API, login otomatis, atau kendali terhadap aplikasi eksternal. Integrasi API memerlukan izin resmi dan backend aman.</div>
+    <div id="connectorGrid" class="connector-grid"></div>
+    <div id="customConnectorEmpty" class="connector-empty" hidden>Belum ada aplikasi kustom. Klik “Tambah aplikasi” untuk mendaftarkan alat baru.</div>
+    <form id="connectorForm" class="connector-form" hidden>
+      <h3 id="connectorFormTitle" style="margin:0 0 12px">Tambah aplikasi / connector</h3>
+      <input type="hidden" id="connectorEditId">
+      <div class="connector-form-grid">
+        <label>Nama aplikasi<input id="connectorName" maxlength="70" required placeholder="Contoh: Google Drive"></label>
+        <label>URL aplikasi<input id="connectorUrl" type="url" maxlength="500" required placeholder="https://..."></label>
+        <label>Kategori<select id="connectorCategory"><option>Desain</option><option>Video</option><option>AI & Riset</option><option>Affiliate</option><option>Publikasi</option><option>Produktivitas</option><option>Lainnya</option></select></label>
+        <label>Tim yang cocok<input id="connectorTeam" maxlength="100" placeholder="Contoh: Content Creator, Designer"></label>
+        <label style="grid-column:1/-1">Kegunaan / catatan<textarea id="connectorDescription" maxlength="500" rows="2" placeholder="Untuk apa aplikasi ini digunakan oleh tim?"></textarea></label>
+      </div>
+      <div class="actions"><button class="primary" type="submit">Simpan aplikasi</button><button type="button" id="cancelConnector">Batal</button></div>
+      <div id="connectorMessage" class="connector-status" role="status"></div>
+    </form>
+    <div class="notice">Demi keamanan, masukkan URL situs saja. Jangan memasukkan password, cookie, token, atau API key. Data daftar aplikasi kustom tersimpan di browser ini.</div>
   </div>
 </section>
 
@@ -617,5 +650,63 @@ document.getElementById("roomForm").addEventListener("submit",e=>{
  if(!saveRoomNotes(all)){document.getElementById("roomToast").textContent="Penyimpanan browser penuh atau tidak tersedia. Catatan belum tersimpan.";return}
  input.value="";renderRoomNotes();document.getElementById("roomToast").textContent="Catatan tersimpan di browser ini.";
 });
+
+
+/* APP CONNECTOR HUB — launcher catalog; API integrations require secure backend */
+const connectorStorageKey="appdigi_officeme_connectors_v1";
+const defaultConnectors=[
+{id:"canva",name:"Canva",url:"https://www.canva.com/",category:"Desain",team:"Graphic Designer, Content Creator",description:"Membuat desain, thumbnail, presentasi, dan materi promosi.",icon:"🎨",builtIn:true},
+{id:"capcut",name:"CapCut",url:"https://www.capcut.com/",category:"Video",team:"Content Creator, Marketing Strategist",description:"Mengedit video pendek, menambahkan teks, dan membuat materi video.",icon:"🎬",builtIn:true},
+{id:"chatgpt",name:"ChatGPT",url:"https://chatgpt.com/",category:"AI & Riset",team:"Semua pekerja",description:"Membantu ide, riset, analisis, penulisan, dan penyusunan alur kerja.",icon:"🤖",builtIn:true},
+{id:"google-flow",name:"Google Flow",url:"https://labs.google/fx/tools/flow",category:"Video",team:"Content Creator, Graphic Designer",description:"Alat kreasi video AI Google; ketersediaan fitur mengikuti akun dan wilayah.",icon:"✨",builtIn:true},
+{id:"pinterest",name:"Pinterest",url:"https://www.pinterest.com/",category:"Riset & Inspirasi",team:"Product Researcher, Graphic Designer",description:"Mencari referensi visual, tren, dan inspirasi konten.",icon:"📌",builtIn:true},
+{id:"shopee-affiliate",name:"Shopee Affiliate",url:"https://affiliate.shopee.co.id/",category:"Affiliate",team:"Product Researcher, Data Analyst",description:"Kelola aktivitas affiliate melalui portal resmi Shopee Indonesia.",icon:"🛍️",builtIn:true},
+{id:"google-trends",name:"Google Trends",url:"https://trends.google.com/trends/",category:"Riset & Inspirasi",team:"Product Researcher, SEO Specialist",description:"Memeriksa minat pencarian dan tren topik.",icon:"📈",builtIn:true},
+{id:"google-drive",name:"Google Drive",url:"https://drive.google.com/",category:"Produktivitas",team:"Semua pekerja",description:"Menyimpan dan mengelola dokumen kerja secara manual.",icon:"📁",builtIn:true},
+{id:"meta-business",name:"Meta Business Suite",url:"https://business.facebook.com/",category:"Publikasi",team:"Marketing Strategist, Content Creator",description:"Mengelola aktivitas konten Meta sesuai akses akun.",icon:"📣",builtIn:true}
+];
+function loadConnectors(){try{const v=JSON.parse(localStorage.getItem(connectorStorageKey)||"[]");return Array.isArray(v)?v:[]}catch(e){return []}}
+function saveConnectors(v){try{localStorage.setItem(connectorStorageKey,JSON.stringify(v));return true}catch(e){return false}}
+function safeConnectorUrl(v){try{const u=new URL(v);return u.protocol==="https:"?u.href:null}catch(e){return null}}
+function renderConnectors(){
+ const grid=document.getElementById("connectorGrid");grid.replaceChildren();
+ const customs=loadConnectors();const all=defaultConnectors.concat(customs);
+ all.forEach(c=>{
+  const card=document.createElement("article");card.className="connector-card";
+  const top=document.createElement("div");top.className="connector-card-top";
+  const ico=document.createElement("div");ico.className="connector-icon";ico.textContent=c.icon||"🔌";
+  const titleBox=document.createElement("div");const title=document.createElement("h3");title.textContent=c.name;
+  const cat=document.createElement("div");cat.className="connector-meta";cat.textContent=c.category+" · "+(c.builtIn?"Tautan aplikasi":"Aplikasi kustom");
+  titleBox.append(title,cat);top.append(ico,titleBox);
+  const desc=document.createElement("p");desc.textContent=c.description||"Aplikasi kerja tim.";
+  const team=document.createElement("div");team.className="muted";team.textContent="Tim: "+(c.team||"Belum ditentukan");
+  const actions=document.createElement("div");actions.className="connector-actions";
+  const link=document.createElement("a");link.href=c.url;link.target="_blank";link.rel="noopener noreferrer";link.textContent="Buka aplikasi ↗";link.setAttribute("aria-label","Buka "+c.name+" di tab baru");actions.append(link);
+  if(!c.builtIn){const edit=document.createElement("button");edit.type="button";edit.textContent="Edit";edit.addEventListener("click",()=>openConnectorForm(c.id));const del=document.createElement("button");del.type="button";del.textContent="Hapus";del.addEventListener("click",()=>{if(!confirm("Hapus aplikasi "+c.name+" dari daftar kustom?"))return;const next=loadConnectors().filter(x=>x.id!==c.id);if(saveConnectors(next))renderConnectors();else alert("Penyimpanan browser gagal.");});actions.append(edit,del)}
+  card.append(top,desc,team,actions);grid.append(card);
+ });
+ document.getElementById("customConnectorEmpty").hidden=customs.length>0;
+}
+function resetConnectorForm(){document.getElementById("connectorForm").reset();document.getElementById("connectorEditId").value="";document.getElementById("connectorFormTitle").textContent="Tambah aplikasi / connector";document.getElementById("connectorMessage").textContent="";}
+function openConnectorForm(id){
+ resetConnectorForm();
+ if(id){const c=loadConnectors().find(x=>x.id===id);if(!c)return;document.getElementById("connectorEditId").value=c.id;document.getElementById("connectorName").value=c.name;document.getElementById("connectorUrl").value=c.url;document.getElementById("connectorCategory").value=c.category;document.getElementById("connectorTeam").value=c.team||"";document.getElementById("connectorDescription").value=c.description||"";document.getElementById("connectorFormTitle").textContent="Edit aplikasi";}
+ document.getElementById("connectorForm").hidden=false;document.getElementById("connectorForm").scrollIntoView({behavior:"smooth",block:"center"});
+}
+document.getElementById("toggleConnectorForm").addEventListener("click",()=>{const f=document.getElementById("connectorForm");if(f.hidden)openConnectorForm();else f.hidden=true;});
+document.getElementById("cancelConnector").addEventListener("click",()=>{document.getElementById("connectorForm").hidden=true;resetConnectorForm();});
+document.getElementById("connectorForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const name=document.getElementById("connectorName").value.trim(),url=safeConnectorUrl(document.getElementById("connectorUrl").value.trim());
+ const msg=document.getElementById("connectorMessage");
+ if(!url){msg.textContent="Masukkan URL HTTPS yang valid. URL non-HTTPS ditolak demi keamanan.";return}
+ const id=document.getElementById("connectorEditId").value;
+ const item={id:id||("custom-"+Date.now()),name,url,category:document.getElementById("connectorCategory").value,team:document.getElementById("connectorTeam").value.trim(),description:document.getElementById("connectorDescription").value.trim(),icon:"🔌",builtIn:false};
+ if(!name){msg.textContent="Nama aplikasi wajib diisi.";return}
+ const all=loadConnectors();const next=id?all.map(x=>x.id===id?item:x):all.concat(item);
+ if(!saveConnectors(next)){msg.textContent="Gagal menyimpan. Penyimpanan browser mungkin penuh.";return}
+ document.getElementById("connectorForm").hidden=true;resetConnectorForm();renderConnectors();
+});
+renderConnectors();
 
 </script></body></html>

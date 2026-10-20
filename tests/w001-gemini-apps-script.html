@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>W001 · Apps Script + Gemini · AI AFFILIATE by AppDIGI</title>
+<style>
+:root{font-family:system-ui,Segoe UI,sans-serif;color:#172033;background:#f4f6fb}*{box-sizing:border-box}body{margin:0;padding:20px}.wrap{max-width:1080px;margin:auto}header,.panel{background:#fff;border:1px solid #e1e7f0;border-radius:16px;padding:20px;margin-bottom:15px}h1{margin:.3rem 0;font-size:clamp(24px,4vw,35px)}h2{font-size:19px;margin:0 0 12px}p{line-height:1.55;color:#58657b}.eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#3d63a7;font-weight:700}.notice{background:#eef5ff;padding:12px;border-radius:10px;color:#254a7b}.row{display:flex;gap:12px;flex-wrap:wrap}.field{display:flex;flex:1;min-width:240px;flex-direction:column;gap:6px}label{font-size:13px;color:#58657b}input{font:inherit;padding:11px;border:1px solid #cdd6e3;border-radius:9px;width:100%}button{font:inherit;border:0;border-radius:9px;padding:11px 14px;background:#1b3154;color:white;font-weight:650;cursor:pointer}button.secondary{background:#e9eef6;color:#20314b}button:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}.stat{border:1px solid #e1e7f0;border-radius:12px;padding:13px}.stat small{display:block;color:#68758a}.stat strong{font-size:23px;display:block;overflow-wrap:anywhere}.status{padding:11px;border-radius:9px;background:#f3f5f8;color:#48566c;margin-top:12px;white-space:pre-wrap;overflow-wrap:anywhere}.good{background:#eaf8f0;color:#17613a}.bad{background:#fff0f0;color:#9b2929}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;padding:10px;border-bottom:1px solid #e4e9f0;white-space:nowrap}.muted{color:#69758a}.analysis{white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere}.hidden{display:none}.tiny{font-size:12px}@media(max-width:600px){body{padding:10px}header,.panel{padding:14px}}
+</style></head><body><div class="wrap">
+<header><div class="eyebrow">AppDIGI · W001 · test branch</div><h1>Data Analyst — Shopee Affiliate CSV</h1>
+<p>Perhitungan dasar berlangsung di browser. Hanya setelah tombol analisis ditekan, ringkasan metrik dan maksimal 30 produk teratas dikirim ke backend Apps Script lalu Gemini.</p>
+<div class="notice"><strong>Status awal: AI belum diverifikasi.</strong> Sampai panggilan Gemini nyata berhasil, halaman tidak akan menyatakan AI aktif.</div>
+<div class="actions"><label>CSV <input id="csvFile" type="file" accept=".csv,.txt,text/csv"></label><button id="sampleBtn" class="secondary" type="button">Muat data contoh</button><button id="clearBtn" class="secondary" type="button">Bersihkan</button></div>
+<div id="csvStatus" class="status">Belum ada data.</div></header>
+<section class="panel"><h2>Ringkasan lokal</h2><div class="stats">
+<div class="stat"><small>Produk</small><strong id="kProducts">—</strong></div><div class="stat"><small>Klik</small><strong id="kClicks">—</strong></div><div class="stat"><small>Pesanan</small><strong id="kOrders">—</strong></div><div class="stat"><small>Komisi</small><strong id="kCommission">—</strong></div><div class="stat"><small>Pesanan / klik</small><strong id="kCvr">—</strong></div></div>
+<div class="tablewrap"><table><thead><tr><th>Produk</th><th>Klik</th><th>Pesanan</th><th>Komisi</th><th>Konversi</th></tr></thead><tbody id="results"><tr><td colspan="5">Muat CSV atau data contoh.</td></tr></tbody></table></div></section>
+<section class="panel"><h2>Koneksi backend Apps Script</h2>
+<div class="row"><div class="field"><label for="gasUrl">URL Web App Apps Script (/exec)</label><input id="gasUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="url"></div>
+<div class="field"><label for="appToken">Token akses (APP_SHARED_TOKEN)</label><input id="appToken" type="password" autocomplete="off" placeholder="Masukkan token rahasia"></div></div>
+<div class="actions"><button id="healthBtn" class="secondary" type="button">Tes backend</button><button id="analyzeBtn" type="button" disabled>Jalankan analisis Gemini</button></div>
+<div id="backendStatus" class="status">Backend belum diuji.</div></section>
+<section id="aiPanel" class="panel hidden"><h2>Analisis Gemini — W001</h2><div id="aiText" class="analysis"></div></section>
+<section class="panel"><h2>Catatan privasi</h2><p class="tiny">CSV diproses di browser. Hanya ringkasan dan maksimal 30 nama produk beserta klik, pesanan, dan komisi yang dikirim saat tombol analisis digunakan. Jangan kirim data sensitif. API key Gemini disimpan di Script Properties, bukan di halaman ini.</p></section>
+</div>
+<iframe id="gasBridge" title="Apps Script backend bridge" aria-hidden="true" style="position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);let data=null,bridgeReady=false,seq=0;const pending=new Map();
+const origin=location.origin;
+function fmt(n){return new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(n)}
+function money(n){return new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n)}
+function status(id,msg,type){$(id).className="status"+(type?" "+type:"");$(id).textContent=msg}
+function parseCSV(text){
+ const rows=[];let row=[],field="",quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(quoted){if(c==='"'&&text[i+1]==='"'){field+='"';i++}else if(c==='"')quoted=false;else field+=c}else if(c==='"')quoted=true;else if(c===","){row.push(field);field=""}else if(c==="\n"){row.push(field);rows.push(row);row=[];field=""}else if(c!=="\r")field+=c}row.push(field);if(row.some(x=>String(x).trim()))rows.push(row);return rows.filter(r=>r.some(x=>String(x).trim()));
+}
+function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim()}
+function find(h,aliases){const n=h.map(norm);for(const a of aliases){const i=n.indexOf(norm(a));if(i>=0)return i}return -1}
+function num(v){const s=String(v??"").trim();if(!s)return null;let t=s.replace(/[^\d,.-]/g,"");if(t.includes(",")&&t.includes(".")){if(t.lastIndexOf(",")>t.lastIndexOf("."))t=t.replace(/\./g,"").replace(",",".");else t=t.replace(/,/g,"")}else if(t.includes(",")){const a=t.split(",");t=a[a.length-1].length===3?a.join(""):t.replace(",",".")}const n=Number(t);return Number.isFinite(n)&&n>=0?n:null}
+function parse(text){
+ const rows=parseCSV(text);if(rows.length<2)throw Error("CSV perlu header dan minimal satu baris data.");const h=rows[0].map(s=>s.trim().replace(/^\uFEFF/,""));
+ const ix={name:find(h,["nama produk","product name","produk","product","item","nama barang"]),clicks:find(h,["klik","clicks","jumlah klik","total clicks","total klik"]),orders:find(h,["pesanan","orders","jumlah pesanan","total pesanan","order count"]),commission:find(h,["komisi","commission","estimasi komisi","total komisi","estimated commission"])};
+ const missing=Object.entries(ix).filter(([,v])=>v<0).map(([k])=>k);if(missing.length)throw Error("Kolom tidak ditemukan: "+missing.join(", ")+". Header terbaca: "+h.join(" | "));
+ const products=[];for(const r of rows.slice(1)){const name=String(r[ix.name]||"").trim(),clicks=num(r[ix.clicks]),orders=num(r[ix.orders]),commission=num(r[ix.commission]);if(!name)continue;if(clicks===null||orders===null||commission===null)continue;products.push({name:name.slice(0,80),clicks,orders,commission})}
+ if(!products.length)throw Error("Tidak ada baris produk valid.");const metrics={productCount:products.length,clicks:products.reduce((s,p)=>s+p.clicks,0),orders:products.reduce((s,p)=>s+p.orders,0),commission:products.reduce((s,p)=>s+p.commission,0),conversionRate:0};metrics.conversionRate=metrics.clicks?Number((metrics.orders/metrics.clicks*100).toFixed(4)):0;return {metrics,products}
+}
+function render(d){data=d;const m=d.metrics;$("kProducts").textContent=fmt(m.productCount);$("kClicks").textContent=fmt(m.clicks);$("kOrders").textContent=fmt(m.orders);$("kCommission").textContent=money(m.commission);$("kCvr").textContent=fmt(m.conversionRate)+"%";
+ const body=$("results");body.replaceChildren();d.products.slice().sort((a,b)=>b.commission-a.commission).slice(0,100).forEach(p=>{const tr=document.createElement("tr");[p.name,fmt(p.clicks),fmt(p.orders),money(p.commission),p.clicks?fmt(p.orders/p.clicks*100)+"%":"—"].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});body.appendChild(tr)});
+ $("analyzeBtn").disabled=false;status("csvStatus","Berhasil memuat "+m.productCount+" produk. Perhitungan dilakukan lokal.", "good");
+}
+function reset(){data=null;["kProducts","kClicks","kOrders","kCommission","kCvr"].forEach(id=>$(id).textContent="—");$("results").innerHTML='<tr><td colspan="5">Muat CSV atau data contoh.</td></tr>';$("csvFile").value="";$("analyzeBtn").disabled=true;$("aiPanel").classList.add("hidden");$("aiText").textContent="";status("csvStatus","Data dibersihkan.")}
+function ensureBridge(){
+ const url=$("gasUrl").value.trim();if(!url||!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url))throw Error("Masukkan URL Web App Apps Script yang berakhir dengan /exec.");
+ const iframe=$("gasBridge");if(iframe.src!==url){bridgeReady=false;iframe.src=url}
+ return new Promise((resolve,reject)=>{if(bridgeReady){resolve();return}const start=Date.now();const check=()=>{if(bridgeReady)resolve();else if(Date.now()-start>15000)reject(Error("Bridge Apps Script belum siap. Periksa URL/deployment dan apakah iframe boleh dimuat."));else setTimeout(check,250)};setTimeout(check,100)});
+}
+window.addEventListener("message",e=>{
+ if(e.source!==$("gasBridge").contentWindow||e.origin!=="https://script.google.com"&& !e.origin.endsWith(".googleusercontent.com"))return;
+ const m=e.data;if(!m||m.channel!=="APPDIGI_W001_RESULT"||!pending.has(m.requestId))return;
+ const p=pending.get(m.requestId);pending.delete(m.requestId);if(m.result&&m.result.ok)p.resolve(m.result);else p.reject(Error(m.result&&m.result.error||"Backend gagal."));
+});
+function callBackend(action,payload){
+ return ensureBridge().then(()=>new Promise((resolve,reject)=>{
+  const id=String(++seq)+"-"+Date.now();pending.set(id,{resolve,reject});
+  $("gasBridge").contentWindow.postMessage({channel:"APPDIGI_W001",requestId:id,action,token:$("appToken").value.trim(),origin,payload:payload||null},"*");
+  setTimeout(()=>{if(pending.has(id)){pending.delete(id);reject(Error("Backend tidak merespons dalam 30 detik."))}},30000);
+ }));
+}
+$("csvFile").addEventListener("change",async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{render(parse(await f.text()))}catch(err){data=null;$("analyzeBtn").disabled=true;status("csvStatus",err.message,"bad")}});
+$("sampleBtn").addEventListener("click",()=>{try{render(parse("Nama Produk,Klik,Pesanan,Komisi\nBotol Minum,120,8,24000\nLampu Meja,80,2,10000\nTas Lipat,0,1,5000"));$("csvFile").value=""}catch(e){status("csvStatus",e.message,"bad")}});
+$("clearBtn").addEventListener("click",reset);
+$("healthBtn").addEventListener("click",async()=>{if(!$("appToken").value.trim()){status("backendStatus","Masukkan token akses terlebih dahulu.","bad");return}const b=$("healthBtn");b.disabled=true;status("backendStatus","Menguji backend Apps Script…");try{const r=await callBackend("health");status("backendStatus","Backend merespons. Model: "+r.model+". Secret terdeteksi. Ini belum membuktikan panggilan Gemini berhasil.","good")}catch(e){status("backendStatus","Tes backend gagal: "+e.message,"bad")}finally{b.disabled=false}});
+$("analyzeBtn").addEventListener("click",async()=>{if(!data){status("backendStatus","Muat CSV terlebih dahulu.","bad");return}if(!$("appToken").value.trim()){status("backendStatus","Masukkan token akses terlebih dahulu.","bad");return}const b=$("analyzeBtn");b.disabled=true;$("aiPanel").classList.add("hidden");status("backendStatus","Meminta analisis dari Gemini…");try{const products=data.products.slice().sort((a,b)=>b.commission-a.commission).slice(0,30);const r=await callBackend("analyze",{metrics:data.metrics,products});$("aiText").textContent=r.analysis;$("aiPanel").classList.remove("hidden");status("backendStatus","Panggilan Gemini berhasil. Model: "+r.model+". Produk dikirim: "+r.productsAnalyzed+".","good")}catch(e){status("backendStatus","Analisis Gemini gagal: "+e.message,"bad")}finally{b.disabled=false}});
+})();
+</script></body></html>

@@ -220,7 +220,7 @@ export default {
     if (!origin) return json({ ok: false, error: "Origin tidak diizinkan." }, 403, "null");
     if (!env.APP_SHARED_TOKEN) return json({ ok: false, error: "Backend belum dikonfigurasi." }, 503, origin);
     const ownerRoute = (request.method === "GET" && path === "/api/approvals") ||
-      (request.method === "POST" && /^\\/api\\/approvals\\/[a-zA-Z0-9_-]{1,80}\\/decision$/.test(path));
+      (request.method === "POST" && /^\/api\/approvals\/[a-zA-Z0-9_-]{1,80}\/decision$/.test(path));
     if (ownerRoute) {
       if (!env.APP_OWNER_TOKEN) return json({ ok: false, error: "Token pemilik belum dikonfigurasi." }, 503, origin);
     } else if (!authorized(request, env)) {
@@ -235,7 +235,7 @@ export default {
     if (request.method === "GET" && path === "/api/approvals") return listApprovals(request, env, origin);
     if (request.method === "POST" && path === "/api/approvals") return createApproval(request, env, origin);
     if (request.method === "POST" && path === "/api/publisher/validate") return validatePublishPackage(request, env, origin);
-    const decisionMatch = path.match(/^\\/api\\/approvals\\/([a-zA-Z0-9_-]{1,80})\\/decision$/);
+    const decisionMatch = path.match(/^\/api\/approvals\/([a-zA-Z0-9_-]{1,80})\/decision$/);
     if (request.method === "POST" && decisionMatch) return decideApproval(request, env, origin, decisionMatch[1]);
     if (request.method !== "POST" || path !== "/api/analyze") {
       return json({ ok: false, error: "Rute tidak ditemukan." }, 404, origin);

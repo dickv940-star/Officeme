@@ -395,6 +395,23 @@
 @media(max-width:850px){.charter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.charter-grid{grid-template-columns:1fr}}
 
+
+/* AI AFFILIATE Gemini CSV analyzer — isolated styles */
+.gemini-csv-panel{margin:18px 0;background:linear-gradient(160deg,#16223a,#10182a);border:1px solid var(--line);border-radius:18px;padding:20px}
+.gemini-csv-panel h2{margin:4px 0 8px;font-size:21px}
+.gemini-csv-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.gemini-csv-panel label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}
+.gemini-csv-panel input[type=file],.gemini-csv-panel input[type=url],.gemini-csv-panel input[type=password]{width:100%;background:#0a1120;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit}
+.gemini-csv-panel .gemini-csv-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+.gemini-csv-status,.gemini-csv-result{white-space:pre-wrap;overflow-wrap:anywhere;background:#0a1120;border:1px solid var(--line);padding:13px;border-radius:11px;margin-top:12px;font-size:13px}
+.gemini-csv-result{line-height:1.65}
+.gemini-csv-help{font-size:12px;color:var(--muted);margin-top:10px}
+.gemini-csv-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+.gemini-csv-stat{background:#0c1425;border:1px solid var(--line);border-radius:11px;padding:11px}
+.gemini-csv-stat strong{display:block;font-size:18px;overflow-wrap:anywhere}
+.gemini-csv-stat span{display:block;font-size:11px;color:var(--muted)}
+@media(max-width:600px){.gemini-csv-grid{grid-template-columns:1fr}.gemini-csv-panel{padding:15px}.gemini-csv-stats{grid-template-columns:1fr 1fr}.gemini-csv-stat:last-child{grid-column:1/-1}}
+
 </style>
 </head>
 <body><main class="wrap">
@@ -402,6 +419,31 @@
 <section class="hero">
 <div class="panel"><div class="eyebrow">Command center</div><h2>Selamat datang, Direktur.</h2><div class="muted">Berikan instruksi kepada tim AI. Tugas penting dan tindakan eksternal tetap memerlukan persetujuan Anda.</div><div class="stats"><div class="stat"><strong>8</strong><span>Pekerja AI</span></div><div class="stat"><strong id="taskCount">0</strong><span>Tugas lokal</span></div><div class="stat"><strong>1</strong><span>Akun affiliate</span></div></div></div>
 <div class="panel"><div class="eyebrow">Perintah direktur</div><h2 style="font-size:20px;letter-spacing:0">Apa yang harus dikerjakan?</h2><form id="form"><textarea id="command" maxlength="1200" required placeholder="Contoh: Analisis 20 produk dari API resmi yang tersedia, urutkan berdasarkan metrik yang valid, lalu buat 3 ide konten untuk ditinjau."></textarea><div class="actions"><button class="primary" type="submit">＋ Buat rencana tugas</button><button type="button" id="example">Isi contoh</button><button type="button" id="clear">Bersihkan antrean</button></div><div class="notice">Prototipe awal: antrean tersimpan di memori browser, dan akan hilang saat halaman dimuat ulang. Belum terhubung ke AI atau Shopee API.</div><div id="toast" class="toast" role="status" aria-live="polite"></div></form></div>
+</section>
+
+
+<section class="gemini-csv-panel" id="geminiCsvAnalyzer">
+  <div class="eyebrow">Analisis AI · CSV Shopee Affiliate</div>
+  <h2>Analisis produk dengan Gemini</h2>
+  <p class="muted">Pilih CSV dari akun Anda. File dihitung di browser; hanya setelah Anda menekan “Jalankan analisis Gemini”, ringkasan dan maksimal 30 produk dikirim ke backend AppDIGI. Tidak ada posting atau publikasi otomatis.</p>
+  <label for="geminiCsvFile">1. Pilih file CSV</label>
+  <input id="geminiCsvFile" type="file" accept=".csv,.txt,text/csv">
+  <div class="gemini-csv-stats">
+    <div class="gemini-csv-stat"><strong id="geminiCsvProductCount">—</strong><span>Produk valid</span></div>
+    <div class="gemini-csv-stat"><strong id="geminiCsvClicks">—</strong><span>Total klik</span></div>
+    <div class="gemini-csv-stat"><strong id="geminiCsvCommission">—</strong><span>Total komisi</span></div>
+  </div>
+  <div class="gemini-csv-grid">
+    <div><label for="geminiCsvWorkerUrl">2. Backend AppDIGI</label><input id="geminiCsvWorkerUrl" type="url" value="https://appdigi-w001-backend.dickv940.workers.dev" autocomplete="url"></div>
+    <div><label for="geminiCsvToken">3. APP_SHARED_TOKEN</label><input id="geminiCsvToken" type="password" autocomplete="off" spellcheck="false" placeholder="Masukkan token backend Anda"></div>
+  </div>
+  <div class="gemini-csv-actions">
+    <button type="button" id="geminiCsvHealth">Tes koneksi backend</button>
+    <button type="button" class="primary" id="geminiCsvAnalyze" disabled>Jalankan analisis Gemini</button>
+  </div>
+  <div id="geminiCsvStatus" class="gemini-csv-status" role="status" aria-live="polite">Belum ada CSV yang dipilih. Belum ada data yang dikirim ke server.</div>
+  <div id="geminiCsvResult" class="gemini-csv-result" aria-live="polite" hidden></div>
+  <div class="gemini-csv-help">CSV perlu memiliki kolom nama produk, klik, pesanan, dan komisi. Nama kolom umum dalam Bahasa Indonesia atau Inggris didukung. Token tidak disimpan di browser, tidak ditampilkan, dan tidak boleh dikirim ke chat. Jika Anda tidak mengetahui tokennya, jangan menebak; minta bantuan untuk menyetel ulang secret di Cloudflare.</div>
 </section>
 
 <section class="section">
@@ -737,5 +779,159 @@ document.getElementById("connectorForm").addEventListener("submit",e=>{
  document.getElementById("connectorForm").hidden=true;resetConnectorForm();renderConnectors();
 });
 renderConnectors();
+
+
+/* Gemini CSV analyzer — calls only the configured AppDIGI Cloudflare Worker */
+(function initGeminiCsvAnalyzer(){
+  "use strict";
+  const byId = id => document.getElementById(id);
+  const state = { parsed: null };
+  const status = (message, isError) => {
+    const el = byId("geminiCsvStatus");
+    el.textContent = message;
+    el.style.borderColor = isError ? "#8f3f52" : "var(--line)";
+    el.style.color = isError ? "#ff9caa" : "var(--text)";
+  };
+  const normalize = value => String(value || "").toLowerCase().normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+  function parseCSV(text) {
+    const firstLine = String(text).split(/\r?\n/, 1)[0] || "";
+    const delimiter = (firstLine.split(";").length > firstLine.split(",").length) ? ";" : ",";
+    const rows = []; let row = [], field = "", quoted = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+        else if (ch === '"') quoted = false;
+        else field += ch;
+      } else if (ch === '"') quoted = true;
+      else if (ch === delimiter) { row.push(field); field = ""; }
+      else if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+      else if (ch !== "\r") field += ch;
+    }
+    row.push(field);
+    if (row.some(value => String(value).trim())) rows.push(row);
+    return rows.filter(values => values.some(value => String(value).trim()));
+  }
+  function numberValue(value) {
+    const original = String(value == null ? "" : value).trim();
+    if (!original) return null;
+    let valueText = original.replace(/[^\d,.-]/g, "");
+    if (valueText.includes(",") && valueText.includes(".")) {
+      if (valueText.lastIndexOf(",") > valueText.lastIndexOf(".")) valueText = valueText.replace(/\./g, "").replace(",", ".");
+      else valueText = valueText.replace(/,/g, "");
+    } else if (valueText.includes(",")) {
+      const parts = valueText.split(",");
+      valueText = parts[parts.length - 1].length === 3 ? parts.join("") : valueText.replace(",", ".");
+    }
+    const n = Number(valueText);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  function parseProductCSV(text) {
+    const rows = parseCSV(text);
+    if (rows.length < 2) throw new Error("CSV harus berisi baris judul kolom dan minimal satu produk.");
+    const headers = rows[0].map(value => normalize(String(value).replace(/^\uFEFF/, "")));
+    const aliases = {
+      name: ["nama produk","product name","produk","product","item","nama barang"],
+      clicks: ["klik","clicks","jumlah klik","total clicks","total klik"],
+      orders: ["pesanan","orders","jumlah pesanan","total pesanan","order count"],
+      commission: ["komisi","commission","estimasi komisi","total komisi","estimated commission"]
+    };
+    const columns = {};
+    Object.keys(aliases).forEach(key => { columns[key] = headers.findIndex(header => aliases[key].some(alias => header === normalize(alias))); });
+    const missing = Object.keys(columns).filter(key => columns[key] < 0);
+    if (missing.length) throw new Error("Kolom belum ditemukan: " + missing.join(", ") + ". Pastikan CSV memiliki nama produk, klik, pesanan, dan komisi.");
+    const products = [];
+    rows.slice(1).forEach(values => {
+      const name = String(values[columns.name] || "").trim();
+      const clicks = numberValue(values[columns.clicks]);
+      const orders = numberValue(values[columns.orders]);
+      const commission = numberValue(values[columns.commission]);
+      if (name && clicks !== null && orders !== null && commission !== null) {
+        products.push({name: name.slice(0, 120), clicks, orders, commission});
+      }
+    });
+    if (!products.length) throw new Error("Tidak ada baris produk valid. Periksa isi dan format angka CSV.");
+    const metrics = {
+      productCount: products.length,
+      clicks: products.reduce((sum, product) => sum + product.clicks, 0),
+      orders: products.reduce((sum, product) => sum + product.orders, 0),
+      commission: products.reduce((sum, product) => sum + product.commission, 0),
+      conversionRate: 0
+    };
+    metrics.conversionRate = metrics.clicks ? Number((metrics.orders / metrics.clicks * 100).toFixed(4)) : 0;
+    return {metrics, products};
+  }
+  function config(requireToken) {
+    let url;
+    try { url = new URL(byId("geminiCsvWorkerUrl").value.trim()); }
+    catch (_) { throw new Error("URL backend tidak valid."); }
+    if (url.protocol !== "https:" || !url.hostname.endsWith(".workers.dev") || url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
+      throw new Error("Gunakan URL HTTPS Cloudflare Workers .workers.dev tanpa path tambahan.");
+    }
+    const token = byId("geminiCsvToken").value.trim();
+    if (requireToken && !token) throw new Error("Token backend belum diisi. Token tidak dapat diambil otomatis dari Cloudflare.");
+    return {base: url.origin, token};
+  }
+  async function call(path, method, payload) {
+    const cfg = config(path !== "/health");
+    const headers = {};
+    if (cfg.token) headers.Authorization = "Bearer " + cfg.token;
+    if (payload) headers["Content-Type"] = "application/json";
+    const response = await fetch(cfg.base + path, {method, headers, body: payload ? JSON.stringify(payload) : undefined});
+    let data = {};
+    try { data = await response.json(); } catch (_) {}
+    if (!response.ok || !data.ok) throw new Error(data.error || ("Backend merespons HTTP " + response.status));
+    return data;
+  }
+  byId("geminiCsvFile").addEventListener("change", async event => {
+    const file = event.target.files && event.target.files[0];
+    state.parsed = null;
+    byId("geminiCsvAnalyze").disabled = true;
+    byId("geminiCsvResult").hidden = true;
+    if (!file) { status("Belum ada CSV yang dipilih.", false); return; }
+    if (file.size > 10 * 1024 * 1024) { status("File terlalu besar. Pilih CSV maksimal 10 MB.", true); return; }
+    try {
+      state.parsed = parseProductCSV(await file.text());
+      const m = state.parsed.metrics;
+      byId("geminiCsvProductCount").textContent = m.productCount.toLocaleString("id-ID");
+      byId("geminiCsvClicks").textContent = m.clicks.toLocaleString("id-ID");
+      byId("geminiCsvCommission").textContent = new Intl.NumberFormat("id-ID", {style:"currency",currency:"IDR",maximumFractionDigits:0}).format(m.commission);
+      byId("geminiCsvAnalyze").disabled = false;
+      status("CSV berhasil dibaca di browser. Belum ada data yang dikirim ke Gemini.", false);
+    } catch (error) {
+      byId("geminiCsvProductCount").textContent = "—";
+      byId("geminiCsvClicks").textContent = "—";
+      byId("geminiCsvCommission").textContent = "—";
+      status(error.message || "CSV tidak dapat dibaca.", true);
+    }
+  });
+  byId("geminiCsvHealth").addEventListener("click", async () => {
+    const button = byId("geminiCsvHealth");
+    button.disabled = true;
+    status("Sedang memeriksa koneksi backend…", false);
+    try {
+      const result = await call("/health", "GET");
+      status("Backend merespons. Model: " + result.model + ". Gemini terkonfigurasi: " + (result.geminiConfigured ? "ya" : "belum") + ". Ini belum membuktikan analisis berhasil; lanjutkan dengan tombol analisis setelah token dan CSV tersedia.", false);
+    } catch (error) { status("Tes koneksi gagal: " + error.message, true); }
+    finally { button.disabled = false; }
+  });
+  byId("geminiCsvAnalyze").addEventListener("click", async () => {
+    if (!state.parsed) { status("Pilih CSV yang valid terlebih dahulu.", true); return; }
+    const button = byId("geminiCsvAnalyze");
+    button.disabled = true;
+    byId("geminiCsvResult").hidden = true;
+    status("Mengirim ringkasan dan maksimal 30 produk ke backend Gemini…", false);
+    try {
+      const products = state.parsed.products.slice().sort((a,b) => b.commission - a.commission).slice(0,30);
+      const result = await call("/api/analyze", "POST", {metrics: state.parsed.metrics, products});
+      byId("geminiCsvResult").textContent = result.analysis || "Backend merespons tanpa isi analisis.";
+      byId("geminiCsvResult").hidden = false;
+      status("Analisis Gemini berhasil. Model: " + result.model + ". Produk dianalisis: " + result.productsAnalyzed + ". Tidak ada publikasi yang dilakukan.", false);
+    } catch (error) {
+      status("Analisis belum berhasil: " + (error.message || "Kesalahan tidak diketahui") + ". Periksa token, format CSV, dan konfigurasi backend.", true);
+    } finally { button.disabled = false; }
+  });
+})();
 
 </script></body></html>

@@ -22,3 +22,18 @@ Use only the migration branch until the owner explicitly approves a production m
 
 ## Do not mark complete yet
 The backend is not live merely because code exists in GitHub. Mark Gemini as verified only after the actual analysis call succeeds. Do not delete the old Apps Script project or merge to `main` until these checks pass and the owner approves.
+
+
+## Multi-channel approval gate (required before any publisher integration is enabled)
+
+See [Multi-channel approval workflow](../docs/MULTI-CHANNEL-APPROVAL-WORKFLOW.md).
+
+- [ ] QC pass sends content to `PENDING_OWNER_APPROVAL`, never directly to publishing.
+- [ ] Approval screen shows exact video version, product, affiliate link, caption/disclosures, and selected channels.
+- [ ] Owner can approve, request revision, or reject.
+- [ ] Approval is bound to exact version and target channels; changing any approved field invalidates it.
+- [ ] Publisher rejects jobs with missing, revoked, or mismatched approval.
+- [ ] Each channel records independent result; failed/unavailable channels show manual action required.
+- [ ] No channel is marked connected or published without a successful live authorization/publish test.
+- [ ] Pinterest-sourced assets are not reused unless rights/permission are confirmed.
+- [ ] Tests cover bypass attempts, stale approvals, post-approval edits, and partial publication failures.

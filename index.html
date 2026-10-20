@@ -823,6 +823,9 @@ renderConnectors();
     } else if (valueText.includes(",")) {
       const parts = valueText.split(",");
       valueText = parts[parts.length - 1].length === 3 ? parts.join("") : valueText.replace(",", ".");
+    } else if (valueText.includes(".")) {
+      const parts = valueText.split(".");
+      if (parts.length > 1 && parts[parts.length - 1].length === 3) valueText = parts.join("");
     }
     const n = Number(valueText);
     return Number.isFinite(n) && n >= 0 ? n : null;

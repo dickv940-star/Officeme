@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1020">
+<title>W001 · Gemini CSV Test · AI AFFILIATE by AppDIGI</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#121b2f;--line:#263650;--text:#edf3ff;--muted:#9aabc5;--accent:#86aaff;--green:#72e0b2;--red:#ff9a9a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#1b2b4b,transparent 40%),var(--bg);color:var(--text);font:15px/1.55 system-ui,Segoe UI,sans-serif}.wrap{max-width:1080px;margin:auto;padding:24px}
+header,.panel{background:rgba(18,27,47,.94);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}h1{margin:.3rem 0;font-size:clamp(24px,4vw,36px)}h2{font-size:18px;margin:0 0 12px}.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}p,.muted{color:var(--muted)}.notice{padding:12px 14px;border-radius:10px;background:#172743;color:#cfe0ff;margin:12px 0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:220px}label{font-size:13px;color:var(--muted)}input,button{font:inherit;border-radius:9px;border:1px solid var(--line);padding:11px 12px}input{width:100%;background:#0b1325;color:var(--text)}button{cursor:pointer;background:#263b61;color:white;font-weight:650}button.primary{background:#436fc5;border-color:#5b84d5}button:disabled{opacity:.45;cursor:not-allowed}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}.stat{border:1px solid var(--line);border-radius:12px;padding:14px;background:#0d172a}.stat small{display:block;color:var(--muted)}.stat strong{display:block;font-size:23px;margin-top:3px;overflow-wrap:anywhere}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}th{color:var(--muted)}.tablewrap{overflow:auto}.status{white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border:1px solid var(--line);border-radius:10px;margin-top:12px;color:var(--muted)}.status.good{color:var(--green)}.status.bad{color:var(--red)}.analysis{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7}.tiny{font-size:12px}.hidden{display:none}@media(max-width:600px){.wrap{padding:12px}header,.panel{padding:15px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
+</head>
+<body><div class="wrap">
+<header>
+<div class="eyebrow">AI AFFILIATE by AppDIGI · lingkungan pengujian</div>
+<h1>W001 — Data Analyst</h1>
+<p>Uji analisis CSV Shopee Affiliate. Perhitungan angka dilakukan lokal di browser; hanya ringkasan metrik dan maksimal 30 produk teratas dikirim ke backend saat tombol analisis AI ditekan.</p>
+<div class="notice">Mode pengujian terpisah. Halaman ini tidak mengubah aplikasi utama, tidak mengakses akun Shopee, dan tidak memublikasikan konten.</div>
+</header>
+<section class="panel">
+<h2>1. Muat data CSV</h2>
+<div class="row"><div class="field"><label for="csvFile">File CSV Shopee Affiliate</label><input id="csvFile" type="file" accept=".csv,text/csv"></div></div>
+<div class="actions"><button id="sampleBtn" type="button">Muat data contoh</button><button id="clearBtn" type="button">Bersihkan</button></div>
+<p class="tiny">Kolom yang dibutuhkan: nama produk, klik, pesanan, dan komisi. Nama kolom umum Indonesia/Inggris didukung.</p>
+<div id="csvStatus" class="status" role="status">Belum ada data.</div>
+</section>
+<section class="panel">
+<h2>2. Hasil perhitungan lokal</h2>
+<div class="stats">
+<div class="stat"><small>Produk</small><strong id="productsTotal">—</strong></div><div class="stat"><small>Total klik</small><strong id="clicksTotal">—</strong></div><div class="stat"><small>Total pesanan</small><strong id="ordersTotal">—</strong></div><div class="stat"><small>Total komisi</small><strong id="commissionTotal">—</strong></div><div class="stat"><small>Pesanan / klik</small><strong id="conversionTotal">—</strong></div>
+</div>
+<div class="tablewrap"><table><thead><tr><th>Produk</th><th>Klik</th><th>Pesanan</th><th>Komisi</th><th>Pesanan/klik</th></tr></thead><tbody id="productRows"><tr><td colspan="5" class="muted">Muat CSV atau data contoh.</td></tr></tbody></table></div>
+</section>
+<section class="panel">
+<h2>3. Hubungkan backend Gemini</h2>
+<p>Worker harus dibuat dan dikonfigurasi terlebih dahulu. Token akses adalah rahasia terpisah dari API key Gemini; token tidak disimpan oleh halaman ini.</p>
+<div class="row">
+<div class="field"><label for="workerUrl">URL Cloudflare Worker</label><input id="workerUrl" type="url" placeholder="https://officeme-w001-gemini-test.NAMA.workers.dev" autocomplete="url"></div>
+<div class="field"><label for="accessToken">Token akses aplikasi</label><input id="accessToken" type="password" placeholder="Token APP_SHARED_TOKEN" autocomplete="off"></div>
+</div>
+<div class="actions"><button id="healthBtn" type="button">Tes koneksi backend</button><button id="analyzeBtn" type="button" class="primary" disabled>Jalankan analisis AI</button></div>
+<div id="backendStatus" class="status" role="status">Belum diuji. Metrik lokal tetap bisa digunakan tanpa backend.</div>
+</section>
+<section id="analysisPanel" class="panel hidden"><h2>4. Analisis W001 dari Gemini</h2><div id="analysisText" class="analysis"></div></section>
+<p class="tiny muted">W001 memakai perhitungan deterministik untuk angka. AI memberikan interpretasi, bukan bukti kebenaran data. Periksa satuan komisi dan definisi kolom dari ekspor Shopee sebelum mengambil keputusan.</p>
+</div>
+<script>
+(function(){
+  const $=(id)=>document.getElementById(id);let current=null;
+  const money=(n)=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n);
+  const integer=(n)=>new Intl.NumberFormat("id-ID",{maximumFractionDigits:0}).format(n);
+  function parseCSV(text){const rows=[];let row=[],field="",quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(quoted){if(c==='"'&&text[i+1]==='"'){field+='"';i++;}else if(c==='"')quoted=false;else field+=c;}else{if(c==='"')quoted=true;else if(c===","){row.push(field);field="";}else if(c==="\n"){row.push(field);rows.push(row);row=[];field="";}else if(c!=="\r")field+=c;}}row.push(field);if(row.some(v=>v.trim()!==""))rows.push(row);return rows.filter(r=>r.some(v=>String(v).trim()!==""));}
+  function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();}
+  function num(v){const raw=String(v??"").trim();if(!raw)return null;const neg=/^\s*-/.test(raw);const digits=raw.replace(/[^\d]/g,"");if(!digits)return null;const n=Number(digits)*(neg?-1:1);return Number.isFinite(n)&&n>=0?n:null;}
+  function column(headers,aliases){const h=headers.map(norm);for(const alias of aliases){const i=h.indexOf(norm(alias));if(i>=0)return i;}return -1;}
+  function parseData(text){
+    const rows=parseCSV(text);if(rows.length<2)throw new Error("CSV harus memiliki judul dan minimal satu baris data.");
+    const headers=rows[0];const cols={name:column(headers,["nama produk","product name","produk","product","nama item","item name"]),clicks:column(headers,["klik","clicks","jumlah klik","product clicks","total clicks"]),orders:column(headers,["pesanan","orders","jumlah pesanan","pesanan dibuat","order count"]),commission:column(headers,["komisi","commission","estimasi komisi","komisi estimasi","total komisi","estimated commission"])};
+    const labels={name:"nama produk",clicks:"klik",orders:"pesanan",commission:"komisi"};const missing=Object.entries(cols).filter(([,i])=>i<0).map(([k])=>labels[k]);if(missing.length)throw new Error("Kolom belum ditemukan: "+missing.join(", ")+". Kolom terbaca: "+headers.join(" | "));
+    const products=[];for(let i=1;i<rows.length;i++){const r=rows[i],name=String(r[cols.name]||"").trim();if(!name)continue;const clicks=num(r[cols.clicks]),orders=num(r[cols.orders]),commission=num(r[cols.commission]);if(clicks===null||orders===null||commission===null)continue;products.push({name:name.slice(0,80),clicks,orders,commission});}
+    if(!products.length)throw new Error("Tidak ada baris produk valid. Periksa kolom klik, pesanan, dan komisi.");
+    const metrics={productCount:products.length,clicks:products.reduce((s,p)=>s+p.clicks,0),orders:products.reduce((s,p)=>s+p.orders,0),commission:products.reduce((s,p)=>s+p.commission,0),conversionRate:0};metrics.conversionRate=metrics.clicks?Number((metrics.orders/metrics.clicks*100).toFixed(4)):0;return {metrics,products};
+  }
+  function render(data){
+    current=data;const m=data.metrics;$("productsTotal").textContent=integer(m.productCount);$("clicksTotal").textContent=integer(m.clicks);$("ordersTotal").textContent=integer(m.orders);$("commissionTotal").textContent=money(m.commission);$("conversionTotal").textContent=m.conversionRate.toLocaleString("id-ID",{maximumFractionDigits:2})+"%";
+    const tbody=$("productRows");tbody.textContent="";data.products.slice().sort((a,b)=>b.commission-a.commission).slice(0,50).forEach(p=>{const tr=document.createElement("tr");[p.name,integer(p.clicks),integer(p.orders),money(p.commission),(p.clicks?p.orders/p.clicks*100:0).toLocaleString("id-ID",{maximumFractionDigits:2})+"%"].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);});
+    $("csvStatus").className="status good";$("csvStatus").textContent="Berhasil memuat "+integer(m.productCount)+" produk. Perhitungan dilakukan di browser.";$("analyzeBtn").disabled=false;
+  }
+  function showError(id,msg){$(id).className="status bad";$(id).textContent=msg;}
+  $("csvFile").addEventListener("change",async(e)=>{const file=e.target.files&&e.target.files[0];if(!file)return;try{render(parseData(await file.text()));}catch(err){current=null;$("analyzeBtn").disabled=true;showError("csvStatus",err.message||"CSV gagal dibaca.");}});
+  $("sampleBtn").addEventListener("click",()=>{try{render(parseData('Nama Produk,Klik,Pesanan,Komisi\nBotol Minum,120,8,24000\nLampu Meja,80,2,10000\nTas Lipat,0,1,5000'));$("csvFile").value="";}catch(e){showError("csvStatus",e.message);}});
+  $("clearBtn").addEventListener("click",()=>{current=null;$("csvFile").value="";["productsTotal","clicksTotal","ordersTotal","commissionTotal","conversionTotal"].forEach(id=>$(id).textContent="—");$("productRows").textContent="";const tr=document.createElement("tr"),td=document.createElement("td");td.colSpan=5;td.className="muted";td.textContent="Muat CSV atau data contoh.";tr.appendChild(td);$("productRows").appendChild(tr);$("csvStatus").className="status";$("csvStatus").textContent="Belum ada data.";$("analyzeBtn").disabled=true;$("analysisPanel").classList.add("hidden");$("analysisText").textContent="";});
+  const baseUrl=()=>$("workerUrl").value.trim().replace(/\/+$/,"");
+  $("healthBtn").addEventListener("click",async()=>{const url=baseUrl();if(!url){showError("backendStatus","Masukkan URL Worker terlebih dahulu.");return;}$("healthBtn").disabled=true;$("backendStatus").className="status";$("backendStatus").textContent="Menguji backend…";try{const r=await fetch(url+"/health",{headers:{"Accept":"application/json"}});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||("HTTP "+r.status));const missing=[];if(!d.configured?.geminiApiKey)missing.push("GEMINI_API_KEY");if(!d.configured?.appSharedToken)missing.push("APP_SHARED_TOKEN");$("backendStatus").className="status "+(missing.length?"bad":"good");$("backendStatus").textContent="Backend terjangkau. Model: "+d.model+". "+(missing.length?"Secret belum lengkap: "+missing.join(", ")+".":"Secret terdeteksi. Token tetap harus cocok.");}catch(e){showError("backendStatus","Koneksi gagal: "+(e.message||"periksa URL, deployment, dan ALLOWED_ORIGIN."));}finally{$("healthBtn").disabled=false;}});
+  $("analyzeBtn").addEventListener("click",async()=>{if(!current){showError("backendStatus","Muat CSV terlebih dahulu.");return;}const url=baseUrl(),token=$("accessToken").value.trim();if(!url||!token){showError("backendStatus","Masukkan URL Worker dan token akses.");return;}$("analyzeBtn").disabled=true;$("backendStatus").className="status";$("backendStatus").textContent="W001 mengirim ringkasan ke Gemini…";$("analysisPanel").classList.add("hidden");try{const products=current.products.slice().sort((a,b)=>b.commission-a.commission).slice(0,30);const r=await fetch(url+"/v1/w001/analyze",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({metrics:current.metrics,products})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||("HTTP "+r.status));$("analysisText").textContent=d.analysis;$("analysisPanel").classList.remove("hidden");$("backendStatus").className="status good";$("backendStatus").textContent="Analisis AI berhasil. Model: "+d.model+". Produk dikirim: "+d.productsAnalyzed+".";}catch(e){showError("backendStatus","Analisis AI gagal: "+(e.message||"periksa konfigurasi backend."));}finally{$("analyzeBtn").disabled=false;}});
+})();
+</script>
+</body></html>

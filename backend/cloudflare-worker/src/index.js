@@ -219,7 +219,13 @@ export default {
     }
     if (!origin) return json({ ok: false, error: "Origin tidak diizinkan." }, 403, "null");
     if (!env.APP_SHARED_TOKEN) return json({ ok: false, error: "Backend belum dikonfigurasi." }, 503, origin);
-    if (!authorized(request, env)) return json({ ok: false, error: "Token tidak valid." }, 401, origin);
+    const ownerRoute = (request.method === "GET" && path === "/api/approvals") ||
+      (request.method === "POST" && /^\\/api\\/approvals\\/[a-zA-Z0-9_-]{1,80}\\/decision$/.test(path));
+    if (ownerRoute) {
+      if (!env.APP_OWNER_TOKEN) return json({ ok: false, error: "Token pemilik belum dikonfigurasi." }, 503, origin);
+    } else if (!authorized(request, env)) {
+      return json({ ok: false, error: "Token tidak valid." }, 401, origin);
+    }
 
     if (request.method === "GET" && path === "/health") {
       return json({ ok: true, service: "appdigi-w001-worker", model: env.GEMINI_MODEL || DEFAULT_MODEL,

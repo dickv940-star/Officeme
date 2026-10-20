@@ -29,13 +29,37 @@
 .director-person{left:52%;bottom:26%;font-size:43px;animation:personBob 2s ease-in-out infinite}
 .scene-plant{position:absolute;right:5%;bottom:25%;font-size:30px;z-index:2;animation:leafSway 4s ease-in-out infinite}
 .scene-label{position:absolute;left:9px;bottom:8px;z-index:4;background:#0b1424d9;border:1px solid #ffffff25;border-radius:20px;padding:4px 8px;color:#eff7ff;font-size:10px;letter-spacing:.02em}
-.worker-scene{background:linear-gradient(#a8c9e0,#e3edf0 61%,#c2d1bc 61%,#829b7e)}
-.worker-scene:before{left:5%;top:7%;width:20%;height:32%}
-.worker-table{position:absolute;z-index:2;left:15%;right:15%;top:47%;height:49px;border-radius:50%;background:linear-gradient(#c98f5c,#8d5a39);border:5px solid #754a35;box-shadow:0 7px 0 #583c2d}
-.worker-table:after{content:"📊  💻  📒";position:absolute;left:50%;top:10px;transform:translateX(-50%);font-size:17px;white-space:nowrap}
-.worker-seat{position:absolute;z-index:3;font-size:29px;animation:personBob 1.65s ease-in-out infinite;filter:drop-shadow(0 3px 1px #17202c35)}
-.worker-seat:nth-of-type(3n){animation-delay:-.7s}.worker-seat:nth-of-type(2n){animation-delay:-1.2s}
-.worker-seat.s1{left:9%;top:27%}.worker-seat.s2{left:31%;top:14%}.worker-seat.s3{left:54%;top:14%}.worker-seat.s4{right:8%;top:27%}.worker-seat.s5{right:9%;bottom:15%}.worker-seat.s6{left:55%;bottom:6%}.worker-seat.s7{left:31%;bottom:6%}.worker-seat.s8{left:8%;bottom:15%}
+.worker-scene{height:270px;background:linear-gradient(#b8d7e8 0%,#e5eff0 68%,#c5d5c2 68%,#91a88b 100%)}
+.worker-scene:before{left:4%;top:5%;width:17%;height:23%}
+.worker-scene .scene-sun{width:17px;height:17px;right:5%;top:6%}
+.worker-table{position:absolute;z-index:2;left:18%;right:18%;top:28%;height:44%;border-radius:48%;background:radial-gradient(ellipse at 45% 35%,#d7aa79 0%,#bd8758 58%,#865536 100%);border:5px solid #70472f;box-shadow:0 8px 0 #543b2c, inset 0 2px 4px #f6d2a0}
+.worker-table:after{content:"";position:absolute;inset:17% 20%;border:1px dashed #f1d0a1;border-radius:50%;opacity:.6}
+.worker-seat{position:absolute;z-index:3;width:34px;height:67px;display:block;filter:drop-shadow(0 2px 1px #17202c35);animation:workSway 2.6s ease-in-out infinite;transform-origin:50% 80%}
+.worker-seat .chair{position:absolute;left:5px;top:20px;width:25px;height:35px;border-radius:9px 9px 7px 7px;background:#4a6079;border:2px solid #34465d;box-shadow:0 3px 0 #29374a}
+.worker-seat .head{position:absolute;z-index:2;left:10px;top:1px;width:15px;height:15px;border-radius:50%;background:var(--skin,#d6a27d);border:2px solid #654d42}
+.worker-seat .hair{position:absolute;z-index:3;left:9px;top:0;width:17px;height:7px;border-radius:9px 9px 3px 3px;background:var(--hair,#47382f)}
+.worker-seat .body{position:absolute;z-index:2;left:7px;top:15px;width:21px;height:25px;border-radius:7px 7px 5px 5px;background:var(--shirt,#4d85bb);border:1px solid #ffffff70}
+.worker-seat .arm{position:absolute;z-index:4;top:20px;width:7px;height:22px;border-radius:6px;background:var(--skin,#d6a27d);border:1px solid #815f4c;transform-origin:top center;animation:typingArm .62s ease-in-out infinite alternate}
+.worker-seat .arm.left{left:5px;transform:rotate(-22deg)}.worker-seat .arm.right{right:3px;transform:rotate(22deg);animation-delay:-.3s}
+.worker-seat .leg{position:absolute;z-index:1;top:39px;width:8px;height:22px;border-radius:5px;background:var(--pants,#34445b);border:1px solid #27374c}
+.worker-seat .leg.left{left:9px;transform:rotate(7deg)}.worker-seat .leg.right{right:7px;transform:rotate(-7deg)}
+.worker-seat .foot{position:absolute;z-index:1;top:57px;width:12px;height:6px;border-radius:5px;background:#273448}
+.worker-seat .foot.left{left:5px}.worker-seat .foot.right{right:3px}
+.worker-seat .laptop{position:absolute;z-index:5;left:2px;top:42px;width:30px;height:15px;border:2px solid #34465d;border-radius:3px 3px 1px 1px;background:linear-gradient(135deg,#9ce5e0,#5987ac);box-shadow:0 2px 0 #5d432f}
+.worker-seat.s1{left:22%;top:2%;--shirt:#5a91cb}.worker-seat.s2{left:43%;top:0;--shirt:#c77878;--skin:#c58c68;--hair:#332c2a}
+.worker-seat.s3{left:65%;top:3%;--shirt:#6c9c78;--skin:#e0b28c;--hair:#55402e}
+.worker-seat.s4{left:1%;top:37%;transform:rotate(-24deg);--shirt:#9279bd;--skin:#8e5d43;--hair:#292521}
+.worker-seat.s5{right:1%;top:37%;transform:rotate(24deg);--shirt:#d39a52;--skin:#d7a17c;--hair:#44332b}
+.worker-seat.s6{left:22%;bottom:0;transform:rotate(180deg);--shirt:#4b9c9a;--skin:#b97e5c;--hair:#332b29}
+.worker-seat.s7{left:43%;bottom:0;transform:rotate(180deg);--shirt:#a06f9f;--skin:#e0b28c;--hair:#533a2c}
+.worker-seat.s8{left:65%;bottom:0;transform:rotate(180deg);--shirt:#7189bc;--skin:#9e6a4e;--hair:#2e2927}
+.worker-seat.s1,.worker-seat.s2,.worker-seat.s3{animation-delay:-.2s}
+.worker-seat.s4{animation-delay:-1.1s}.worker-seat.s5{animation-delay:-1.8s}
+.worker-seat.s6{animation-delay:-.8s}.worker-seat.s7{animation-delay:-1.4s}.worker-seat.s8{animation-delay:-2s}
+@keyframes workSway{0%,100%{margin-top:0}50%{margin-top:2px}}
+@keyframes typingArm{from{transform:rotate(-24deg) translateY(0)}to{transform:rotate(18deg) translateY(2px)}}
+.worker-station-label{position:absolute;z-index:6;left:50%;top:49%;transform:translate(-50%,-50%);font-size:10px;font-weight:800;color:#f7ead8;background:#6d472f;border:1px solid #f0c996;border-radius:20px;padding:4px 8px;white-space:nowrap}
+.worker-scene .scene-label{z-index:7}
 .cafe-scene{background:linear-gradient(#b6d7e8 0%,#e6e8d7 61%,#c49a70 61%,#a87955 100%)}
 .cafe-scene:before{left:7%;top:9%;width:30%;height:35%;background:linear-gradient(135deg,#b2e4f3,#f6f5d8)}
 .cafe-counter{position:absolute;right:0;top:35%;height:18px;width:35%;background:#81533b;box-shadow:0 7px 0 #52372b}
@@ -124,7 +148,7 @@ function loadRoomNotes(){try{return JSON.parse(localStorage.getItem(roomStorageK
 function saveRoomNotes(notes){try{localStorage.setItem(roomStorageKey,JSON.stringify(notes));return true}catch(e){return false}}
 const roomGrid=document.getElementById("workerRooms");
 function roomScene(id){
- if(id==="workers") return '<div class="room-scene worker-scene" role="img" aria-label="Delapan pekerja animasi berkumpul di satu meja"><span class="scene-sun"></span><span class="worker-seat s1">🧑🏻‍💻</span><span class="worker-seat s2">👩🏽‍💼</span><span class="worker-seat s3">👨🏼‍💻</span><span class="worker-seat s4">👩🏻‍🔬</span><span class="worker-seat s5">🧑🏾‍💻</span><span class="worker-seat s6">👨🏻‍💼</span><span class="worker-seat s7">👩🏼‍💻</span><span class="worker-seat s8">🧑🏽‍💼</span><span class="worker-table"></span><span class="scene-label">Diskusi tim · 8 orang</span></div>';
+ if(id==="workers") return '<div class="room-scene worker-scene" role="img" aria-label="Delapan pekerja bergaya ilustrasi duduk mengelilingi satu meja, masing-masing menggunakan komputer dan mengetik"><span class="scene-sun"></span><span class="worker-seat s1" aria-hidden="true"><i class="chair"></i><i class="head"></i><i class="hair"></i><i class="body"></i><i class="arm left"></i><i class="arm right"></i><i class="leg left"></i><i class="leg right"></i><i class="foot left"></i><i class="foot right"></i><i class="laptop"></i></span><span class="worker-seat s2" aria-hidden="true"><i class="chair"></i><i class="head"></i><i class="hair"></i><i class="body"></i><i class="arm left"></i><i class="arm right"></i><i class="leg left"></i><i class="leg right"></i><i class="foot left"></i><i class="foot right"></i><i class="laptop"></i></span><span class="worker-seat s3" aria-hidden="true"><i class="chair"></i><i class="head"></i><i class="hair"></i><i class="body"></i><i class="arm left"></i><i class="arm right"></i><i class="leg left"></i><i class="leg right"></i><i class="foot left"></i><i class="foot right"></i><i class="laptop"></i></span><span class="worker-seat s4" aria-hidden="true"><i class="chair"></i><i class="head"></i><i class="hair"></i><i class="body"></i><i class="arm left"></i><i class="arm right"></i><i class="leg left"></i><i class="leg right"></i><i class="foot left"></i><i class="foot right"></i><i class="laptop"></i></span><span class="worker-seat s5" aria-hidden="true"><i class="chair"></i><i class="head"></i><i class="hair"></i><i class="body"></i><i class="arm left"></i><i class="arm right"></i><i class="leg left"></i><i class="leg right"></i><i class="foot left"></i><i class="foot right"></i><i class="laptop"></i></span><span class="worker-seat s6" aria-hidden="true"><i class="chair"></i><i class="head"></i><i class="hair"></i><i class="body"></i><i class="arm left"></i><i class="arm right"></i><i class="leg left"></i><i class="leg right"></i><i class="foot left"></i><i class="foot right"></i><i class="laptop"></i></span><span class="worker-seat s7" aria-hidden="true"><i class="chair"></i><i class="head"></i><i class="hair"></i><i class="body"></i><i class="arm left"></i><i class="arm right"></i><i class="leg left"></i><i class="leg right"></i><i class="foot left"></i><i class="foot right"></i><i class="laptop"></i></span><span class="worker-seat s8" aria-hidden="true"><i class="chair"></i><i class="head"></i><i class="hair"></i><i class="body"></i><i class="arm left"></i><i class="arm right"></i><i class="leg left"></i><i class="leg right"></i><i class="foot left"></i><i class="foot right"></i><i class="laptop"></i></span><span class="worker-table"></span><span class="worker-station-label">MEJA KERJA TIM · 8 STASIUN</span><span class="scene-label">8 pekerja · mengetik & bekerja</span></div>';
  if(id==="cafe") return '<div class="room-scene cafe-scene" role="img" aria-label="Kafe santai dengan dua orang, meja, dan kopi"><span class="cafe-light">💡</span><span class="cafe-counter"></span><span class="scene-person cafe-person-a">🧑🏻</span><span class="scene-person cafe-person-b">👩🏽</span><span class="cafe-table"></span><span class="cafe-cup">☕</span><span class="cafe-steam">〰️</span><span class="scene-label">Waktu rehat ☕</span></div>';
  return '<div class="room-scene" role="img" aria-label="Ruangan direktur dengan meja kerja dan tanaman"><span class="scene-sun"></span><span class="scene-desk"></span><span class="scene-monitor"></span><span class="scene-person director-person">🧑🏻‍💼</span><span class="scene-plant">🪴</span><span class="scene-label">Ruang kendali direktur</span></div>';
 }

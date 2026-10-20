@@ -28,7 +28,7 @@
 <body><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · Director Workspace</div><h1>Pusat Kendali Orchestrator</h1></div></div><a class="button" href="./index.html">← Dashboard utama</a></header>
 <section class="hero">
-<div class="panel"><div class="eyebrow">Command center</div><h2>Direktur memberi perintah.<br>Orchestrator menyusun pekerjaan.</h2><p class="muted">Satu pintu masuk untuk memecah instruksi menjadi tugas yang sesuai kemampuan pekerja, memeriksa prasyarat layanan, dan menyusun rencana kerja.</p><div class="stats"><div class="stat"><strong id="workerCount">6</strong><span>Peran pekerja</span></div><div class="stat"><strong id="taskCount">0</strong><span>Tugas direncanakan</span></div><div class="stat"><strong id="serviceCount">0/5</strong><span>Layanan terverifikasi</span></div></div></div>
+<div class="panel"><div class="eyebrow">Command center</div><h2>Direktur memberi perintah.<br>Orchestrator menyusun pekerjaan.</h2><p class="muted">Satu pintu masuk untuk memecah instruksi menjadi tugas yang sesuai kemampuan pekerja, memeriksa prasyarat layanan, dan menyusun rencana kerja.</p><div class="stats"><div class="stat"><strong id="workerCount">8</strong><span>Peran pekerja</span></div><div class="stat"><strong id="taskCount">0</strong><span>Tugas direncanakan</span></div><div class="stat"><strong id="serviceCount">0/5</strong><span>Layanan terverifikasi</span></div></div></div>
 <div class="panel"><h2 style="margin-top:0">Perintah Direktur</h2><label for="command">Apa yang ingin dikerjakan?</label><textarea id="command" maxlength="4000" placeholder="Contoh: Analisis CSV Shopee Affiliate, pilih 20 produk berdasarkan komisi yang tersedia, lalu buat naskah promosi. Jangan publikasikan tanpa persetujuan."></textarea><div class="actions"><button class="primary" id="planBtn">Susun rencana kerja</button><button id="clearBtn">Bersihkan</button></div><div class="note">Mode saat ini: perencanaan lokal. Tombol ini belum mengirim data ke Canva, Shopee, atau Gemini dan tidak melakukan publikasi.</div></div>
 </section>
 <section class="panel"><div class="eyebrow">Delegasi tugas</div><h2>Daftar pekerja AI</h2><p class="muted">Peran dan aturan kerja yang direncanakan. Status pekerja tidak berarti akun layanan telah tersambung.</p><div class="grid" id="workers">
@@ -37,7 +37,9 @@
 <div class="worker"><div class="emoji">🔎</div><h3>Riset Produk</h3><p>Membandingkan produk berdasarkan data nyata dan kriteria yang disepakati.</p><span class="tag">● Menunggu sumber</span></div>
 <div class="worker"><div class="emoji">✍️</div><h3>Penulis Konten</h3><p>Membuat naskah promosi jujur tanpa klaim yang tidak didukung sumber.</p><span class="tag">● Menunggu data produk</span></div>
 <div class="worker"><div class="emoji">🎨</div><h3>Desainer</h3><p>Menyiapkan brief visual; penggunaan Canva memerlukan koneksi dan izin yang valid.</p><span class="tag">● Canva belum diuji</span></div>
-<div class="worker"><div class="emoji">🛡️</div><h3>Quality Control</h3><p>Memeriksa angka, klaim, kelengkapan hasil, dan kebutuhan persetujuan sebelum tindakan.</p><span class="tag">● Aturan pemeriksaan lokal</span></div>
+<div class="worker"><div class="emoji">🎬</div><h3>Video Editor</h3><p>Menyusun brief video, mengedit materi berizin, serta menyiapkan pratinjau, caption, dan versi konten.</p><span class="tag">● Belum terhubung ke editor</span></div>
+<div class="worker"><div class="emoji">📣</div><h3>Marketing Publisher</h3><p>Menyiapkan publikasi per kanal dan mencatat status; wajib memeriksa persetujuan versi sebelum menerbitkan.</p><span class="tag">● Publikasi dinonaktifkan</span></div>
+<div class="worker"><div class="emoji">🛡️</div><h3>Quality Control</h3><p>Memeriksa angka, klaim, kelengkapan hasil, hak aset, dan kebutuhan persetujuan sebelum tindakan.</p><span class="tag">● Aturan pemeriksaan lokal</span></div>
 </div></section>
 <section class="panel"><div class="eyebrow">Integration readiness</div><h2>Status koneksi layanan</h2><p class="muted">Semua layanan mulai dari status belum diverifikasi. Status berubah hanya jika pemeriksaan nyata diintegrasikan dan berhasil dijalankan.</p><div class="services">
 <div class="service"><div class="service-head"><h3>Canva</h3><span class="state">Belum diuji</span></div><p>Desain dan aset visual.</p><small>Perlu otorisasi integrasi di runtime aplikasi.</small></div>
@@ -90,6 +92,8 @@ const workers=[
  {id:"research",name:"Riset Produk",icon:"🔎",keys:["produk","riset","pilih","rekomendasi","shopee","affiliate","komisi","pasar"],requires:["Data produk yang sah"],task:"Saring dan bandingkan produk hanya dengan atribut yang benar-benar tersedia; tandai asumsi."},
  {id:"content",name:"Penulis Konten",icon:"✍️",keys:["konten","caption","promosi","naskah","copywriting","artikel","deskripsi","iklan"],requires:["Brief dan data produk"],task:"Buat draft konten dengan klaim yang didukung data dan tandai bagian yang perlu verifikasi."},
  {id:"design",name:"Desainer",icon:"🎨",keys:["canva","desain","visual","poster","gambar","banner","kreatif"],requires:["Brief visual","Koneksi Canva terverifikasi untuk membuat desain"],task:"Susun brief visual; pembuatan atau pengeditan di Canva ditahan sampai koneksi diuji."},
+ {id:"video",name:"Video Editor",icon:"🎬",keys:["video","editor","capcut","pinterest","reels","shorts","storyboard","edit"],requires:["Brief produk","Aset video yang boleh digunakan","Integrasi editor yang teruji"],task:"Siapkan naskah visual dan paket video; jangan mengunduh atau memakai ulang materi tanpa hak, dan tandai bila edit masih manual."},
+ {id:"publisher",name:"Marketing Publisher",icon:"📣",keys:["marketing","publisher","instagram","youtube","shopee video","upload","unggah","publikasi","posting","terbitkan"],requires:["Video final","Caption dan tautan per kanal","Persetujuan pemilik untuk versi dan kanal yang tepat","Jalur publikasi resmi yang teruji"],task:"Siapkan paket tiap kanal; jangan menerbitkan tanpa persetujuan pemilik yang valid. Jika integrasi belum tersedia, minta tindakan manual."},
  {id:"qa",name:"Quality Control",icon:"🛡️",keys:["periksa","cek","validasi","quality","kualitas","final","publikasi","posting","unggah"],requires:["Hasil pekerja terkait"],task:"Periksa konsistensi, bukti sumber, klaim promosi, kelengkapan, dan persetujuan sebelum tindakan."}
 ];
 function route(text){
@@ -103,7 +107,8 @@ function route(text){
  if(/canva|desain|visual|poster|gambar|banner/.test(t))integrations.push("Canva: belum diverifikasi; tugas desain hanya berupa brief sampai koneksi nyata lolos uji.");
  if(/shopee|affiliate|produk|komisi/.test(t))integrations.push("Shopee Affiliate: perlu CSV yang diberikan atau akses API resmi yang telah disetujui.");
  if(/gemini|analisis|analisa|konten|naskah|promosi/.test(t))integrations.push("Gemini AI: belum ada bukti panggilan API sukses pada halaman ini.");
- if(/publikasi|posting|unggah|terbitkan|kirim/.test(t))integrations.push("Tindakan eksternal: tahan sampai integrasi tersedia dan persetujuan Direktur tercatat.");
+ if(/publikasi|posting|unggah|terbitkan|kirim|instagram|youtube|shopee video/.test(t))integrations.push("Marketing Publisher: publikasi diblokir sampai ada persetujuan pemilik untuk versi dan kanal yang tepat serta integrasi resmi teruji.");
+ if(/video|editor|capcut|pinterest|reels|shorts/.test(t))integrations.push("Video Editor: editor belum terhubung; gunakan aset berizin. Pinterest adalah sumber referensi, bukan izin otomatis untuk mengunduh atau menerbitkan ulang.");
  return {tasks,integrations};
 }
 $("planBtn").addEventListener("click",()=>{

@@ -54,7 +54,7 @@ function ensureBridge(){
 }
 window.addEventListener("message",e=>{
  if(e.source!==$("gasBridge").contentWindow||e.origin!=="https://script.google.com"&& !e.origin.endsWith(".googleusercontent.com"))return;
- const m=e.data;if(!m||m.channel!=="APPDIGI_W001_RESULT"||!pending.has(m.requestId))return;
+ const m=e.data;if(m&&m.channel==="APPDIGI_W001_READY"){bridgeReady=true;return}if(!m||m.channel!=="APPDIGI_W001_RESULT"||!pending.has(m.requestId))return;
  const p=pending.get(m.requestId);pending.delete(m.requestId);if(m.result&&m.result.ok)p.resolve(m.result);else p.reject(Error(m.result&&m.result.error||"Backend gagal."));
 });
 function callBackend(action,payload){

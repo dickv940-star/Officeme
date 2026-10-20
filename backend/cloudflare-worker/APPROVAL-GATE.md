@@ -1,5 +1,29 @@
 # Server-side approval gate (D1)
 
+## Current Cloudflare deployment status
+
+The Worker has been uploaded to the Cloudflare account as `appdigi-w001-backend`, and its `workers.dev` subdomain is enabled:
+
+- Health endpoint: https://appdigi-w001-backend.dickv940.workers.dev/health
+- D1 binding: `APPROVAL_DB` → database `appdigi-approvals`
+- Allowed browser origin: `https://dickv940-star.github.io`
+- Gemini model variable: `gemini-2.5-flash`
+- Secrets still required: `APP_SHARED_TOKEN`, `APP_OWNER_TOKEN`, and `GEMINI_API_KEY`
+
+The health endpoint is intended to be readable before secrets are configured. A successful upload is not yet proof that the full analysis and approval workflow works; test it after adding secrets. Publishing remains disabled.
+
+## Configure required secrets safely
+
+1. Open the [Cloudflare dashboard](https://dash.cloudflare.com/217f93e14f8b7ac177af17fad3af2c3e/workers-and-pages).
+2. Select **Workers & Pages** → `appdigi-w001-backend` → **Settings** → **Variables and Secrets**.
+3. Add three values as **Secrets**, not plain-text variables:
+   - `APP_SHARED_TOKEN`: a long, random secret for trusted app/backend requests.
+   - `APP_OWNER_TOKEN`: a different long, random secret for owner approval endpoints.
+   - `GEMINI_API_KEY`: an API key generated in Google AI Studio.
+4. Save/deploy the updated Worker. Do not send these secret values in chat, commit them to GitHub, or put the owner token in the public GitHub Pages app.
+5. Open the health endpoint above. It should report `geminiConfigured`, `sharedTokenConfigured`, `approvalStoreConfigured`, and `ownerDecisionConfigured` as true. Never share the secret values in a screenshot.
+6. Only after that, run the acceptance checks below with a trusted private client. Do not connect public frontend approval controls to the owner token.
+
 This migration adds persistent approval records to the W001 Cloudflare Worker. It does **not** publish videos or connect social accounts. Publishing remains disabled until each platform integration is separately implemented and tested.
 
 ## Routes

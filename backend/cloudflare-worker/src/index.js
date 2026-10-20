@@ -218,6 +218,13 @@ export default {
       }});
     }
     if (!origin) return json({ ok: false, error: "Origin tidak diizinkan." }, 403, "null");
+    // Health is intentionally read-only and may be checked before secrets are configured.
+    if (request.method === "GET" && path === "/health") {
+      return json({ ok: true, service: "appdigi-w001-worker", model: env.GEMINI_MODEL || DEFAULT_MODEL,
+        geminiConfigured: Boolean(env.GEMINI_API_KEY), sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
+        approvalStoreConfigured: Boolean(env.APPROVAL_DB), ownerDecisionConfigured: Boolean(env.APP_OWNER_TOKEN),
+        publishingEnabled: false }, 200, origin);
+    }
     if (!env.APP_SHARED_TOKEN) return json({ ok: false, error: "Backend belum dikonfigurasi." }, 503, origin);
     const ownerRoute = (request.method === "GET" && path === "/api/approvals") ||
       (request.method === "POST" && /^\/api\/approvals\/[a-zA-Z0-9_-]{1,80}\/decision$/.test(path));
@@ -227,11 +234,6 @@ export default {
       return json({ ok: false, error: "Token tidak valid." }, 401, origin);
     }
 
-    if (request.method === "GET" && path === "/health") {
-      return json({ ok: true, service: "appdigi-w001-worker", model: env.GEMINI_MODEL || DEFAULT_MODEL,
-        geminiConfigured: Boolean(env.GEMINI_API_KEY), approvalStoreConfigured: Boolean(env.APPROVAL_DB),
-        ownerDecisionConfigured: Boolean(env.APP_OWNER_TOKEN), publishingEnabled: false }, 200, origin);
-    }
     if (request.method === "GET" && path === "/api/approvals") return listApprovals(request, env, origin);
     if (request.method === "POST" && path === "/api/approvals") return createApproval(request, env, origin);
     if (request.method === "POST" && path === "/api/publisher/validate") return validatePublishPackage(request, env, origin);

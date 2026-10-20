@@ -60,6 +60,52 @@
 @keyframes typingArm{from{transform:rotate(-24deg) translateY(0)}to{transform:rotate(18deg) translateY(2px)}}
 .worker-station-label{position:absolute;z-index:6;left:50%;top:49%;transform:translate(-50%,-50%);font-size:10px;font-weight:800;color:#f7ead8;background:#6d472f;border:1px solid #f0c996;border-radius:20px;padding:4px 8px;white-space:nowrap}
 .worker-scene .scene-label{z-index:7}
+
+/* Circular seated conference layout: all eight portraits sit around the same round table */
+.worker-scene{height:390px;background:radial-gradient(ellipse at 50% 54%,#36556b 0%,#213c53 48%,#14283d 100%)}
+.worker-scene .office-window{left:6%;right:6%;top:4%;height:25%;opacity:.92}
+.worker-scene .office-shelf{top:5%;right:8%;height:20%}
+.worker-scene .worker-table{left:26%;right:26%;top:32%;height:42%;border-radius:50%;background:radial-gradient(ellipse at 38% 28%,#e7c89c 0%,#c18b5b 54%,#865637 100%);border:6px solid #765039;box-shadow:0 11px 0 #101d2b,0 18px 22px #07111f99,inset 0 3px 8px #ffe2b6}
+.worker-scene .worker-table:after{inset:12%;border:2px solid #f2d3a6;border-radius:50%;opacity:.5}
+.worker-scene .table-glow{left:35%;top:18%;width:30%;height:60%;background:#ffe3a61f}
+.worker-scene .meeting-device{left:calc(50% - 12px);top:44%;width:24px;height:24px}
+.worker-scene .worker-person{width:82px;gap:2px;animation:seatBob 3.2s ease-in-out infinite;animation-delay:var(--person-delay);transform-origin:50% 90%}
+.worker-scene .person-photo{width:55px;height:59px;border-radius:15px 15px 10px 10px;border-width:2px;box-shadow:0 0 0 4px #172b40,0 5px 10px #06101b99}
+.worker-scene .person-photo img{object-position:center 18%}
+.worker-scene .person-name{padding:3px 6px;font-size:9px}
+.worker-scene .person-role{font-size:8px}
+.worker-scene .person-laptop{margin-top:0}
+.worker-scene .worker-person.p1{left:17%;top:25%}
+.worker-scene .worker-person.p2{left:calc(50% - 41px);top:22%}
+.worker-scene .worker-person.p3{right:17%;top:25%}
+.worker-scene .worker-person.p4{left:1%;top:43%}
+.worker-scene .worker-person.p5{right:1%;top:43%}
+.worker-scene .worker-person.p6{left:17%;bottom:0}
+.worker-scene .worker-person.p7{left:calc(50% - 41px);bottom:0}
+.worker-scene .worker-person.p8{right:17%;bottom:0}
+.worker-scene .worker-person.p6 .person-photo,.worker-scene .worker-person.p7 .person-photo,.worker-scene .worker-person.p8 .person-photo{width:51px;height:54px}
+.worker-scene .person-laptop i{background:linear-gradient(135deg,#112840,#63a5b9)}
+.worker-scene .worker-station-label{top:52%;font-size:9px;background:#19354aee}
+.worker-scene .scene-label{left:9px;bottom:7px}
+@keyframes seatBob{0%,100%{translate:0 0}50%{translate:0 -2px}}
+@media(max-width:650px){
+ .worker-scene{height:405px}
+ .worker-scene .worker-table{left:21%;right:21%;top:34%;height:39%}
+ .worker-scene .worker-person{width:68px}
+ .worker-scene .person-photo{width:44px;height:48px}
+ .worker-scene .person-name{font-size:8px}
+ .worker-scene .person-role{font-size:7px;max-width:76px}
+ .worker-scene .worker-person.p1{left:10%;top:26%}
+ .worker-scene .worker-person.p2{left:calc(50% - 34px);top:23%}
+ .worker-scene .worker-person.p3{right:10%;top:26%}
+ .worker-scene .worker-person.p4{left:0;top:45%}
+ .worker-scene .worker-person.p5{right:0;top:45%}
+ .worker-scene .worker-person.p6{left:10%;bottom:0}
+ .worker-scene .worker-person.p7{left:calc(50% - 34px);bottom:0}
+ .worker-scene .worker-person.p8{right:10%;bottom:0}
+ .worker-scene .worker-station-label{top:53%;font-size:7px;padding:4px 6px}
+}
+
 /* Workspace upgrade: character portraits, richer office environment, and eight named stations */
 .worker-scene{height:340px;overflow:hidden;background:linear-gradient(180deg,#182b43 0%,#25415a 47%,#2d4c61 48%,#192c40 100%);border-color:#49637a;box-shadow:inset 0 0 50px #07111f99}
 .worker-scene:before{display:none}

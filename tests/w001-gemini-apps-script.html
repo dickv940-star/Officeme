@@ -49,7 +49,7 @@ function render(d){data=d;const m=d.metrics;$("kProducts").textContent=fmt(m.pro
 function reset(){data=null;["kProducts","kClicks","kOrders","kCommission","kCvr"].forEach(id=>$(id).textContent="—");$("results").innerHTML='<tr><td colspan="5">Muat CSV atau data contoh.</td></tr>';$("csvFile").value="";$("analyzeBtn").disabled=true;$("aiPanel").classList.add("hidden");$("aiText").textContent="";status("csvStatus","Data dibersihkan.")}
 function ensureBridge(){
  const url=$("gasUrl").value.trim();if(!url||!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url))throw Error("Masukkan URL Web App Apps Script yang berakhir dengan /exec.");
- const iframe=$("gasBridge");if(iframe.src!==url){bridgeReady=false;iframe.src=url}
+ const iframe=$("gasBridge");const bridgeUrl=url+(url.indexOf("?")>=0?"&":"?")+"bridge=1";if(iframe.src!==bridgeUrl){bridgeReady=false;iframe.src=bridgeUrl}
  return new Promise((resolve,reject)=>{if(bridgeReady){resolve();return}const start=Date.now();const check=()=>{if(bridgeReady)resolve();else if(Date.now()-start>15000)reject(Error("Bridge Apps Script belum siap. Periksa URL/deployment dan apakah iframe boleh dimuat."));else setTimeout(check,250)};setTimeout(check,100)});
 }
 window.addEventListener("message",e=>{

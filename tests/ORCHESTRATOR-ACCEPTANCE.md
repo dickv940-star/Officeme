@@ -14,3 +14,15 @@ These checks apply to the frontend planning prototype in `orchestrator.html`.
 - [ ] Service status defaults never claim Canva, Shopee Affiliate, Gemini, or Apps Script is connected.
 - [ ] No secrets or API keys are embedded in the HTML.
 - [ ] Existing `main` branch remains unchanged until explicit approval.
+
+## Live CSV → Apps Script → Gemini panel
+- [ ] CSV file selection parses product name, clicks, orders, and commission locally.
+- [ ] Missing required columns are reported without sending any data.
+- [ ] Backend test requires a user-provided URL and token; no token is stored in local storage or URL.
+- [ ] Bridge URL appends `?bridge=1` and reports timeout/deployment errors clearly.
+- [ ] Wrong token is rejected by Apps Script.
+- [ ] Health result alone does not label Gemini as live/verified.
+- [ ] Only a real non-empty Gemini analysis is displayed as a successful analysis.
+- [ ] At most 30 products and aggregate metrics are sent; raw CSV is not sent.
+- [ ] API key remains only in Apps Script Script Properties.
+- [ ] Existing Apps Script `doGet(e)`, Index page, access logging, and email notifications are preserved.

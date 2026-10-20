@@ -8,20 +8,49 @@
 :root{color-scheme:dark;--bg:#0b1020;--panel:#121b2f;--line:#263650;--text:#edf3ff;--muted:#9aabc5;--accent:#86aaff;--green:#72e0b2}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#1b2b4b,transparent 40%),var(--bg);color:var(--text);font:15px/1.5 system-ui,Segoe UI,sans-serif}.wrap{max-width:1320px;margin:auto;padding:25px}.top,.brand,.head,.agent-head,.actions{display:flex;align-items:center;gap:13px}.top,.head{justify-content:space-between}.top{margin-bottom:24px}.logo{width:45px;height:45px;border-radius:14px;background:linear-gradient(135deg,#85b3ff,#9d83ff);color:#0b1020;display:grid;place-items:center;font-size:22px;font-weight:900}.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:800}.brand h1{font-size:25px;margin:0;letter-spacing:-.04em}.muted{color:var(--muted);font-size:13px}.private{border:1px solid #28684f;color:var(--green);border-radius:30px;padding:7px 11px;font-size:12px}.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:15px}.panel{background:linear-gradient(160deg,#16223a,#10182a);border:1px solid var(--line);border-radius:18px;padding:20px}.hero h2{font-size:clamp(25px,3vw,36px);line-height:1.13;margin:10px 0;letter-spacing:-.04em}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:22px}.stat{padding:12px;border-radius:12px;background:#0c1425;border:1px solid var(--line)}.stat strong{display:block;font-size:24px}.stat span{font-size:11px;color:var(--muted)}textarea{width:100%;min-height:112px;resize:vertical;background:#0a1120;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:12px;font:inherit}button{font:inherit;font-weight:700;border-radius:10px;padding:10px 13px;border:1px solid var(--line);background:#1b2945;color:var(--text);cursor:pointer}.primary{background:var(--accent);border-color:var(--accent);color:#091225}.actions{margin-top:10px;flex-wrap:wrap}.notice{font-size:11px;color:var(--muted);margin-top:10px}.section{margin:25px 0 12px}.section h2{font-size:19px;margin:2px 0}.agents{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.agent{padding:15px}.agent-head{align-items:flex-start}.avatar{width:39px;height:39px;border-radius:12px;background:#243653;display:grid;place-items:center;font-size:19px;flex-shrink:0}.agent h3{font-size:13px;margin:0}.status{font-size:11px;color:var(--green)}.agent p{font-size:12px;color:var(--muted);min-height:36px}.footline{font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:9px}.bottom{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:15px}.task{padding:12px 0;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start}.task:last-child{border-bottom:0}.dot{width:8px;height:8px;background:#ffd27a;border-radius:50%;margin-top:6px;flex-shrink:0}.task b{font-size:13px;overflow-wrap:anywhere}.task small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.pill{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:3px 7px;white-space:nowrap}.empty{color:var(--muted);font-size:12px;padding:14px 0}.toast{min-height:18px;color:var(--green);font-size:12px;margin-top:7px}.footer{text-align:center;color:var(--muted);font-size:11px;margin:24px 0 4px}@media(max-width:900px){.hero,.bottom{grid-template-columns:1fr}.agents{grid-template-columns:repeat(2,minmax(0,1fr)}}@media(max-width:540px){.wrap{padding:14px}.top{align-items:flex-start}.private{font-size:10px}.agents{grid-template-columns:1fr}.panel{padding:15px}.stats{grid-template-columns:repeat(3,1fr)}.stat strong{font-size:20px}}
 
-/* Ruangan direktur dan ruang kerja pekerja */
-.rooms-layout{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.room-card{background:#121b2f;border:1px solid var(--line);border-radius:15px;padding:15px;display:flex;flex-direction:column;gap:8px;min-height:150px}
-.room-card h3{margin:0;font-size:14px}.room-card p{margin:0;color:var(--muted);font-size:12px;flex:1}
+/* Tiga ruangan hidup: animasi ringan berbasis CSS, tanpa library eksternal */
+.rooms-layout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.room-card{background:linear-gradient(160deg,#17243b,#10182a);border:1px solid var(--line);border-radius:18px;padding:13px;display:flex;flex-direction:column;gap:10px;min-width:0;overflow:hidden}
+.room-card h3{margin:0;font-size:16px}.room-card p{margin:0;color:var(--muted);font-size:12px;min-height:36px;flex:1}
 .room-icon{font-size:23px}.room-open{width:100%;margin-top:4px}
-.director-room{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;margin-bottom:13px}
+.room-scene{height:190px;position:relative;overflow:hidden;border-radius:13px;border:1px solid #31435f;background:linear-gradient(#8db8d0 0%,#d7e8e9 64%,#a8c2b1 64%,#6d8f7a 100%);isolation:isolate}
+.room-scene:before{content:"";position:absolute;left:7%;top:9%;width:26%;height:39%;border:5px solid #f2e3c9;border-radius:5px;background:linear-gradient(135deg,#9dd8ed,#e5f4ef);box-shadow:0 0 0 1px #6f8295}
+.scene-sun{position:absolute;right:12%;top:12%;width:26px;height:26px;background:#ffe4a0;border-radius:50%;box-shadow:0 0 22px #ffe4a080;animation:sunPulse 4s ease-in-out infinite}
+.scene-floor{position:absolute;bottom:0;left:0;right:0;height:36%;background:repeating-linear-gradient(90deg,#b88961 0 35px,#a77852 36px 38px);border-top:4px solid #e0bd91}
+.scene-desk{position:absolute;left:21%;right:13%;bottom:24%;height:17px;background:#7c513b;border-radius:5px;box-shadow:0 8px 0 #513629}
+.scene-monitor{position:absolute;left:45%;bottom:41%;width:37px;height:27px;border:4px solid #273a51;background:#8de3d1;border-radius:4px;z-index:2}
+.scene-person{position:absolute;z-index:3;font-size:32px;filter:drop-shadow(0 3px 1px #17202c45);animation:personBob 2.7s ease-in-out infinite;transform-origin:bottom center}
+.director-person{left:52%;bottom:26%;font-size:43px;animation:personBob 3.2s ease-in-out infinite}
+.scene-plant{position:absolute;right:5%;bottom:25%;font-size:30px;z-index:2;animation:leafSway 4s ease-in-out infinite}
+.scene-label{position:absolute;left:9px;bottom:8px;z-index:4;background:#0b1424d9;border:1px solid #ffffff25;border-radius:20px;padding:4px 8px;color:#eff7ff;font-size:10px;letter-spacing:.02em}
+.worker-scene{background:linear-gradient(#a8c9e0,#e3edf0 61%,#c2d1bc 61%,#829b7e)}
+.worker-scene:before{left:5%;top:7%;width:20%;height:32%}
+.worker-table{position:absolute;z-index:2;left:15%;right:15%;top:47%;height:49px;border-radius:50%;background:linear-gradient(#c98f5c,#8d5a39);border:5px solid #754a35;box-shadow:0 7px 0 #583c2d}
+.worker-table:after{content:"📊  💻  📒";position:absolute;left:50%;top:10px;transform:translateX(-50%);font-size:17px;white-space:nowrap}
+.worker-seat{position:absolute;z-index:3;font-size:29px;animation:personBob 2.3s ease-in-out infinite;filter:drop-shadow(0 3px 1px #17202c35)}
+.worker-seat:nth-of-type(3n){animation-delay:-.7s}.worker-seat:nth-of-type(2n){animation-delay:-1.2s}
+.worker-seat.s1{left:9%;top:27%}.worker-seat.s2{left:31%;top:14%}.worker-seat.s3{left:54%;top:14%}.worker-seat.s4{right:8%;top:27%}.worker-seat.s5{right:9%;bottom:15%}.worker-seat.s6{left:55%;bottom:6%}.worker-seat.s7{left:31%;bottom:6%}.worker-seat.s8{left:8%;bottom:15%}
+.cafe-scene{background:linear-gradient(#b6d7e8 0%,#e6e8d7 61%,#c49a70 61%,#a87955 100%)}
+.cafe-scene:before{left:7%;top:9%;width:30%;height:35%;background:linear-gradient(135deg,#b2e4f3,#f6f5d8)}
+.cafe-counter{position:absolute;right:0;top:35%;height:18px;width:35%;background:#81533b;box-shadow:0 7px 0 #52372b}
+.cafe-table{position:absolute;bottom:22%;left:33%;width:37%;height:13px;background:#86583c;border-radius:50%;box-shadow:0 6px 0 #563c2c}
+.cafe-cup{position:absolute;z-index:3;left:47%;bottom:34%;font-size:22px}
+.cafe-person-a{left:20%;bottom:24%;font-size:39px}.cafe-person-b{right:17%;bottom:24%;font-size:39px;animation-delay:-1.1s}
+.cafe-steam{position:absolute;left:52%;bottom:48%;font-size:18px;animation:steamRise 2.5s ease-in-out infinite}
+.cafe-light{position:absolute;right:12%;top:6%;font-size:28px;animation:sunPulse 3.4s ease-in-out infinite}
 .room-view{margin-top:14px}.room-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .room-messages{display:flex;flex-direction:column;gap:9px;max-height:360px;overflow:auto;margin:15px 0}
 .room-message{padding:11px 13px;background:#0c1425;border:1px solid var(--line);border-radius:12px;overflow-wrap:anywhere}
 .room-message small{display:block;color:var(--muted);font-size:10px;margin-bottom:4px}
 .room-compose{display:grid;grid-template-columns:1fr auto;gap:9px}
 .room-compose textarea{min-height:75px}
+@keyframes personBob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-5px) rotate(1deg)}}
+@keyframes leafSway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(5deg)}}
+@keyframes sunPulse{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.1);opacity:1}}
+@keyframes steamRise{0%{transform:translateY(7px);opacity:0}40%{opacity:.85}100%{transform:translateY(-13px);opacity:0}}
+@media(prefers-reduced-motion:reduce){.room-scene *{animation:none!important;scroll-behavior:auto!important}}
 @media(max-width:900px){.rooms-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.director-room{grid-template-columns:auto 1fr}.director-room button{grid-column:1/-1}}
-@media(max-width:540px){.rooms-layout{grid-template-columns:1fr}.room-compose{grid-template-columns:1fr}}
+@media(max-width:650px){.rooms-layout{grid-template-columns:1fr}.room-scene{height:205px}.room-compose{grid-template-columns:1fr}}
 
 </style>
 </head>
@@ -76,29 +105,29 @@ document.getElementById("example").addEventListener("click",()=>{input.value="An
 document.getElementById("clear").addEventListener("click",()=>{queue=[];render();toast.textContent="Antrean lokal dibersihkan."});
 
 const roomTeam=[
- {id:"director",icon:"👑",name:"Ruangan Direktur",desc:"Arahan utama, catatan, dan keputusan Anda."},
- {id:"operations",icon:"🧭",name:"Operations Manager",desc:"Menyusun rencana dan membagi pekerjaan."},
- {id:"research",icon:"🔎",name:"Product Researcher",desc:"Catatan riset produk dan sumber data."},
- {id:"analyst",icon:"📊",name:"Data Analyst",desc:"Analisis klik, pesanan, konversi, dan komisi."},
- {id:"trend",icon:"📈",name:"Trend Analyst",desc:"Pantau ide tren dan kategori produk."},
- {id:"content",icon:"✍️",name:"Content Creator",desc:"Hook, caption, naskah, dan CTA."},
- {id:"video",icon:"🎬",name:"Video Planner",desc:"Storyboard, adegan, dan brief video."},
- {id:"campaign",icon:"🎯",name:"Campaign Strategist",desc:"Strategi kampanye dan kalender konten."},
- {id:"audit",icon:"🛡️",name:"Performance Auditor",desc:"Pemeriksaan kualitas data dan hasil."}
+ {id:"director",icon:"👑",name:"Ruangan Direktur",desc:"Ruang pribadi untuk arahan, keputusan, dan mengawasi pekerjaan."},
+ {id:"workers",icon:"👥",name:"Ruangan Pekerja · 8 Orang",desc:"Delapan anggota tim berkumpul di satu meja untuk membahas riset, data, dan konten."},
+ {id:"cafe",icon:"☕",name:"Ruang Santai · Café",desc:"Tempat istirahat virtual untuk jeda sejenak sebelum kembali bekerja."}
 ];
 const roomStorageKey="appdigi_officeme_rooms_v1";
 let activeRoom=null;
 function loadRoomNotes(){try{return JSON.parse(localStorage.getItem(roomStorageKey)||"{}")}catch(e){return {}}}
 function saveRoomNotes(notes){try{localStorage.setItem(roomStorageKey,JSON.stringify(notes));return true}catch(e){return false}}
 const roomGrid=document.getElementById("workerRooms");
-roomTeam.filter(r=>r.id!=="director").forEach(r=>{
+function roomScene(id){
+ if(id==="workers") return '<div class="room-scene worker-scene" role="img" aria-label="Delapan pekerja animasi berkumpul di satu meja"><span class="scene-sun"></span><span class="worker-seat s1">🧑🏻‍💻</span><span class="worker-seat s2">👩🏽‍💼</span><span class="worker-seat s3">👨🏼‍💻</span><span class="worker-seat s4">👩🏻‍🔬</span><span class="worker-seat s5">🧑🏾‍💻</span><span class="worker-seat s6">👨🏻‍💼</span><span class="worker-seat s7">👩🏼‍💻</span><span class="worker-seat s8">🧑🏽‍💼</span><span class="worker-table"></span><span class="scene-label">Diskusi tim · 8 orang</span></div>';
+ if(id==="cafe") return '<div class="room-scene cafe-scene" role="img" aria-label="Kafe santai dengan dua orang, meja, dan kopi"><span class="cafe-light">💡</span><span class="cafe-counter"></span><span class="scene-person cafe-person-a">🧑🏻</span><span class="scene-person cafe-person-b">👩🏽</span><span class="cafe-table"></span><span class="cafe-cup">☕</span><span class="cafe-steam">〰️</span><span class="scene-label">Waktu rehat ☕</span></div>';
+ return '<div class="room-scene" role="img" aria-label="Ruangan direktur dengan meja kerja dan tanaman"><span class="scene-sun"></span><span class="scene-desk"></span><span class="scene-monitor"></span><span class="scene-person director-person">🧑🏻‍💼</span><span class="scene-plant">🪴</span><span class="scene-label">Ruang kendali direktur</span></div>';
+}
+roomTeam.forEach(r=>{
  const card=document.createElement("article");card.className="room-card";
+ const scene=document.createElement("div");scene.innerHTML=roomScene(r.id);
  const icon=document.createElement("div");icon.className="room-icon";icon.textContent=r.icon;
  const title=document.createElement("h3");title.textContent=r.name;
  const desc=document.createElement("p");desc.textContent=r.desc;
- const btn=document.createElement("button");btn.className="room-open";btn.type="button";btn.textContent="Masuk ke ruangan";
+ const btn=document.createElement("button");btn.className="room-open";btn.type="button";btn.textContent=r.id==="cafe"?"Masuk & bersantai":"Masuk ke ruangan";
  btn.addEventListener("click",()=>openRoom(r.id));
- card.append(icon,title,desc,btn);roomGrid.append(card);
+ card.append(scene.firstElementChild,icon,title,desc,btn);roomGrid.append(card);
 });
 function openRoom(id){
  activeRoom=roomTeam.find(r=>r.id===id);if(!activeRoom)return;
@@ -113,7 +142,7 @@ function renderRoomNotes(){
  const holder=document.getElementById("roomMessages");holder.replaceChildren();
  const notes=loadRoomNotes()[activeRoom.id]||[];
  if(!notes.length){const empty=document.createElement("div");empty.className="empty";empty.textContent="Belum ada catatan di ruangan ini. Tulis arahan atau catatan pertama Anda di bawah.";holder.append(empty);return}
- notes.forEach(note=>{const el=document.createElement("div");el.className="room-message";const meta=document.createElement("small");meta.textContent=note.time+" · "+(activeRoom.id==="director"?"Direktur":"Catatan ruangan");const body=document.createElement("div");body.textContent=note.text;el.append(meta,body);holder.append(el)});
+ notes.forEach(note=>{const el=document.createElement("div");el.className="room-message";const meta=document.createElement("small");meta.textContent=note.time+" · "+(activeRoom.id==="director"?"Direktur":activeRoom.id==="workers"?"Catatan tim pekerja": "Ruang santai café");const body=document.createElement("div");body.textContent=note.text;el.append(meta,body);holder.append(el)});
  holder.scrollTop=holder.scrollHeight;
 }
 document.getElementById("openDirectorRoom").addEventListener("click",()=>openRoom("director"));

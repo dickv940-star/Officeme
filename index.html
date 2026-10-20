@@ -208,6 +208,54 @@
  .worker-scene .worker-station-label{top:51%!important;font-size:7px!important}
 }
 
+
+/* FINAL CIRCULAR SEATING OVERRIDE */
+.worker-scene{height:470px!important;position:relative!important;overflow:hidden!important;background:radial-gradient(ellipse at 50% 49%,#304b60 0%,#1a2d43 72%)!important}
+.worker-scene .office-window{left:5%!important;right:5%!important;top:4%!important;height:25%!important;opacity:.72!important}
+.worker-scene .office-shelf{top:5%!important;right:7%!important}
+.worker-scene .worker-table{position:absolute!important;left:25%!important;right:25%!important;top:30%!important;height:43%!important;width:auto!important;border-radius:50%!important;z-index:2!important;border:7px solid #a97a50!important;background:radial-gradient(ellipse at 40% 28%,#f0d2a2 0%,#c08d5d 50%,#805333 100%)!important;box-shadow:0 12px 0 #101d2a,0 17px 20px #050d17a8,inset 0 3px 8px #fff0c2!important}
+.worker-scene .worker-table:after{inset:13% 15%!important;border:2px dashed #ffe6bd!important}
+.worker-scene .meeting-device{z-index:3!important}
+.worker-scene .worker-person{position:absolute!important;width:82px!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:2px!important;z-index:5!important;bottom:auto!important;right:auto!important;left:auto!important;top:auto!important;transform:none!important;animation:seatBob 3.2s ease-in-out infinite!important;animation-delay:var(--person-delay)!important}
+.worker-scene .worker-person:before{content:""!important;position:absolute!important;z-index:-1!important;left:12px!important;top:22px!important;width:58px!important;height:67px!important;border:3px solid #6f8799!important;border-radius:17px 17px 12px 12px!important;background:linear-gradient(135deg,#425b70,#253b50)!important;box-shadow:0 5px 0 #101f2c!important}
+.worker-scene .person-photo{position:relative!important;width:48px!important;height:55px!important;overflow:hidden!important;border-radius:12px 12px 8px 8px!important;border:2px solid #c9e4ed!important;box-shadow:0 3px 8px #07111dcc!important;background:#d8e7ec!important}
+.worker-scene .person-photo img{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center 18%!important}
+.worker-scene .person-name{font-size:9px!important;line-height:1.15!important;padding:3px 6px!important;white-space:nowrap!important;background:#0d1b2b!important;border:1px solid #6f91a7!important;border-radius:8px!important}
+.worker-scene .person-role{font-size:8px!important;line-height:1.1!important;max-width:86px!important;text-align:center!important}
+.worker-scene .person-status{font-size:7px!important}
+.worker-scene .person-laptop{position:relative!important;z-index:6!important;width:34px!important;height:18px!important;margin-top:0!important}
+.worker-scene .person-laptop i{width:29px!important;height:14px!important}
+.worker-scene .person-laptop b{bottom:0!important}
+.worker-scene .worker-person.p1{left:calc(50% - 41px)!important;top:1%!important}
+.worker-scene .worker-person.p2{left:calc(73% - 41px)!important;top:12%!important}
+.worker-scene .worker-person.p3{left:calc(82% - 41px)!important;top:36%!important}
+.worker-scene .worker-person.p4{left:calc(73% - 41px)!important;top:64%!important}
+.worker-scene .worker-person.p5{left:calc(50% - 41px)!important;top:72%!important}
+.worker-scene .worker-person.p6{left:calc(27% - 41px)!important;top:64%!important}
+.worker-scene .worker-person.p7{left:calc(18% - 41px)!important;top:36%!important}
+.worker-scene .worker-person.p8{left:calc(27% - 41px)!important;top:12%!important}
+.worker-scene .worker-station-label{top:48%!important;z-index:3!important;left:50%!important;transform:translateX(-50%)!important;font-size:8px!important;white-space:nowrap!important}
+.worker-scene .scene-label{z-index:8!important}
+@media(max-width:650px){
+ .worker-scene{height:500px!important}
+ .worker-scene .worker-table{left:22%!important;right:22%!important;top:31%!important;height:40%!important}
+ .worker-scene .worker-person{width:68px!important}
+ .worker-scene .worker-person:before{left:8px!important;top:20px!important;width:50px!important;height:59px!important}
+ .worker-scene .person-photo{width:42px!important;height:47px!important}
+ .worker-scene .person-name{font-size:8px!important;padding:2px 4px!important}
+ .worker-scene .person-role{font-size:7px!important;max-width:72px!important}
+ .worker-scene .person-laptop{transform:scale(.88)!important}
+ .worker-scene .worker-person.p1{left:calc(50% - 34px)!important;top:1%!important}
+ .worker-scene .worker-person.p2{left:calc(76% - 34px)!important;top:12%!important}
+ .worker-scene .worker-person.p3{left:calc(84% - 34px)!important;top:36%!important}
+ .worker-scene .worker-person.p4{left:calc(76% - 34px)!important;top:65%!important}
+ .worker-scene .worker-person.p5{left:calc(50% - 34px)!important;top:75%!important}
+ .worker-scene .worker-person.p6{left:calc(24% - 34px)!important;top:65%!important}
+ .worker-scene .worker-person.p7{left:calc(16% - 34px)!important;top:36%!important}
+ .worker-scene .worker-person.p8{left:calc(24% - 34px)!important;top:12%!important}
+ .worker-scene .worker-station-label{top:48%!important;font-size:6px!important}
+}
+
 </style>
 </head>
 <body><main class="wrap">

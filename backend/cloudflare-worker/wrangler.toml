@@ -1,0 +1,7 @@
+name = "appdigi-w001-backend"
+main = "src/index.js"
+compatibility_date = "2026-10-20"
+
+[vars]
+GEMINI_MODEL = "gemini-2.5-flash"
+ALLOWED_ORIGINS = "https://dickv940-star.github.io"

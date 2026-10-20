@@ -217,6 +217,14 @@ export default {
         "vary": "Origin"
       }});
     }
+    // Allow direct navigation to the read-only health endpoint (no Origin header).
+    // All application routes remain restricted to the configured browser origin.
+    if (request.method === "GET" && path === "/health" && !request.headers.get("Origin")) {
+      return json({ ok: true, service: "appdigi-w001-worker", model: env.GEMINI_MODEL || DEFAULT_MODEL,
+        geminiConfigured: Boolean(env.GEMINI_API_KEY), sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
+        approvalStoreConfigured: Boolean(env.APPROVAL_DB), ownerDecisionConfigured: Boolean(env.APP_OWNER_TOKEN),
+        publishingEnabled: false }, 200, "*");
+    }
     if (!origin) return json({ ok: false, error: "Origin tidak diizinkan." }, 403, "null");
     // Health is intentionally read-only and may be checked before secrets are configured.
     if (request.method === "GET" && path === "/health") {

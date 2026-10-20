@@ -166,6 +166,48 @@
 @media(max-width:900px){.rooms-layout{grid-template-columns:repeat(2,minmax(0,1fr))}.director-room{grid-template-columns:auto 1fr}.director-room button{grid-column:1/-1}}
 @media(max-width:650px){.rooms-layout{grid-template-columns:1fr}.room-scene{height:205px}.room-compose{grid-template-columns:1fr}}
 
+
+/* FIX: eight workers visibly seated in a ring around the central round table */
+.worker-scene{height:430px!important;position:relative!important;overflow:hidden!important}
+.worker-scene .worker-table{position:absolute!important;left:25%!important;right:25%!important;top:31%!important;height:43%!important;width:auto!important;border-radius:50%!important;z-index:1!important}
+.worker-scene .worker-person{position:absolute!important;width:78px!important;display:flex!important;flex-direction:column!important;align-items:center!important;gap:2px!important;z-index:4!important;bottom:auto!important;right:auto!important;left:auto!important;top:auto!important;transform:none!important;animation:seatBob 3.2s ease-in-out infinite!important;animation-delay:var(--person-delay)!important}
+.worker-scene .person-photo{width:48px!important;height:53px!important}
+.worker-scene .person-name{font-size:9px!important;padding:3px 6px!important}
+.worker-scene .person-role{font-size:8px!important}
+.worker-scene .person-laptop{width:31px!important;height:16px!important}
+.worker-scene .person-laptop i{width:27px!important;height:13px!important}
+.worker-scene .worker-person.p1{left:calc(50% - 39px)!important;top:2%!important}
+.worker-scene .worker-person.p2{left:calc(72% - 39px)!important;top:13%!important}
+.worker-scene .worker-person.p3{left:calc(83% - 39px)!important;top:37%!important}
+.worker-scene .worker-person.p4{left:calc(72% - 39px)!important;top:64%!important}
+.worker-scene .worker-person.p5{left:calc(50% - 39px)!important;top:73%!important}
+.worker-scene .worker-person.p6{left:calc(28% - 39px)!important;top:64%!important}
+.worker-scene .worker-person.p7{left:calc(17% - 39px)!important;top:37%!important}
+.worker-scene .worker-person.p8{left:calc(28% - 39px)!important;top:13%!important}
+.worker-scene .worker-station-label{left:50%!important;top:49%!important;transform:translate(-50%,-50%)!important;z-index:5!important}
+.worker-scene .office-window{z-index:0!important}
+.worker-scene .office-shelf{z-index:0!important}
+.worker-scene .scene-label{z-index:8!important}
+@media(max-width:650px){
+ .worker-scene{height:460px!important}
+ .worker-scene .worker-table{left:23%!important;right:23%!important;top:32%!important;height:41%!important}
+ .worker-scene .worker-person{width:66px!important}
+ .worker-scene .person-photo{width:40px!important;height:44px!important}
+ .worker-scene .person-name{font-size:8px!important;padding:2px 5px!important}
+ .worker-scene .person-role{font-size:7px!important;max-width:68px!important}
+ .worker-scene .person-status{font-size:7px!important}
+ .worker-scene .person-laptop{display:none!important}
+ .worker-scene .worker-person.p1{left:calc(50% - 33px)!important;top:1%!important}
+ .worker-scene .worker-person.p2{left:calc(75% - 33px)!important;top:13%!important}
+ .worker-scene .worker-person.p3{left:calc(86% - 33px)!important;top:38%!important}
+ .worker-scene .worker-person.p4{left:calc(75% - 33px)!important;top:66%!important}
+ .worker-scene .worker-person.p5{left:calc(50% - 33px)!important;top:75%!important}
+ .worker-scene .worker-person.p6{left:calc(25% - 33px)!important;top:66%!important}
+ .worker-scene .worker-person.p7{left:calc(14% - 33px)!important;top:38%!important}
+ .worker-scene .worker-person.p8{left:calc(25% - 33px)!important;top:13%!important}
+ .worker-scene .worker-station-label{top:51%!important;font-size:7px!important}
+}
+
 </style>
 </head>
 <body><main class="wrap">

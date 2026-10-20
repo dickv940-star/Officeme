@@ -6,6 +6,9 @@
 "use strict";
 (function () {
   var allowedOrigin = "https://dickv940-star.github.io";
+  window.addEventListener("load", function () {
+    window.parent.postMessage({ channel: "APPDIGI_W001_READY" }, allowedOrigin);
+  });
   window.addEventListener("message", function (event) {
     if (event.source !== window.parent || event.origin !== allowedOrigin) return;
     var message = event.data;

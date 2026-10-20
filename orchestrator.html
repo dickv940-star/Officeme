@@ -181,8 +181,9 @@ $("approvalAdd").addEventListener("click",()=>{
  const channels=[...document.querySelectorAll('input[name="approvalChannel"]:checked')].map(el=>el.value);
  if(!product||!affiliateLink||!caption||!channels.length){alert("Lengkapi nama produk, tautan affiliate HTTPS/HTTP, caption, dan minimal satu kanal.");return}
  if(!/^https:/.test(affiliateLink)){alert("Gunakan tautan affiliate HTTPS yang valid.");return}
- const items=approvalLoad(),parent=$("approvalAdd").dataset.parent||"";
- const item={id:"appr-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),version:"v"+(items.filter(x=>x.parentId===parent&&parent).length+1),parentId:parent||null,product,affiliateLink,videoUrl,caption,channels,state:"PENDING",createdAt:Date.now(),decidedAt:null};
+ const items=approvalLoad(),parent=$("approvalAdd").dataset.parent||"",parentItem=items.find(x=>x.id===parent);
+ const nextVersion=parentItem?(Number.parseInt(String(parentItem.version).replace(/^v/,""),10)||1)+1:1;
+ const item={id:"appr-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),version:"v"+nextVersion,parentId:parent||null,product,affiliateLink,videoUrl,caption,channels,state:"PENDING",createdAt:Date.now(),decidedAt:null};
  if(!approvalSave([item,...items])){alert("Browser tidak dapat menyimpan antrean. Konten belum tercatat.");return}
  $("approvalProduct").value="";$("approvalLink").value="";$("approvalVideo").value="";$("approvalCaption").value="";document.querySelectorAll('input[name="approvalChannel"]').forEach(el=>el.checked=false);
  $("approvalAdd").textContent="Masukkan ke antrean";delete $("approvalAdd").dataset.parent;approvalRender();

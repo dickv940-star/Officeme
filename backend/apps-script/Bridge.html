@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head><base target="_top"><meta charset="utf-8"></head>
+<body>
+<script>
+"use strict";
+(function () {
+  var allowedOrigin = "https://dickv940-star.github.io";
+  window.addEventListener("load", function () {
+    window.parent.postMessage({ channel: "APPDIGI_W001_READY" }, allowedOrigin);
+  });
+  window.addEventListener("message", function (event) {
+    if (event.source !== window.parent || event.origin !== allowedOrigin) return;
+    var message = event.data;
+    if (!message || message.channel !== "APPDIGI_W001" || !message.requestId) return;
+    google.script.run
+      .withSuccessHandler(function (result) {
+        window.parent.postMessage({
+          channel: "APPDIGI_W001_RESULT",
+          requestId: message.requestId,
+          result: result
+        }, event.origin);
+      })
+      .withFailureHandler(function () {
+        window.parent.postMessage({
+          channel: "APPDIGI_W001_RESULT",
+          requestId: message.requestId,
+          result: { ok: false, error: "Panggilan backend Apps Script gagal. Periksa deployment dan izin." }
+        }, event.origin);
+      })
+      .handleW001Request({
+        action: message.action,
+        token: message.token,
+        origin: event.origin,
+        payload: message.payload || null
+      });
+  });
+})();
+</script>
+</body>
+</html>

@@ -354,6 +354,35 @@
 @media(max-width:650px){.scene-desk{left:12%!important;right:9%!important}.scene-monitor{left:43%!important}.cafe-table{left:29%!important;width:43%!important}.cafe-person-a{left:12%!important}.cafe-person-b{right:10%!important}}
 @media(prefers-reduced-motion:reduce){.room-scene:after,.scene-person,.director-person,.scene-sun,.scene-plant,.cafe-light,.cafe-steam{animation:none!important}}
 
+
+/* Worker directory and recruitment form */
+.staff-panel{margin:15px 0;background:linear-gradient(145deg,#17263b,#101827);border:1px solid #334962;border-radius:18px;padding:16px}
+.staff-toolbar,.staff-manager-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.staff-manager-head{margin:16px 0 10px}
+.staff-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.staff-card{display:grid;grid-template-columns:68px minmax(0,1fr);gap:12px;padding:12px;border:1px solid #334962;background:linear-gradient(145deg,#1c2c42,#121d2e);border-radius:14px;min-width:0}
+.staff-card img{width:68px;height:78px;object-fit:cover;object-position:center 18%;border-radius:10px;background:#263b50;border:1px solid #69859a}
+.staff-card h4{margin:0 0 4px;font-size:15px;overflow-wrap:anywhere}
+.staff-card p{margin:3px 0;color:#b9cad8;font-size:12px;overflow-wrap:anywhere;white-space:pre-wrap}
+.staff-card .staff-id{font-size:10px;color:#8fadc1;letter-spacing:.05em}
+.staff-card .staff-card-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.staff-card button,.staff-manager-head button{padding:7px 10px;font-size:12px}
+.staff-form{margin-top:15px;padding:15px;background:#0c1524;border:1px solid #3c536d;border-radius:14px}
+.staff-form h3{margin:0 0 12px}
+.staff-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.staff-form-grid label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#c4d4e1}
+.staff-form-grid input,.staff-form-grid textarea{width:100%;min-width:0;box-sizing:border-box;padding:10px;border:1px solid #344b63;border-radius:9px;background:#101d30;color:#f4f8fb;font:inherit}
+.staff-form-grid textarea{resize:vertical}
+.staff-form-grid .staff-photo-field,.staff-form-grid .staff-job-field{grid-column:1/-1}
+.staff-photo-field small{color:#8da9bd;font-size:11px}
+#staffPhotoPreview{width:92px;height:92px;object-fit:cover;border-radius:12px;border:1px solid #6e8aa0}
+.staff-form .actions{margin-top:12px}
+.staff-form .toast{margin-top:8px}
+@media(max-width:650px){.staff-list,.staff-form-grid{grid-template-columns:1fr}.staff-card{grid-template-columns:58px minmax(0,1fr)}.staff-card img{width:58px;height:68px}.staff-form-grid .staff-photo-field,.staff-form-grid .staff-job-field{grid-column:auto}.staff-toolbar{align-items:flex-start}}
+/* Dynamic seat positions are calculated from the number of registered workers */
+.worker-scene .worker-person{left:50%!important;top:50%!important;right:auto!important;bottom:auto!important;transform:translate(-50%,-50%)!important}
+.worker-scene .worker-person:before{pointer-events:none!important}
+
 </style>
 </head>
 <body><main class="wrap">
@@ -372,6 +401,30 @@
     <div><h3 style="margin:0">Ruangan Direktur</h3><div class="muted">Ruang Anda untuk mencatat arahan, keputusan, dan pekerjaan.</div></div>
     <button class="primary" type="button" id="openDirectorRoom">Masuk ke ruangan saya</button>
   </div>
+
+  <div class="panel staff-panel">
+    <div class="staff-toolbar"><div><div class="eyebrow">Manajemen tim</div><h2 style="margin:3px 0">Data Pekerja</h2><div class="muted">Lihat identitas, tugas, edit data, atau rekrut anggota baru.</div></div><button class="primary" type="button" id="toggleStaff">👥 Data Pekerja</button></div>
+    <div id="staffManager" hidden>
+      <div class="staff-manager-head"><strong>Direktori pekerja</strong><button type="button" id="addStaff">＋ Tambah pekerja</button></div>
+      <div id="staffList" class="staff-list"></div>
+      <form id="staffForm" class="staff-form" hidden>
+        <h3 id="staffFormTitle">Tambah pekerja baru</h3>
+        <input type="hidden" id="staffEditId">
+        <div class="staff-form-grid">
+          <label>Nama lengkap<input id="staffName" maxlength="70" required placeholder="Nama pekerja"></label>
+          <label>Jabatan / spesialisasi<input id="staffRole" maxlength="90" required placeholder="Contoh: Video Editor"></label>
+          <label>Departemen<input id="staffDepartment" maxlength="70" placeholder="Contoh: Konten"></label>
+          <label>ID pekerja<input id="staffCode" maxlength="30" placeholder="Otomatis jika dikosongkan"></label>
+          <label class="staff-photo-field">Foto pekerja (PNG)<input id="staffPhoto" type="file" accept="image/png,.png"><small>PNG maksimal 1,5 MB. Foto disimpan di browser perangkat ini.</small><img id="staffPhotoPreview" alt="Pratinjau foto" hidden></label>
+          <label class="staff-job-field">Jobdesk / tanggung jawab<textarea id="staffJob" maxlength="3000" rows="5" required placeholder="Tuliskan tanggung jawab, alur kerja, dan hasil yang harus diserahkan."></textarea></label>
+        </div>
+        <div class="actions"><button class="primary" type="submit">Simpan data pekerja</button><button type="button" id="cancelStaff">Batal</button></div>
+        <div id="staffFormMessage" class="toast" role="status"></div>
+      </form>
+      <div class="notice">Penyimpanan saat ini memakai browser (localStorage), bukan server. Data dan foto baru tersedia di browser/perangkat ini. Untuk sinkronisasi lintas perangkat diperlukan backend atau database.</div>
+    </div>
+  </div>
+
   <div class="rooms-layout" id="workerRooms"></div>
   <div class="panel room-view" id="roomView" hidden>
     <div class="room-toolbar"><div><div class="eyebrow">Ruang kerja aktif</div><h2 id="roomTitle" style="margin:3px 0">Ruangan</h2><div class="muted" id="roomDescription"></div></div><button type="button" id="backRooms">← Kembali ke semua ruangan</button></div>
@@ -416,22 +469,128 @@ const roomStorageKey="appdigi_officeme_rooms_v1";
 let activeRoom=null;
 function loadRoomNotes(){try{return JSON.parse(localStorage.getItem(roomStorageKey)||"{}")}catch(e){return {}}}
 function saveRoomNotes(notes){try{localStorage.setItem(roomStorageKey,JSON.stringify(notes));return true}catch(e){return false}}
+
+const workerStorageKey="appdigi_officeme_workers_v1";
+const defaultWorkers=[
+{id:"W001",code:"W001",name:"Alexander",role:"Data Analyst",department:"Analitik Data",jobdesk:"• Mengumpulkan dan memvalidasi data produk dari sumber yang tersedia.\n• Membersihkan CSV dan menyusun metrik performa.\n• Membuat dashboard, ranking produk, dan ringkasan temuan.\n• Menandai data yang kosong atau tidak dapat diverifikasi.",photo:"assets/alexander-data-analyst.png"},
+{id:"W002",code:"W002",name:"Olivia",role:"Product Researcher",department:"Riset Produk",jobdesk:"• Meneliti kategori dan kebutuhan calon pembeli.\n• Membandingkan harga, fitur, ulasan, dan nilai produk berdasarkan data yang tersedia.\n• Menyusun shortlist produk beserta alasan dan sumbernya.\n• Tidak mengarang angka atau ulasan.",photo:"assets/olivia-product-researcher.png"},
+{id:"W003",code:"W003",name:"Ethan",role:"Marketing Strategist",department:"Strategi Pemasaran",jobdesk:"• Menentukan target audiens dan sudut promosi.\n• Menyusun positioning, kalender kampanye, dan ide penawaran.\n• Memetakan funnel konten ke tujuan kampanye.\n• Meminta persetujuan sebelum kampanye dipublikasikan.",photo:"assets/ethan-marketing-strategist.png"},
+{id:"W004",code:"W004",name:"Sophia",role:"Content Creator",department:"Produksi Konten",jobdesk:"• Menulis hook, caption, skrip video, dan CTA.\n• Menyesuaikan konten dengan platform dan audiens.\n• Memberi label klaim yang membutuhkan verifikasi.\n• Menyerahkan draf untuk ditinjau sebelum publikasi.",photo:"assets/sophia-content-creator.png"},
+{id:"W005",code:"W005",name:"Daniel",role:"SEO Specialist",department:"SEO & Distribusi",jobdesk:"• Melakukan riset kata kunci dan search intent.\n• Mengoptimalkan judul, deskripsi, struktur, dan metadata konten.\n• Memeriksa keterbacaan dan peluang pencarian.\n• Tidak menjanjikan peringkat atau trafik tertentu.",photo:"assets/daniel-seo-specialist.png"},
+{id:"W006",code:"W006",name:"Isabella",role:"Graphic Designer",department:"Desain Kreatif",jobdesk:"• Membuat konsep visual, thumbnail, dan materi promosi.\n• Menjaga konsistensi identitas visual dan keterbacaan.\n• Memeriksa ukuran serta format aset sesuai platform.\n• Memastikan aset memiliki hak penggunaan yang sesuai.",photo:"assets/isabella-graphic-designer.png"},
+{id:"W007",code:"W007",name:"Lucas",role:"Automation Engineer",department:"Otomasi",jobdesk:"• Merancang alur otomasi yang aman dan dapat diuji.\n• Menjaga validasi input, pencatatan error, dan dokumentasi.\n• Menggunakan API resmi bila tersedia dan diizinkan.\n• Tidak menyimpan rahasia API di kode frontend publik.",photo:"assets/lucas-automation-engineer.png"},
+{id:"W008",code:"W008",name:"Charlotte",role:"Quality Controller",department:"Quality Assurance",jobdesk:"• Memeriksa akurasi data, tautan, ejaan, dan kualitas konten.\n• Memastikan brief dan format keluaran terpenuhi.\n• Menandai risiko, klaim tanpa bukti, dan duplikasi.\n• Memberikan checklist kelulusan sebelum konten disetujui.",photo:"assets/charlotte-quality-controller.png"}
+];
+function loadWorkers(){try{const saved=JSON.parse(localStorage.getItem(workerStorageKey)||"null");return Array.isArray(saved)&&saved.length?saved:defaultWorkers}catch(e){return defaultWorkers}}
+function saveWorkers(list){try{localStorage.setItem(workerStorageKey,JSON.stringify(list));return true}catch(e){return false}}
+function nextWorkerCode(list){let n=1;while(list.some(w=>w.code==="W"+String(n).padStart(3,"0")))n++;return "W"+String(n).padStart(3,"0")}
+function positionWorkerSeats(scene){
+ if(!scene)return;
+ const people=[...scene.querySelectorAll(".worker-person")],count=people.length;
+ people.forEach((person,i)=>{
+   const angle=(-90+i*360/count)*Math.PI/180;
+   const x=50+34*Math.cos(angle),y=52+31*Math.sin(angle);
+   person.style.setProperty("left",x+"%","important");
+   person.style.setProperty("top",y+"%","important");
+   person.style.setProperty("right","auto","important");
+   person.style.setProperty("bottom","auto","important");
+   person.style.setProperty("transform","translate(-50%,-50%)","important");
+   person.style.setProperty("z-index",String(Math.round(y*10)),"important");
+ });
+}
+function updateWorkerCount(){
+ const stat=document.querySelector(".stats .stat strong");
+ if(stat)stat.textContent=loadWorkers().length;
+ const room=roomTeam.find(r=>r.id==="workers");
+ if(room){room.name="Ruangan Pekerja · "+loadWorkers().length+" Orang";room.desc="Tim dengan "+loadWorkers().length+" pekerja. Setiap anggota memiliki identitas dan jobdesk tersendiri."}
+}
+function renderStaffList(){
+ const holder=document.getElementById("staffList");if(!holder)return;
+ holder.replaceChildren();
+ const workers=loadWorkers();
+ workers.forEach(w=>{
+  const card=document.createElement("article");card.className="staff-card";
+  const img=document.createElement("img");img.src=w.photo;img.alt="Foto "+w.name;img.loading="lazy";
+  const body=document.createElement("div");
+  const id=document.createElement("div");id.className="staff-id";id.textContent=(w.code||w.id)+" · "+(w.department||"Tim umum");
+  const name=document.createElement("h4");name.textContent=w.name;
+  const role=document.createElement("p");role.textContent=w.role;
+  const job=document.createElement("p");job.textContent=w.jobdesk||"Jobdesk belum diisi.";
+  const actions=document.createElement("div");actions.className="staff-card-actions";
+  const edit=document.createElement("button");edit.type="button";edit.textContent="Edit identitas / jobdesk";edit.addEventListener("click",()=>openStaffForm(w.id));
+  const remove=document.createElement("button");remove.type="button";remove.textContent="Hapus";remove.addEventListener("click",()=>{if(workers.length<=1){alert("Minimal harus ada satu pekerja.");return}if(!confirm("Hapus pekerja "+w.name+"?"))return;const next=loadWorkers().filter(x=>x.id!==w.id);if(!saveWorkers(next)){alert("Gagal menyimpan. Penyimpanan browser mungkin penuh.");return}renderStaffList();renderRoomCards();updateWorkerCount()});
+  actions.append(edit,remove);body.append(id,name,role,job,actions);card.append(img,body);holder.append(card);
+ });
+}
+let staffPhotoData="";
+function openStaffForm(id){
+ const form=document.getElementById("staffForm");form.hidden=false;form.reset();staffPhotoData="";
+ document.getElementById("staffFormMessage").textContent="";
+ document.getElementById("staffPhotoPreview").hidden=true;
+ const worker=id?loadWorkers().find(w=>w.id===id):null;
+ document.getElementById("staffFormTitle").textContent=worker?"Edit identitas dan jobdesk":"Tambah pekerja baru";
+ document.getElementById("staffEditId").value=worker?worker.id:"";
+ document.getElementById("staffName").value=worker?worker.name:"";
+ document.getElementById("staffRole").value=worker?worker.role:"";
+ document.getElementById("staffDepartment").value=worker?worker.department||"":"";
+ document.getElementById("staffCode").value=worker?worker.code||worker.id:"";
+ document.getElementById("staffJob").value=worker?worker.jobdesk||"":"";
+ if(worker){staffPhotoData=worker.photo;const preview=document.getElementById("staffPhotoPreview");preview.src=worker.photo;preview.hidden=false}
+ form.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+document.getElementById("toggleStaff").addEventListener("click",()=>{
+ const panel=document.getElementById("staffManager");panel.hidden=!panel.hidden;
+ document.getElementById("toggleStaff").textContent=panel.hidden?"👥 Data Pekerja":"✕ Tutup Data Pekerja";
+ if(!panel.hidden)renderStaffList();
+});
+document.getElementById("addStaff").addEventListener("click",()=>openStaffForm(""));
+document.getElementById("cancelStaff").addEventListener("click",()=>{document.getElementById("staffForm").hidden=true;staffPhotoData=""});
+document.getElementById("staffPhoto").addEventListener("change",e=>{
+ const file=e.target.files&&e.target.files[0];if(!file)return;
+ const message=document.getElementById("staffFormMessage");
+ if(file.type!=="image/png"&&!file.name.toLowerCase().endsWith(".png")){message.textContent="Gunakan file gambar PNG.";e.target.value="";return}
+ if(file.size>1.5*1024*1024){message.textContent="Ukuran PNG maksimal 1,5 MB agar penyimpanan browser tidak cepat penuh.";e.target.value="";return}
+ const reader=new FileReader();reader.onload=()=>{staffPhotoData=String(reader.result||"");const preview=document.getElementById("staffPhotoPreview");preview.src=staffPhotoData;preview.hidden=false;message.textContent="Foto siap digunakan."};reader.onerror=()=>message.textContent="Foto tidak dapat dibaca.";
+ reader.readAsDataURL(file);
+});
+document.getElementById("staffForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const workers=loadWorkers(),editingId=document.getElementById("staffEditId").value;
+ const old=editingId?workers.find(w=>w.id===editingId):null;
+ const name=document.getElementById("staffName").value.trim(),role=document.getElementById("staffRole").value.trim();
+ if(!name||!role)return;
+ if(!old&&!staffPhotoData){document.getElementById("staffFormMessage").textContent="Unggah foto PNG pekerja terlebih dahulu.";return}
+ const code=document.getElementById("staffCode").value.trim()||(old?old.code:nextWorkerCode(workers));
+ if(workers.some(w=>w.code===code&&w.id!==editingId)){document.getElementById("staffFormMessage").textContent="ID pekerja sudah digunakan. Pilih ID lain.";return}
+ const worker={id:old?old.id:"worker-"+Date.now(),code,name,role,department:document.getElementById("staffDepartment").value.trim()||"Tim umum",jobdesk:document.getElementById("staffJob").value.trim(),photo:staffPhotoData||old?.photo};
+ const next=old?workers.map(w=>w.id===editingId?worker:w):[...workers,worker];
+ if(!saveWorkers(next)){document.getElementById("staffFormMessage").textContent="Gagal menyimpan. Coba PNG lebih kecil atau hapus pekerja/foto lama.";return}
+ document.getElementById("staffForm").hidden=true;staffPhotoData="";renderStaffList();renderRoomCards();updateWorkerCount();
+ document.getElementById("staffFormMessage").textContent="Data tersimpan.";
+});
+
 const roomGrid=document.getElementById("workerRooms");
 function roomScene(id){
- if(id==="workers"){const staff=[["Alexander","Data Analyst","assets/alexander-data-analyst.png"],["Olivia","Product Researcher","assets/olivia-product-researcher.png"],["Ethan","Marketing Strategist","assets/ethan-marketing-strategist.png"],["Sophia","Content Creator","assets/sophia-content-creator.png"],["Daniel","SEO Specialist","assets/daniel-seo-specialist.png"],["Isabella","Graphic Designer","assets/isabella-graphic-designer.png"],["Lucas","Automation Engineer","assets/lucas-automation-engineer.png"],["Charlotte","Quality Controller","assets/charlotte-quality-controller.png"]];return '<div class="room-scene worker-scene" role="img" aria-label="Ruang kerja tim dengan delapan pekerja menggunakan foto karakter masing-masing mengelilingi meja rapat"><div class="office-window"><span></span><span></span><span></span><span></span></div><div class="office-shelf"><i></i><i></i><i></i></div><div class="worker-table"><span class="table-glow"></span><span class="meeting-device">✦</span></div>'+staff.map((w,i)=>'<div class="worker-person p'+(i+1)+'" style="--person-delay:'+(-i*.23)+'s"><div class="person-photo"><img src="'+w[2]+'" alt="'+w[0]+' — '+w[1]+'" loading="lazy" decoding="async"></div><span class="person-name">'+w[0]+'</span><span class="person-role">'+w[1]+'</span><span class="person-status"><i></i> Bekerja</span><span class="person-laptop"><i></i><b></b></span></div>').join('')+'<div class="worker-station-label">TIM APPDIGI · 8 STASIUN KERJA</div><span class="scene-label">Ruang kolaborasi · 8 anggota tim</span><span class="office-clock">◷  WORK MODE</span></div>'}
+ if(id==="workers"){const staff=loadWorkers().map(w=>[w.name,w.role,w.photo,w.code||w.id]);return '<div class="room-scene worker-scene" role="img" aria-label="Ruang kerja tim dengan delapan pekerja menggunakan foto karakter masing-masing mengelilingi meja rapat"><div class="office-window"><span></span><span></span><span></span><span></span></div><div class="office-shelf"><i></i><i></i><i></i></div><div class="worker-table"><span class="table-glow"></span><span class="meeting-device">✦</span></div>'+staff.map((w,i)=>'<div class="worker-person p'+(i+1)+'" style="--person-delay:'+(-i*.23)+'s"><div class="person-photo"><img src="'+w[2]+'" alt="'+w[0]+' — '+w[1]+'" loading="lazy" decoding="async"></div><span class="person-name">'+w[0]+'</span><span class="person-role">'+w[1]+'</span><span class="person-status"><i></i> Bekerja</span><span class="person-laptop"><i></i><b></b></span></div>').join('')+'<div class="worker-station-label">TIM APPDIGI · '+staff.length+' STASIUN KERJA</div><span class="scene-label">Ruang kolaborasi · '+staff.length+' anggota tim</span><span class="office-clock">◷  WORK MODE</span></div>'}
  if(id==="cafe") return '<div class="room-scene cafe-scene" role="img" aria-label="Kafe santai dengan dua orang, meja, dan kopi"><span class="cafe-light">💡</span><span class="cafe-counter"></span><span class="scene-person cafe-person-a">🧑🏻</span><span class="scene-person cafe-person-b">👩🏽</span><span class="cafe-table"></span><span class="cafe-cup">☕</span><span class="cafe-steam">〰️</span><span class="scene-label">Waktu rehat ☕</span></div>';
  return '<div class="room-scene" role="img" aria-label="Ruangan direktur dengan meja kerja dan tanaman"><span class="scene-sun"></span><span class="scene-desk"></span><span class="scene-monitor"></span><span class="scene-person director-person">🧑🏻‍💼</span><span class="scene-plant">🪴</span><span class="scene-label">Ruang kendali direktur</span></div>';
 }
-roomTeam.forEach(r=>{
- const card=document.createElement("article");card.className="room-card";
- const scene=document.createElement("div");scene.innerHTML=roomScene(r.id);
- const icon=document.createElement("div");icon.className="room-icon";icon.textContent=r.icon;
- const title=document.createElement("h3");title.textContent=r.name;
- const desc=document.createElement("p");desc.textContent=r.desc;
- const btn=document.createElement("button");btn.className="room-open";btn.type="button";btn.textContent=r.id==="cafe"?"Masuk & bersantai":"Masuk ke ruangan";
- btn.addEventListener("click",()=>openRoom(r.id));
- card.append(scene.firstElementChild,icon,title,desc,btn);roomGrid.append(card);
-});
+function renderRoomCards(){
+ roomGrid.replaceChildren();
+ roomTeam.forEach(r=>{
+  const card=document.createElement("article");card.className="room-card";
+  const scene=document.createElement("div");scene.innerHTML=roomScene(r.id);
+  const icon=document.createElement("div");icon.className="room-icon";icon.textContent=r.icon;
+  const title=document.createElement("h3");title.textContent=r.name;
+  const desc=document.createElement("p");desc.textContent=r.desc;
+  const btn=document.createElement("button");btn.className="room-open";btn.type="button";btn.textContent=r.id==="cafe"?"Masuk & bersantai":"Masuk ke ruangan";
+  btn.addEventListener("click",()=>openRoom(r.id));
+  card.append(scene.firstElementChild,icon,title,desc,btn);roomGrid.append(card);
+  if(r.id==="workers")positionWorkerSeats(card.querySelector(".worker-scene"));
+ });
+}
+updateWorkerCount();
+renderRoomCards();
 function openRoom(id){
  activeRoom=roomTeam.find(r=>r.id===id);if(!activeRoom)return;
  document.getElementById("roomView").hidden=false;

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1020">
+<title>Pusat Kendali Orchestrator · AI AFFILIATE by AppDIGI</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#121b2f;--line:#2a3954;--text:#edf3ff;--muted:#9aabc5;--accent:#86aaff;--green:#72e0b2;--amber:#ffd27a;--red:#ff9caa}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 10% 0%,#1b2b4b,transparent 38%),var(--bg);color:var(--text);font:15px/1.55 system-ui,Segoe UI,sans-serif}.wrap{max-width:1180px;margin:auto;padding:24px}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.brand{display:flex;gap:12px;align-items:center}.logo{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#85b3ff,#9d83ff);color:#091225;font-size:23px;font-weight:900}.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:800}.brand h1{margin:0;font-size:clamp(21px,3vw,29px);letter-spacing:-.04em}.muted,small{color:var(--muted)}.panel{background:linear-gradient(160deg,#16223a,#10182a);border:1px solid var(--line);border-radius:17px;padding:18px;margin-top:16px}.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:20px}.hero h2{font-size:clamp(24px,3vw,35px);line-height:1.14;margin:8px 0 12px;letter-spacing:-.04em}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:20px}.stat{background:#0c1425;border:1px solid var(--line);padding:12px;border-radius:12px}.stat strong{font-size:23px;display:block}.stat span{font-size:11px;color:var(--muted)}textarea,input,select{width:100%;background:#0a1120;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit}textarea{min-height:115px;resize:vertical}label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}button,.button{font:inherit;font-weight:750;border-radius:10px;padding:10px 13px;border:1px solid var(--line);background:#1b2945;color:var(--text);cursor:pointer;text-decoration:none;display:inline-block}button.primary{background:var(--accent);border-color:var(--accent);color:#091225}button:disabled{opacity:.5;cursor:not-allowed}.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:10px}.note{font-size:12px;color:var(--muted);padding:10px;border-radius:10px;background:#0b1425;border:1px solid var(--line);margin-top:12px}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.worker{background:#0c1425;border:1px solid var(--line);border-radius:13px;padding:13px}.worker .emoji{font-size:23px}.worker h3{font-size:14px;margin:6px 0}.worker p{font-size:12px;color:var(--muted);margin:0 0 10px;min-height:38px}.tag{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:30px;padding:4px 8px;font-size:10px;color:var(--amber)}.dot{width:6px;height:6px;background:currentColor;border-radius:50%;display:inline-block}.services{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.service{border:1px solid var(--line);border-radius:12px;padding:13px;background:#0c1425}.service-head{display:flex;justify-content:space-between;gap:8px;align-items:center}.service h3{font-size:13px;margin:0}.service p{font-size:11px;color:var(--muted);margin:7px 0}.state{font-size:10px;color:var(--amber);white-space:nowrap}.state.good{color:var(--green)}.state.bad{color:var(--red)}.results{white-space:pre-wrap;overflow-wrap:anywhere;background:#0a1120;border:1px solid var(--line);padding:14px;border-radius:12px;font-size:13px;min-height:70px}.task{padding:12px;border:1px solid var(--line);border-radius:11px;margin-top:9px}.task b{font-size:13px}.task p{font-size:12px;color:var(--muted);margin:4px 0 0}.foot{text-align:center;color:var(--muted);font-size:11px;margin:25px 0}.hide{display:none}@media(max-width:850px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.services{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.wrap{padding:13px}.grid,.services{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,1fr)}.stat strong{font-size:19px}.panel{padding:14px}}
+</style>
+</head>
+<body><main class="wrap">
+<header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · Director Workspace</div><h1>Pusat Kendali Orchestrator</h1></div></div><a class="button" href="./index.html">← Dashboard utama</a></header>
+<section class="hero">
+<div class="panel"><div class="eyebrow">Command center</div><h2>Direktur memberi perintah.<br>Orchestrator menyusun pekerjaan.</h2><p class="muted">Satu pintu masuk untuk memecah instruksi menjadi tugas yang sesuai kemampuan pekerja, memeriksa prasyarat layanan, dan menyusun rencana kerja.</p><div class="stats"><div class="stat"><strong id="workerCount">6</strong><span>Peran pekerja</span></div><div class="stat"><strong id="taskCount">0</strong><span>Tugas direncanakan</span></div><div class="stat"><strong id="serviceCount">0/5</strong><span>Layanan terverifikasi</span></div></div></div>
+<div class="panel"><h2 style="margin-top:0">Perintah Direktur</h2><label for="command">Apa yang ingin dikerjakan?</label><textarea id="command" maxlength="4000" placeholder="Contoh: Analisis CSV Shopee Affiliate, pilih 20 produk berdasarkan komisi yang tersedia, lalu buat naskah promosi. Jangan publikasikan tanpa persetujuan."></textarea><div class="actions"><button class="primary" id="planBtn">Susun rencana kerja</button><button id="clearBtn">Bersihkan</button></div><div class="note">Mode saat ini: perencanaan lokal. Tombol ini belum mengirim data ke Canva, Shopee, atau Gemini dan tidak melakukan publikasi.</div></div>
+</section>
+<section class="panel"><div class="eyebrow">Delegasi tugas</div><h2>Daftar pekerja AI</h2><p class="muted">Peran dan aturan kerja yang direncanakan. Status pekerja tidak berarti akun layanan telah tersambung.</p><div class="grid" id="workers">
+<div class="worker"><div class="emoji">🧭</div><h3>Orchestrator</h3><p>Menerima instruksi, menentukan urutan, memilih pekerja, dan mengumpulkan hasil.</p><span class="tag">● Perencana lokal</span></div>
+<div class="worker"><div class="emoji">📊</div><h3>Analis Data</h3><p>Validasi CSV, menghitung metrik, menandai kolom hilang, dan menjelaskan batasan data.</p><span class="tag">● Menunggu data</span></div>
+<div class="worker"><div class="emoji">🔎</div><h3>Riset Produk</h3><p>Membandingkan produk berdasarkan data nyata dan kriteria yang disepakati.</p><span class="tag">● Menunggu sumber</span></div>
+<div class="worker"><div class="emoji">✍️</div><h3>Penulis Konten</h3><p>Membuat naskah promosi jujur tanpa klaim yang tidak didukung sumber.</p><span class="tag">● Menunggu data produk</span></div>
+<div class="worker"><div class="emoji">🎨</div><h3>Desainer</h3><p>Menyiapkan brief visual; penggunaan Canva memerlukan koneksi dan izin yang valid.</p><span class="tag">● Canva belum diuji</span></div>
+<div class="worker"><div class="emoji">🛡️</div><h3>Quality Control</h3><p>Memeriksa angka, klaim, kelengkapan hasil, dan kebutuhan persetujuan sebelum tindakan.</p><span class="tag">● Aturan pemeriksaan lokal</span></div>
+</div></section>
+<section class="panel"><div class="eyebrow">Integration readiness</div><h2>Status koneksi layanan</h2><p class="muted">Semua layanan mulai dari status belum diverifikasi. Status berubah hanya jika pemeriksaan nyata diintegrasikan dan berhasil dijalankan.</p><div class="services">
+<div class="service"><div class="service-head"><h3>Canva</h3><span class="state">Belum diuji</span></div><p>Desain dan aset visual.</p><small>Perlu otorisasi integrasi di runtime aplikasi.</small></div>
+<div class="service"><div class="service-head"><h3>Shopee Affiliate</h3><span class="state">Belum diuji</span></div><p>CSV atau API resmi yang tersedia.</p><small>Belum ada akses akun yang diverifikasi.</small></div>
+<div class="service"><div class="service-head"><h3>Gemini AI</h3><span class="state">Belum diuji</span></div><p>Analisis dan generasi konten.</p><small>Perlu panggilan API nyata melalui backend.</small></div>
+<div class="service"><div class="service-head"><h3>Google Apps Script</h3><span class="state">Belum diuji</span></div><p>Endpoint dan fungsi backend.</p><small>Perlu URL deployment dan tes respons.</small></div>
+<div class="service"><div class="service-head"><h3>GitHub</h3><span class="state">Kode tersedia</span></div><p>Repositori dan alur perubahan.</p><small>Perubahan ini ada di branch, belum masuk main.</small></div>
+</div></section>
+<section class="panel"><div class="eyebrow">Execution plan</div><h2>Rencana dari Orchestrator</h2><div id="planOutput" class="results" aria-live="polite">Masukkan perintah Direktur, lalu pilih “Susun rencana kerja”.</div><div id="taskOutput"></div></section>
+<section class="panel"><h2>Aturan kendali Direktur</h2><ul class="muted"><li>Analisis dan penyusunan rencana boleh dilakukan otomatis pada data yang disediakan.</li><li>Publikasi, perubahan akun, atau tindakan eksternal memerlukan integrasi nyata dan persetujuan yang sesuai.</li><li>Jangan menampilkan layanan sebagai tersambung hanya karena URL atau kunci telah diisi.</li><li>Jika prasyarat gagal, hentikan tugas yang bergantung padanya dan laporkan hambatannya.</li></ul></section>
+<footer class="foot">AI AFFILIATE by AppDIGI · Orchestrator prototype · Belum mengakses akun eksternal</footer>
+</main>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const workers=[
+ {id:"data",name:"Analis Data",icon:"📊",keys:["csv","data","analisis","analisa","laporan","klik","komisi","pesanan","konversi","dashboard"],requires:["CSV / data produk"],task:"Validasi struktur CSV, hitung metrik yang tersedia, dan catat kolom atau data yang hilang."},
+ {id:"research",name:"Riset Produk",icon:"🔎",keys:["produk","riset","pilih","rekomendasi","shopee","affiliate","komisi","pasar"],requires:["Data produk yang sah"],task:"Saring dan bandingkan produk hanya dengan atribut yang benar-benar tersedia; tandai asumsi."},
+ {id:"content",name:"Penulis Konten",icon:"✍️",keys:["konten","caption","promosi","naskah","copywriting","artikel","deskripsi","iklan"],requires:["Brief dan data produk"],task:"Buat draft konten dengan klaim yang didukung data dan tandai bagian yang perlu verifikasi."},
+ {id:"design",name:"Desainer",icon:"🎨",keys:["canva","desain","visual","poster","gambar","banner","kreatif"],requires:["Brief visual","Koneksi Canva terverifikasi untuk membuat desain"],task:"Susun brief visual; pembuatan atau pengeditan di Canva ditahan sampai koneksi diuji."},
+ {id:"qa",name:"Quality Control",icon:"🛡️",keys:["periksa","cek","validasi","quality","kualitas","final","publikasi","posting","unggah"],requires:["Hasil pekerja terkait"],task:"Periksa konsistensi, bukti sumber, klaim promosi, kelengkapan, dan persetujuan sebelum tindakan."}
+];
+function route(text){
+ const t=text.toLowerCase();
+ const selected=workers.filter(w=>w.keys.some(k=>t.includes(k)));
+ if(!selected.some(w=>w.id==="qa"))selected.push(workers.find(w=>w.id==="qa"));
+ if(!selected.some(w=>w.id==="data")&&/produk|affiliate|komisi|shopee/.test(t))selected.unshift(workers.find(w=>w.id==="data"));
+ const unique=[...new Map(selected.map(w=>[w.id,w])).values()];
+ const tasks=unique.map((w,i)=>({number:i+1,...w}));
+ const integrations=[];
+ if(/canva|desain|visual|poster|gambar|banner/.test(t))integrations.push("Canva: belum diverifikasi; tugas desain hanya berupa brief sampai koneksi nyata lolos uji.");
+ if(/shopee|affiliate|produk|komisi/.test(t))integrations.push("Shopee Affiliate: perlu CSV yang diberikan atau akses API resmi yang telah disetujui.");
+ if(/gemini|analisis|analisa|konten|naskah|promosi/.test(t))integrations.push("Gemini AI: belum ada bukti panggilan API sukses pada halaman ini.");
+ if(/publikasi|posting|unggah|terbitkan|kirim/.test(t))integrations.push("Tindakan eksternal: tahan sampai integrasi tersedia dan persetujuan Direktur tercatat.");
+ return {tasks,integrations};
+}
+$("planBtn").addEventListener("click",()=>{
+ const command=$("command").value.trim();
+ if(!command){$("planOutput").textContent="Perintah masih kosong. Jelaskan target dan hasil yang diinginkan.";return}
+ const {tasks,integrations}=route(command);
+ $("taskCount").textContent=String(tasks.length);
+ $("planOutput").textContent="Perintah diterima secara lokal. Ini rencana, bukan eksekusi ke layanan eksternal.\n\nTujuan: "+command+"\n\nUrutan: Direktur → Orchestrator → pekerja terkait → Quality Control → laporan kembali ke Direktur.";
+ const out=$("taskOutput");out.replaceChildren();
+ tasks.forEach(t=>{const div=document.createElement("div");div.className="task";const b=document.createElement("b");b.textContent=t.number+". "+t.icon+" "+t.name;const p=document.createElement("p");p.textContent=t.task+" Prasyarat: "+t.requires.join("; ")+".";
+ div.append(b,p);out.appendChild(div)});
+ if(integrations.length){const h=document.createElement("h3");h.textContent="Prasyarat dan hambatan";out.appendChild(h);integrations.forEach(s=>{const d=document.createElement("div");d.className="task";d.textContent=s;out.appendChild(d)})}
+ const end=document.createElement("div");end.className="note";end.textContent="Belum ada agen yang dieksekusi, tidak ada akun yang diakses, dan tidak ada konten yang dipublikasikan. Hubungkan backend dan layanan sebelum mengaktifkan eksekusi.";out.appendChild(end);
+});
+$("clearBtn").addEventListener("click",()=>{$("command").value="";$("taskCount").textContent="0";$("planOutput").textContent="Masukkan perintah Direktur, lalu pilih “Susun rencana kerja”."; $("taskOutput").replaceChildren()});
+})();
+</script></body></html>

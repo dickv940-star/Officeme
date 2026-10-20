@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>W001 · Uji Analisis CSV Shopee Affiliate</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f4f6fb}
+*{box-sizing:border-box}body{margin:0;padding:24px}.wrap{max-width:1120px;margin:auto}
+header,.panel{background:#fff;border:1px solid #e1e7f0;border-radius:16px;padding:22px;margin-bottom:16px}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:#5a6880;font-weight:700}
+h1{margin:.35rem 0;font-size:clamp(24px,4vw,36px)}p{line-height:1.55;color:#566278}
+.notice{padding:12px 14px;background:#eef5ff;border-radius:10px;color:#23456f;font-size:14px}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px}
+button,.filelabel{border:0;border-radius:10px;padding:11px 15px;background:#182b49;color:#fff;font-weight:650;cursor:pointer}
+.filelabel input{display:none}.secondary{background:#e9eef6;color:#20314b}
+input[type=file]{max-width:100%}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px}
+.kpi{background:#fff;border:1px solid #e1e7f0;border-radius:14px;padding:16px}.kpi small{display:block;color:#69758a}.kpi strong{display:block;font-size:25px;margin-top:7px;overflow-wrap:anywhere}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:11px;border-bottom:1px solid #e8edf4;white-space:nowrap}th{background:#f6f8fb;color:#44516a}
+.status{font-size:14px;color:#4d5a70;margin-top:10px}.tag{display:inline-block;border-radius:999px;padding:4px 8px;background:#edf2fa;font-size:12px}
+footer{color:#6b7588;font-size:13px;padding:10px 2px}
+@media(max-width:600px){body{padding:12px}header,.panel{padding:16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">AppDIGI · Test environment · W001</div>
+  <h1>Alexander — Data Analyst</h1>
+  <p>Uji analisis CSV produk Shopee Affiliate. Versi ini menghitung metrik dari data yang Anda unggah di browser, tanpa mengirim CSV ke server.</p>
+  <div class="notice"><strong>Status: analitik berbasis aturan, bukan AI aktif.</strong> Tidak ada API model yang terhubung. Periksa arti dan satuan kolom CSV sebelum mengambil keputusan.</div>
+  <div class="controls">
+    <label class="filelabel">Pilih file CSV <input id="csvFile" type="file" accept=".csv,.txt,text/csv"></label>
+    <button class="secondary" id="sampleBtn" type="button">Muat data contoh</button>
+    <button class="secondary" id="clearBtn" type="button">Bersihkan</button>
+  </div>
+  <div class="status" id="status" role="status">Belum ada data. Unggah ekspor CSV Anda atau muat data contoh.</div>
+</header>
+<section class="grid" aria-label="Ringkasan metrik">
+  <div class="kpi"><small>Produk terdeteksi</small><strong id="kProducts">—</strong></div>
+  <div class="kpi"><small>Total klik</small><strong id="kClicks">—</strong></div>
+  <div class="kpi"><small>Total pesanan</small><strong id="kOrders">—</strong></div>
+  <div class="kpi"><small>Total komisi</small><strong id="kCommission">—</strong></div>
+  <div class="kpi"><small>Konversi pesanan/klik</small><strong id="kCvr">—</strong></div>
+</section>
+<section class="panel">
+  <h2>Hasil pemeriksaan</h2>
+  <p id="diagnostics">Setelah data dimuat, aplikasi akan menampilkan kolom yang dikenali dan keterbatasan analisis.</p>
+  <div class="tablewrap"><table><thead><tr><th>Produk</th><th>Klik</th><th>Pesanan</th><th>Komisi</th><th>Konversi</th><th>Catatan</th></tr></thead><tbody id="results"><tr><td colspan="6">Belum ada hasil.</td></tr></tbody></table></div>
+</section>
+<section class="panel">
+  <h2>Aturan uji W001</h2>
+  <ul>
+    <li>Mencoba mengenali kolom nama produk, klik, pesanan, dan komisi dari nama header.</li>
+    <li>Menghitung konversi sebagai pesanan ÷ klik × 100; jika klik nol atau tidak tersedia, konversi tidak dihitung.</li>
+    <li>Mengurutkan produk berdasarkan komisi jika kolom komisi ditemukan.</li>
+    <li>Menandai data yang tidak lengkap; tidak membuat angka pengganti.</li>
+  </ul>
+  <p><strong>Privasi:</strong> file diproses lokal di halaman ini dan tidak diunggah otomatis. Jangan gunakan file yang berisi email, nomor telepon, ID akun, atau informasi sensitif yang tidak diperlukan.</p>
+</section>
+<footer>AI AFFILIATE by AppDIGI · W001 CSV Test · Tidak terhubung ke API Shopee atau model AI.</footer>
+</div>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+let rows=[];
+const aliases={
+ product:["produk","nama produk","product","product name","item","nama barang","judul produk","product_name"],
+ clicks:["klik","click","clicks","jumlah klik","total klik","visitor","pengunjung"],
+ orders:["pesanan","order","orders","jumlah pesanan","total pesanan","konversi pesanan","transaksi"],
+ commission:["komisi","commission","estimated commission","estimasi komisi","komisi estimasi","total komisi","penghasilan","earnings"]
+};
+function norm(s){return String(s??"").toLowerCase().trim().replace(/[ _-]+/g," ").replace(/\s+/g," ")}
+function parseCSV(text){
+ const first=(text.split(/\r?\n/,1)[0]||"");
+ const counts=[",",";","\t"].map(d=>({d,n:(first.match(new RegExp(d==="\t"?"\\t":d.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"g"))||[]).length}));
+ counts.sort((a,b)=>b.n-a.n); const delim=counts[0].n?counts[0].d:",";
+ const out=[];let row=[],field="",quoted=false;
+ for(let i=0;i<text.length;i++){
+  const ch=text[i];
+  if(ch==='"'&&quoted&&text[i+1]==='"'){field+='"';i++}
+  else if(ch==='"'){quoted=!quoted}
+  else if(ch===delim&&!quoted){row.push(field);field=""}
+  else if((ch==="\n"||ch==="\r")&&!quoted){if(ch==="\r"&&text[i+1]==="\n")i++;row.push(field);if(row.some(v=>v.trim()!==""))out.push(row);row=[];field=""}
+  else field+=ch;
+ }
+ row.push(field);if(row.some(v=>v.trim()!==""))out.push(row);
+ if(out.length<2)throw new Error("CSV perlu memiliki baris header dan minimal satu baris data.");
+ const headers=out[0].map(v=>v.trim().replace(/^\uFEFF/,""));
+ return {headers,records:out.slice(1).map(vals=>Object.fromEntries(headers.map((h,i)=>[h,(vals[i]??"").trim()])))};
+}
+function findCol(headers,type){return headers.find(h=>aliases[type].includes(norm(h)))||headers.find(h=>aliases[type].some(a=>norm(h).includes(a)))||null}
+function number(v){
+ if(v==null||String(v).trim()==="")return null;
+ let s=String(v).trim().replace(/[^0-9,.-]/g,"");
+ if(!s)return null;
+ if(s.includes(",")&&s.includes(".")){if(s.lastIndexOf(",")>s.lastIndexOf("."))s=s.replace(/\./g,"").replace(",",".");else s=s.replace(/,/g,"")}
+ else if(s.includes(",")&&!s.includes(".")){const p=s.split(",");s=p[p.length-1].length===3?p.join(""):s.replace(",",".")}
+ const n=Number(s);return Number.isFinite(n)?n:null;
+}
+function money(n){return n==null?"—":new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n)}
+function fmt(n){return n==null?"—":new Intl.NumberFormat("id-ID",{maximumFractionDigits:2}).format(n)}
+function detect(data){
+ const headers=data.headers, recs=data.records;
+ const cols={};for(const t of Object.keys(aliases))cols[t]=findCol(headers,t);
+ const cooked=recs.map(r=>({
+  product:cols.product?r[cols.product]:"(Nama produk tidak tersedia)",
+  clicks:cols.clicks?number(r[cols.clicks]):null,
+  orders:cols.orders?number(r[cols.orders]):null,
+  commission:cols.commission?number(r[cols.commission]):null
+ }));
+ rows=cooked;
+ const sum=k=>{const vals=cooked.map(r=>r[k]).filter(n=>n!==null);return vals.length?vals.reduce((a,b)=>a+b,0):null};
+ const clicks=sum("clicks"),orders=sum("orders"),comm=sum("commission");
+ $("kProducts").textContent=fmt(cooked.length);$("kClicks").textContent=fmt(clicks);$("kOrders").textContent=fmt(orders);$("kCommission").textContent=money(comm);
+ $("kCvr").textContent=clicks>0&&orders!==null?(orders/clicks*100).toLocaleString("id-ID",{maximumFractionDigits:2})+"%":"—";
+ const missing=Object.keys(cols).filter(k=>!cols[k]);
+ $("diagnostics").textContent="Header terdeteksi: "+Object.entries(cols).map(([k,v])=>k+" = "+(v||"tidak ditemukan")).join(" · ")+". "+(missing.length?"Kolom belum dikenali: "+missing.join(", ")+".":"Semua kolom metrik dasar dikenali.")+" Angka harus dicocokkan dengan definisi laporan sumber.";
+ const sorted=[...cooked].sort((a,b)=>(b.commission??-Infinity)-(a.commission??-Infinity));
+ const body=$("results");body.replaceChildren();
+ sorted.slice(0,200).forEach(r=>{
+  const tr=document.createElement("tr");
+  const cvr=r.clicks>0&&r.orders!==null?(r.orders/r.clicks*100):null;
+  const note=[r.clicks===null?"Klik tidak tersedia":"",r.orders===null?"Pesanan tidak tersedia":"",r.commission===null?"Komisi tidak tersedia":""].filter(Boolean).join("; ")||"Periksa terhadap laporan sumber";
+  [r.product,fmt(r.clicks),fmt(r.orders),money(r.commission),cvr===null?"—":fmt(cvr)+"%",note].forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});
+  body.appendChild(tr);
+ });
+ if(!sorted.length)body.innerHTML='<tr><td colspan="6">Tidak ada baris data.</td></tr>';
+ $("status").textContent="Berhasil memuat "+cooked.length+" baris data. Data diproses lokal di browser.";
+}
+$("csvFile").addEventListener("change",async e=>{
+ const f=e.target.files&&e.target.files[0];if(!f)return;
+ try{const data=parseCSV(await f.text());detect(data)}catch(err){$("status").textContent="Gagal membaca CSV: "+err.message}
+});
+$("sampleBtn").addEventListener("click",()=>{
+ try{detect(parseCSV('Nama Produk,Klik,Pesanan,Komisi\nBotol Minum,120,8,24000\nLampu Meja,80,2,10000\nTas Lipat,0,1,5000'))}catch(e){$("status").textContent=e.message}
+});
+$("clearBtn").addEventListener("click",()=>{
+ rows=[];$("csvFile").value="";["kProducts","kClicks","kOrders","kCommission","kCvr"].forEach(id=>$(id).textContent="—");
+ $("diagnostics").textContent="Setelah data dimuat, aplikasi akan menampilkan kolom yang dikenali dan keterbatasan analisis.";
+ $("results").innerHTML='<tr><td colspan="6">Belum ada hasil.</td></tr>';$("status").textContent="Data dihapus dari tampilan.";
+});
+})();
+</script>
+</body>
+</html>

@@ -320,6 +320,40 @@
  .worker-scene .worker-station-label{top:48%!important}
 }
 
+
+/* REALISTIC 3D ROOM FINISH — director office, team room, and café */
+/* Shared perspective, depth, lighting, and floor */
+.room-scene{perspective:900px!important;transform-style:preserve-3d!important;border:1px solid #6e8798!important;box-shadow:inset 0 0 0 1px #ffffff35,inset 0 -12px 24px #10202b55,0 7px 16px #0003!important;background-color:#b6cbd0!important}
+.room-scene:after{background:linear-gradient(112deg,transparent 20%,#ffffff28 43%,transparent 68%),linear-gradient(180deg,#ffffff08 0%,transparent 65%,#152b3540 100%)!important;animation:sceneShimmer 8s ease-in-out infinite!important}
+.room-scene:not(.worker-scene):before{left:0!important;top:0!important;width:100%!important;height:68%!important;border:0!important;border-radius:0!important;background:linear-gradient(180deg,#e3eff0 0%,#c5dce0 100%)!important;box-shadow:inset 0 -8px 0 #a5c0c5!important}
+.room-scene:not(.worker-scene) .scene-label{background:#142536d9!important;border:1px solid #ffffff55!important;box-shadow:0 3px 10px #07152255!important}
+.scene-floor{height:37%!important;background:repeating-linear-gradient(90deg,#b7865c 0 42px,#9b6c48 43px 45px)!important;border-top:5px solid #e6c7a0!important;transform:perspective(260px) rotateX(7deg)!important;transform-origin:top!important;box-shadow:inset 0 9px 12px #6b483333!important}
+.scene-sun{box-shadow:0 0 0 7px #fff4c326,0 0 26px #ffe4a0aa!important}
+.scene-desk{left:18%!important;right:11%!important;bottom:23%!important;height:17px!important;border-radius:5px!important;background:linear-gradient(180deg,#d3a477 0%,#9b6845 45%,#70472f 100%)!important;box-shadow:0 6px 0 #573a2b,0 10px 14px #18252e55,inset 0 2px 0 #f6d0a2!important;transform:perspective(240px) rotateX(-4deg)!important}
+.scene-desk:after{content:""!important;position:absolute!important;left:8%!important;right:8%!important;top:100%!important;height:31px!important;background:linear-gradient(90deg,#6d4934,#9b6947 48%,#65422f)!important;clip-path:polygon(0 0,100% 0,91% 100%,8% 100%)!important;box-shadow:inset 0 0 0 1px #ffffff20!important}
+.scene-monitor{left:44%!important;bottom:39%!important;width:44px!important;height:32px!important;border:4px solid #2c3e50!important;border-radius:4px!important;background:linear-gradient(135deg,#c4f7ed,#48a9a9 55%,#236e80)!important;box-shadow:0 4px 0 #1c2e3d,0 8px 10px #0d1a2555,inset 0 0 8px #ffffff66!important;transform:translateZ(15px)!important}
+.scene-monitor:after{content:""!important;position:absolute!important;left:42%!important;bottom:-9px!important;width:7px!important;height:8px!important;background:#3a4d5d!important;box-shadow:0 4px 0 3px #536a76!important}
+.director-person{left:47%!important;bottom:24%!important;font-size:43px!important;filter:drop-shadow(0 6px 2px #17202c55)!important;animation:personBob 3.2s ease-in-out infinite!important}
+.scene-plant{right:5%!important;bottom:24%!important;font-size:31px!important;filter:drop-shadow(0 5px 2px #15242c66)!important}
+.cafe-scene{background:linear-gradient(180deg,#e9f4f4 0%,#d2e5e7 58%,#b9855c 58%,#885b40 100%)!important}
+.cafe-scene:before{left:6%!important;top:8%!important;width:34%!important;height:34%!important;border:7px solid #f7e7c8!important;border-radius:4px!important;background:linear-gradient(135deg,#83c9e0,#d7f2f0 52%,#9bc7d0)!important;box-shadow:0 0 0 2px #7997a1,0 6px 0 #8ba9ae,inset 0 0 20px #ffffff80!important}
+.cafe-counter{right:0!important;top:37%!important;height:20px!important;width:38%!important;background:linear-gradient(180deg,#d9b18b 0%,#9b6948 40%,#6c4633 100%)!important;border-top:4px solid #f1d2ae!important;box-shadow:0 8px 0 #52382c,0 12px 16px #27303955!important}
+.cafe-counter:before{content:""!important;position:absolute!important;right:9%!important;top:-32px!important;width:58%!important;height:29px!important;border-radius:4px 4px 0 0!important;background:linear-gradient(90deg,#79503a 0 10%,#b8875b 10% 18%,#79503a 18% 28%,#b8875b 28% 36%,#79503a 36% 46%,#b8875b 46% 54%,#79503a 54% 64%,#b8875b 64% 72%,#79503a 72% 82%,#b8875b 82% 90%,#79503a 90%)!important;box-shadow:inset 0 -4px #52382c!important}
+.cafe-table{left:31%!important;bottom:21%!important;width:40%!important;height:15px!important;border:2px solid #e0b78b!important;background:linear-gradient(180deg,#d9a16d,#9c633e)!important;box-shadow:0 6px 0 #75472f,0 11px 13px #1a273255!important;transform:perspective(180px) rotateX(-7deg)!important}
+.cafe-table:after{content:""!important;position:absolute!important;left:12%!important;right:12%!important;top:100%!important;height:31px!important;background:linear-gradient(90deg,#70462f,#9a6440 50%,#67432f)!important;clip-path:polygon(0 0,100% 0,90% 100%,10% 100%)!important}
+.cafe-cup{left:47%!important;bottom:31%!important;font-size:23px!important;filter:drop-shadow(0 3px 1px #34231866)!important}
+.cafe-steam{bottom:46%!important;filter:drop-shadow(0 1px 1px #ffffffaa)!important}
+.cafe-person-a,.cafe-person-b{bottom:23%!important;font-size:38px!important;filter:drop-shadow(0 5px 2px #17202c55)!important;animation:personBob 3s ease-in-out infinite!important}
+.cafe-person-a{left:17%!important}.cafe-person-b{right:14%!important}
+.cafe-light{filter:drop-shadow(0 3px 5px #ffd77b99)!important}
+.worker-scene{background:linear-gradient(180deg,#d8ebee 0%,#e9f3f2 48%,#c3d7d8 48%,#a8c2c5 100%)!important;box-shadow:inset 0 -14px 0 #8ca8ac,inset 0 0 22px #ffffff55,0 7px 16px #0003!important}
+.worker-scene .worker-table{left:31%!important;right:31%!important;top:35%!important;height:33%!important;border:8px solid #a86d43!important;background:radial-gradient(ellipse at 35% 22%,#ffe0ae 0%,#dba16a 49%,#a96f43 100%)!important;box-shadow:0 12px 0 #795033,0 17px 0 #92aeb1,0 21px 19px #20353b55,inset 0 4px 0 #fff0d2!important}
+.worker-scene .worker-table:after{border:3px dashed #ffe5bb!important;box-shadow:inset 0 0 12px #8b572533!important}
+.worker-scene .worker-person:before{box-shadow:0 5px 0 #829fa4,0 9px 12px #182d3540!important}
+.worker-scene .person-photo{box-shadow:0 4px 0 #7695a1,0 7px 12px #1d303855!important}
+@media(max-width:650px){.scene-desk{left:12%!important;right:9%!important}.scene-monitor{left:43%!important}.cafe-table{left:29%!important;width:43%!important}.cafe-person-a{left:12%!important}.cafe-person-b{right:10%!important}}
+@media(prefers-reduced-motion:reduce){.room-scene:after,.scene-person,.director-person,.scene-sun,.scene-plant,.cafe-light,.cafe-steam{animation:none!important}}
+
 </style>
 </head>
 <body><main class="wrap">

@@ -389,6 +389,12 @@
 @media(max-width:850px){.connector-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.connector-grid,.connector-form-grid{grid-template-columns:1fr}}
 
+
+/* PROFESSIONAL AI SPECIALIST TEAM */
+.specialist-card{display:flex;flex-direction:column;gap:10px}.specialist-role{font-size:12px;color:var(--accent);font-weight:800;margin-top:3px}.specialist-detail,.specialist-metrics{padding:10px 11px;border:1px solid var(--line);background:#0c1425;border-radius:10px}.specialist-detail strong,.specialist-metrics strong{font-size:11px;color:#c6d5f5;display:block}.specialist-detail p,.specialist-metrics p{font-size:12px;margin:5px 0 0;color:var(--muted)}.team-charter{margin:0 0 14px}.team-charter h3{margin:4px 0 12px}.charter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.charter-grid>div{padding:12px;border-radius:11px;border:1px solid var(--line);background:#0c1425}.charter-grid b{display:block;font-size:12px;margin-bottom:5px}.charter-grid span{display:block;color:var(--muted);font-size:11px}
+@media(max-width:850px){.charter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.charter-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body><main class="wrap">
@@ -468,7 +474,9 @@
   </div>
 </section>
 
-<div class="section head"><div><div class="eyebrow">Tim Anda</div><h2>Delapan pekerja AI</h2></div><span class="muted">Satu orchestrator · Delapan peran</span></div><section class="agents" id="agents"></section>
+<div class="section head"><div><div class="eyebrow">AI specialist division</div><h2>Tim Spesialis AI</h2><div class="muted">Delapan peran profesional dengan mandat, bidang keahlian, hasil kerja, dan indikator evaluasi yang jelas.</div></div><span class="muted">Satu direktur · 8 spesialis</span></div>
+<div class="panel team-charter"><div class="eyebrow">Operating standard</div><h3>Standar kerja profesional AppDIGI</h3><div class="charter-grid"><div><b>01 · Berbasis bukti</b><span>Bedakan fakta, asumsi, dan rekomendasi. Sertakan sumber saat tersedia.</span></div><div><b>02 · Hasil terukur</b><span>Setiap tugas menghasilkan deliverable dan kriteria selesai yang jelas.</span></div><div><b>03 · Quality gate</b><span>Charlotte memeriksa akurasi, tautan, klaim, privasi, dan disclosure affiliate.</span></div><div><b>04 · Aman & terkendali</b><span>Integrasi memakai akses resmi; tindakan publikasi atau transaksi perlu persetujuan.</span></div></div><div class="notice">Catatan transparansi: spesialisasi, SOP, dan indikator sudah ditetapkan di antarmuka. Kemampuan eksekusi AI nyata baru aktif setelah model AI, sumber data, dan connector API resmi dikonfigurasi.</div></div>
+<section class="agents" id="agents"></section>
 <section class="bottom">
 <div class="panel"><div class="head"><h2 style="font-size:18px;margin:0">Antrean pekerjaan</h2><span class="pill">Lokal</span></div><div id="tasks" class="empty">Belum ada tugas.</div></div>
 <div class="panel"><div class="head"><h2 style="font-size:18px;margin:0">Persetujuan direktur</h2><span class="pill">Human-in-the-loop</span></div><div class="task"><span class="dot"></span><div><b>Integrasi Shopee API resmi</b><small>Menunggu konfirmasi akses dan kredensial resmi untuk akun Indonesia.</small></div></div><div class="task"><span class="dot"></span><div><b>Publikasi dan tindakan eksternal</b><small>Wajib ditinjau sebelum dijalankan.</small></div></div><div class="task"><span class="dot"></span><div><b>Rahasia dan data akun</b><small>Hanya disimpan di backend; jangan masukkan password, cookie, atau API key di sini.</small></div></div></div>
@@ -476,17 +484,38 @@
 </main>
 <script>
 const team=[
-["assets/alexander-data-analyst.png","Alexander","Data Analyst","Menganalisis laporan klik, pesanan, dan komisi."],
-["assets/olivia-product-researcher.png","Olivia","Product Researcher","Menilai produk dari sumber yang diizinkan."],
-["assets/ethan-marketing-strategist.png","Ethan","Marketing Strategist","Menyusun prioritas dan strategi promosi."],
-["assets/sophia-content-creator.png","Sophia","Content Creator","Membuat hook, naskah, caption, dan CTA."],
-["assets/daniel-seo-specialist.png","Daniel","SEO Specialist","Mengoptimalkan judul dan penemuan konten."],
-["assets/isabella-graphic-designer.png","Isabella","Graphic Designer","Menyusun arahan visual untuk konten."],
-["assets/lucas-automation-engineer.png","Lucas","Automation Engineer","Merancang alur otomatisasi yang aman."],
-["assets/charlotte-quality-controller.png","Charlotte","Quality Controller","Memeriksa kualitas data dan hasil kampanye."]
+["assets/alexander-data-analyst.png","Alexander","Lead Data Analyst","Mengubah data performa affiliate menjadi insight yang dapat ditindaklanjuti.","CSV & spreadsheet · KPI · Funnel klik-ke-pesanan · Komisi · Deteksi anomali","Dashboard metrik, ranking produk berbasis data, temuan, dan rekomendasi yang menyertakan asumsi.","CTR · Konversi · EPC · Komisi per klik · Kelengkapan data"],
+["assets/olivia-product-researcher.png","Olivia","Senior Product Researcher","Memvalidasi peluang produk dari sumber yang diizinkan sebelum direkomendasikan.","Riset kategori · Perbandingan harga · Ulasan publik · Kebutuhan audiens · Pemeriksaan sumber","Matriks produk, bukti sumber, risiko, profil pembeli, dan shortlist untuk ditinjau.","Kelengkapan bukti · Relevansi audiens · Potensi margin jika tersedia"],
+["assets/ethan-marketing-strategist.png","Ethan","Growth & Affiliate Strategist","Menyusun strategi kampanye, segmentasi audiens, dan eksperimen pertumbuhan yang terukur.","Strategi funnel · Positioning · Kalender kampanye · A/B test · Perencanaan channel","Brief kampanye, hipotesis eksperimen, rencana distribusi, dan evaluasi hasil.","CTR · Conversion rate · Pendapatan/komisi · Hasil eksperimen"],
+["assets/sophia-content-creator.png","Sophia","Senior Content Producer","Mengubah brief dan fakta produk menjadi konten yang jelas, menarik, dan sesuai platform.","Hook · Storyboard · Naskah video · Caption · CTA · Adaptasi format · Disclosure affiliate","Paket konten, skrip dengan durasi, variasi hook, caption, dan checklist klaim.","Konsistensi brand · Retensi jika tersedia · Engagement · Kepatuhan brief"],
+["assets/daniel-seo-specialist.png","Daniel","SEO & Discovery Specialist","Meningkatkan ketercarian konten melalui intent pencarian, struktur, dan metadata yang relevan.","Keyword research · Search intent · Judul · Deskripsi · Hashtag · Internal linking","Peta keyword, metadata, outline konten, dan rekomendasi optimasi yang bisa diuji.","Relevansi intent · Impression · CTR pencarian · Posisi bila tersedia"],
+["assets/isabella-graphic-designer.png","Isabella","Lead Visual Designer","Menjaga sistem visual yang konsisten serta merancang arahan kreatif untuk aset promosi.","Creative direction · Hierarki visual · Thumbnail · Layout · Brand consistency · Accessibility","Creative brief, spesifikasi ukuran, komposisi, palet, dan checklist aset siap produksi.","Konsistensi brand · Keterbacaan mobile · Kepatuhan spesifikasi"],
+["assets/lucas-automation-engineer.png","Lucas","Automation & Integration Engineer","Merancang alur kerja yang dapat diulang, aman, dan mudah dipantau menggunakan integrasi yang sah.","Workflow · API resmi · Webhook · Validasi input · Logging · Error handling · Secrets management","Diagram alur, daftar prasyarat, rencana uji, log kegagalan, dan prosedur pemulihan.","Keberhasilan proses · Tingkat error · Waktu proses · Auditabilitas"],
+["assets/charlotte-quality-controller.png","Charlotte","Quality & Compliance Lead","Menjadi gerbang pemeriksaan mutu, sumber, risiko, dan kepatuhan sebelum hasil disetujui.","Fact-check · Validasi tautan · Pemeriksaan klaim · Privasi · Disclosure affiliate · Checklist publikasi","Laporan QA, daftar masalah, status lulus/perlu revisi, dan rekomendasi perbaikan.","Akurasi · Kelengkapan sumber · Jumlah isu sebelum publikasi · Kepatuhan"]
 ];
 const root=document.getElementById("agents");
-team.forEach((a,i)=>{const card=document.createElement("article");card.className="panel agent";const head=document.createElement("div");head.className="agent-head";const icon=document.createElement("div");icon.className="avatar portrait-avatar";const portrait=document.createElement("img");portrait.src=a[0];portrait.alt="Potret "+a[1];portrait.width=78;portrait.height=78;portrait.loading="lazy";portrait.decoding="async";icon.append(portrait);const box=document.createElement("div");const title=document.createElement("h3");title.textContent=String(i+1).padStart(2,"0")+" · "+a[1]+" — "+a[2];const status=document.createElement("div");status.className="status";status.textContent="● Siap menerima tugas";box.append(title,status);head.append(icon,box);const p=document.createElement("p");p.textContent=a[3];const foot=document.createElement("div");foot.className="footline";foot.textContent="Belum terhubung ke model AI";card.append(head,p,foot);root.append(card)});
+team.forEach((a,i)=>{
+ const card=document.createElement("article");card.className="panel agent specialist-card";
+ const head=document.createElement("div");head.className="agent-head";
+ const icon=document.createElement("div");icon.className="avatar portrait-avatar";
+ const portrait=document.createElement("img");portrait.src=a[0];portrait.alt="Potret "+a[1];portrait.width=78;portrait.height=78;portrait.loading="lazy";portrait.decoding="async";icon.append(portrait);
+ const box=document.createElement("div");const title=document.createElement("h3");title.textContent=String(i+1).padStart(2,"0")+" · "+a[1];
+ const role=document.createElement("div");role.className="specialist-role";role.textContent=a[2];
+ const status=document.createElement("div");status.className="status";status.textContent="● Spesialis terdefinisi";
+ box.append(title,role,status);head.append(icon,box);
+ const p=document.createElement("p");p.textContent=a[3];
+ const expertise=document.createElement("div");expertise.className="specialist-detail";
+ const exLabel=document.createElement("strong");exLabel.textContent="Bidang keahlian";
+ const exText=document.createElement("p");exText.textContent=a[4];expertise.append(exLabel,exText);
+ const outputs=document.createElement("div");outputs.className="specialist-detail";
+ const outLabel=document.createElement("strong");outLabel.textContent="Hasil kerja";
+ const outText=document.createElement("p");outText.textContent=a[5];outputs.append(outLabel,outText);
+ const metrics=document.createElement("div");metrics.className="specialist-metrics";
+ const metricLabel=document.createElement("strong");metricLabel.textContent="Indikator evaluasi";
+ const metricText=document.createElement("p");metricText.textContent=a[6];metrics.append(metricLabel,metricText);
+ const foot=document.createElement("div");foot.className="footline";foot.textContent="Profil dan SOP tersedia · Model AI/API belum dihubungkan";
+ card.append(head,p,expertise,outputs,metrics,foot);root.append(card)
+});
 let queue=[];const form=document.getElementById("form"),input=document.getElementById("command"),list=document.getElementById("tasks"),toast=document.getElementById("toast");
 function render(){document.getElementById("taskCount").textContent=queue.length;list.replaceChildren();if(!queue.length){list.className="empty";list.textContent="Belum ada tugas.";return}list.className="";queue.slice().reverse().forEach(t=>{const row=document.createElement("div");row.className="task";const dot=document.createElement("span");dot.className="dot";const body=document.createElement("div");body.style.flex="1";const b=document.createElement("b");b.textContent=t.command;const sm=document.createElement("small");sm.textContent="Dibuat "+t.time+" · Menunggu backend";body.append(b,sm);const pill=document.createElement("span");pill.className="pill";pill.textContent="Rancangan";row.append(dot,body,pill);list.append(row)})}
 form.addEventListener("submit",e=>{e.preventDefault();const value=input.value.trim();if(!value)return;queue.push({command:value,time:new Date().toLocaleString("id-ID")});render();input.value="";toast.textContent="Rencana tugas ditambahkan. Tidak ada aksi eksternal yang dijalankan."});

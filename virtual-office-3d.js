@@ -54,7 +54,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     const manifest = await getModelManifest();
     const entry = manifest.models?.[key];
     if (!entry || typeof entry.file !== "string" || !entry.file.toLowerCase().endsWith(".glb")) return;
-    const url = new URL(entry.file.replace(/^\\/+/, ""), import.meta.url).href;
+    const url = new URL(entry.file.replace(/^\/+/, ""), import.meta.url).href;
     gltfLoader.load(url, gltf => {
       const model = gltf.scene;
       model.position.set(Number(entry.x) || 0, Number(entry.y) || 0, Number(entry.z) || 0);

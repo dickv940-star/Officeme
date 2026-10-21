@@ -536,9 +536,6 @@ export default {
     }
     if (!origin) return json({ ok: false, error: "Origin tidak diizinkan." }, 403, "null");
     // Health is intentionally read-only and may be checked before secrets are configured.
-    if (request.method === "GET" && path === "/api/session") {
-      return json({ ok: true, authenticated: true }, 200, origin);
-    }
     if (request.method === "GET" && path === "/health") {
       return json({ ok: true, service: "appdigi-w001-worker", model: env.ALLOW_EXTERNAL_LLM === "true" ? (env.OPENAI_MODEL || DEFAULT_MODEL) : "@cf/google/gemma-4-26b-a4b-it",
         openAIConfigured: Boolean(env.OPENAI_API_KEY), claudeConfigured: Boolean(env.CLAUDE_API_KEY), geminiConfigured: Boolean(env.GEMINI_API_KEY), llmProvidersConfigured: activeLLMProviders(env), llmMode: env.ALLOW_EXTERNAL_LLM === "true" ? "external-provider-opt-in" : "workers-ai-default", externalProviderOptInRequired: true, freeAIBudgetGuard: true, dailyInferenceLimit: 40, maxOutputTokens: 600, sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
@@ -554,6 +551,9 @@ export default {
       return json({ ok: false, error: "Token tidak valid." }, 401, origin);
     }
 
+    if (request.method === "GET" && path === "/api/session") {
+      return json({ ok: true, authenticated: true }, 200, origin);
+    }
     if (request.method === "GET" && path === "/api/shopee/status") {
       return json({ ok: true, service: "shopee-affiliate-open-api", ...shopeeConfigStatus(env) }, 200, origin);
     }

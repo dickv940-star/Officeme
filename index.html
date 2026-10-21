@@ -1549,7 +1549,16 @@ window.addEventListener("unhandledrejection",function(e){
   if(!response.ok||data.authenticated!==true)throw new Error(response.status===401?"APP_SHARED_TOKEN salah. Periksa token Cloudflare Anda.":(data.error||"Tidak dapat memverifikasi token. Periksa koneksi backend."));
   return true;
  }
- try{const saved=sessionStorage.getItem(KEY);if(saved){unlock(saved);}}catch(_){}
+ try{
+  const saved=sessionStorage.getItem(KEY);
+  if(saved){
+   validate(saved).then(()=>unlock(saved)).catch(()=>{
+    try{sessionStorage.removeItem(KEY)}catch(_){}
+    gate.hidden=false;
+    status.textContent="Sesi lama tidak valid atau backend tidak dapat diverifikasi. Masuk kembali dengan APP_SHARED_TOKEN yang benar.";
+   });
+  }
+ }catch(_){}
  reveal.addEventListener("click",()=>{const showing=input.type==="text";input.type=showing?"password":"text";reveal.textContent=showing?"Lihat":"Sembunyikan";input.focus();});
  form.addEventListener("submit",async event=>{
   event.preventDefault();const token=input.value.trim();if(!token){status.textContent="Masukkan APP_SHARED_TOKEN.";return;}

@@ -249,6 +249,9 @@ export default {
     }
     if (!origin) return json({ ok: false, error: "Origin tidak diizinkan." }, 403, "null");
     // Health is intentionally read-only and may be checked before secrets are configured.
+    if (request.method === "GET" && path === "/api/session") {
+      return json({ ok: true, authenticated: true }, 200, origin);
+    }
     if (request.method === "GET" && path === "/health") {
       return json({ ok: true, service: "appdigi-w001-worker", model: env.OPENAI_MODEL || DEFAULT_MODEL,
         openAIConfigured: Boolean(env.OPENAI_API_KEY), sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),

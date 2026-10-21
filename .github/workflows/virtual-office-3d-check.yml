@@ -26,7 +26,10 @@ jobs:
       - name: Check backend syntax and multi-LLM routing
         run: |
           node --check backend/worker.js
-          grep -q 'async function callProvider' backend/worker.js
+          grep -q 'async function callWorkersAI' backend/worker.js
+          ! grep -q 'fetch("https://api.openai.com' backend/worker.js
+          ! grep -q 'fetch("https://api.anthropic.com' backend/worker.js
+          ! grep -q 'fetch("https://generativelanguage.googleapis.com' backend/worker.js
           grep -q 'AGENT_PROVIDER_PREFERENCES' backend/worker.js
           grep -q 'async function delegateAgent' backend/worker.js
           grep -q 'path === "/api/agents/delegate"' backend/worker.js

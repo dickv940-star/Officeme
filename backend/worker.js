@@ -133,10 +133,11 @@ async function sha256Hex(value) {
 function extractShopeeOperation(query) {
   const text = String(query || "");
   if (text.length < 1 || text.length > 30000) return "";
-  const match = text.match(/\\b(?:query|mutation)\\s+(?:[A-Za-z_][A-Za-z0-9_]*\\s*)?(?:\\([^)]*\\)\\s*)?\\{?\\s*([A-Za-z_][A-Za-z0-9_]*)/);
-  if (match) return match[1];
-  const shorthand = text.match(/^\\s*\\{\\s*([A-Za-z_][A-Za-z0-9_]*)/);
-  return shorthand ? shorthand[1] : "";
+  const bodyStart = text.indexOf("{");
+  if (bodyStart < 0) return "";
+  const body = text.slice(bodyStart + 1);
+  const match = body.match(/^\\s*(?:#[^\\n]*\\n\\s*)*([A-Za-z_][A-Za-z0-9_]*)/);
+  return match ? match[1] : "";
 }
 
 async function callShopeeAffiliate(input, env) {

@@ -59,6 +59,20 @@ function activeLLMProviders(env) {
   return env.AI && typeof env.AI.run === "function" ? ["cloudflare-workers-ai"] : [];
 }
 
+async function reserveFreeAICall(env) {
+  if (!env.APPROVAL_DB || typeof env.APPROVAL_DB.prepare !== "function") throw new Error("FREE_AI_BUDGET_UNAVAILABLE");
+  const day = new Date().toISOString().slice(0, 10);
+  try {
+    await env.APPROVAL_DB.prepare("CREATE TABLE IF NOT EXISTS ai_free_daily_budget (day TEXT PRIMARY KEY, calls INTEGER NOT NULL DEFAULT 0)").run();
+    const row = await env.APPROVAL_DB.prepare("INSERT INTO ai_free_daily_budget (day, calls) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET calls = calls + 1 WHERE calls < 40 RETURNING calls").bind(day).first();
+    if (!row) throw new Error("FREE_AI_DAILY_LIMIT");
+  } catch (error) {
+    if (error && (error.message === "FREE_AI_DAILY_LIMIT" || error.message === "FREE_AI_BUDGET_UNAVAILABLE")) throw error;
+    console.error("Free AI budget guard unavailable");
+    throw new Error("FREE_AI_BUDGET_UNAVAILABLE");
+  }
+}
+
 async function callWorkersAI(systemPrompt, userPrompt, env, maxTokens = 1200) {
   const model = "@cf/google/gemma-4-26b-a4b-it";
   let result;

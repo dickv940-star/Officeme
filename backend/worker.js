@@ -104,6 +104,94 @@ async function callLLM(preferredProvider, systemPrompt, userPrompt, env, maxToke
   return callWorkersAI(systemPrompt, userPrompt, env, maxTokens);
 }
 
+
+const SHOPEE_AFFILIATE_DEFAULT_ENDPOINT = "https://open-api.affiliate.shopee.co.id/graphql";
+const SHOPEE_ALLOWED_OPERATIONS = new Set([
+  "productOfferV2", "shopOfferV2", "shopeeOfferV2",
+  "conversionReport", "validatedReport", "generateShortLink"
+]);
+
+function shopeeConfigStatus(env) {
+  return {
+    configured: Boolean(env.SHOPEE_AFFILIATE_APP_ID && env.SHOPEE_AFFILIATE_SECRET),
+    appIdConfigured: Boolean(env.SHOPEE_AFFILIATE_APP_ID),
+    secretConfigured: Boolean(env.SHOPEE_AFFILIATE_SECRET),
+    endpointConfigured: Boolean(env.SHOPEE_AFFILIATE_ENDPOINT),
+    endpoint: env.SHOPEE_AFFILIATE_ENDPOINT || SHOPEE_AFFILIATE_DEFAULT_ENDPOINT,
+    supportedOperations: [...SHOPEE_ALLOWED_OPERATIONS],
+    credentialValuesExposed: false,
+    note: "Gunakan kredensial Affiliate Open API resmi. Endpoint hanya menerima HTTPS pada host resmi open-api.affiliate.shopee.co.id."
+  };
+}
+
+async function sha256Hex(value) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function extractShopeeOperation(query) {
+  const text = String(query || "");
+  if (text.length < 1 || text.length > 30000) return "";
+  const match = text.match(/\\b(?:query|mutation)\\s+(?:[A-Za-z_][A-Za-z0-9_]*\\s*)?(?:\\([^)]*\\)\\s*)?\\{?\\s*([A-Za-z_][A-Za-z0-9_]*)/);
+  if (match) return match[1];
+  const shorthand = text.match(/^\\s*\\{\\s*([A-Za-z_][A-Za-z0-9_]*)/);
+  return shorthand ? shorthand[1] : "";
+}
+
+async function callShopeeAffiliate(input, env) {
+  if (!env.SHOPEE_AFFILIATE_APP_ID || !env.SHOPEE_AFFILIATE_SECRET) {
+    throw new Error("SHOPEE_API_NOT_CONFIGURED");
+  }
+  if (!input || typeof input.query !== "string" || !input.query.trim() || input.query.length > 30000) {
+    throw new Error("INVALID_SHOPEE_QUERY");
+  }
+  const operation = extractShopeeOperation(input.query);
+  if (!SHOPEE_ALLOWED_OPERATIONS.has(operation)) throw new Error("SHOPEE_OPERATION_NOT_ALLOWED");
+  const isMutation = /\\bmutation\\b/i.test(input.query);
+  if (isMutation && operation !== "generateShortLink") throw new Error("SHOPEE_OPERATION_NOT_ALLOWED");
+
+  const endpoint = env.SHOPEE_AFFILIATE_ENDPOINT || SHOPEE_AFFILIATE_DEFAULT_ENDPOINT;
+  let parsed;
+  try { parsed = new URL(endpoint); } catch (_) { throw new Error("SHOPEE_ENDPOINT_INVALID"); }
+  if (parsed.protocol !== "https:" || parsed.hostname !== "open-api.affiliate.shopee.co.id" || parsed.username || parsed.password) {
+    throw new Error("SHOPEE_ENDPOINT_INVALID");
+  }
+
+  const payload = JSON.stringify({
+    query: input.query,
+    ...(input.variables && typeof input.variables === "object" && !Array.isArray(input.variables) ? { variables: input.variables } : {})
+  });
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const signature = await sha256Hex(env.SHOPEE_AFFILIATE_APP_ID + timestamp + payload + env.SHOPEE_AFFILIATE_SECRET);
+  let response;
+  try {
+    response = await fetch(parsed.toString(), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "authorization": "SHA256 Credential=" + env.SHOPEE_AFFILIATE_APP_ID + ", Timestamp=" + timestamp + ", Signature=" + signature
+      },
+      body: payload
+    });
+  } catch (_) {
+    throw new Error("SHOPEE_API_REQUEST_FAILED");
+  }
+  let data;
+  try { data = await response.json(); } catch (_) { throw new Error("SHOPEE_API_BAD_RESPONSE"); }
+  if (!response.ok || data?.errors?.length) {
+    const firstError = Array.isArray(data?.errors) ? data.errors[0] : null;
+    const code = String(firstError?.extensions?.code || firstError?.code || "");
+    if (response.status === 401 || response.status === 403) throw new Error("SHOPEE_API_AUTH_FAILED");
+    if (response.status === 429) throw new Error("SHOPEE_API_RATE_LIMIT");
+    if (code === "INVALID_SIGNATURE" || /signature|credential|unauthori[sz]ed/i.test(String(firstError?.message || ""))) {
+      throw new Error("SHOPEE_API_AUTH_FAILED");
+    }
+    return { ok: false, operation, status: response.status, error: "Shopee Affiliate API menolak query. Periksa nama operasi, field GraphQL, dan izin API akun.", details: data?.errors || undefined };
+  }
+  return { ok: true, operation, data: data?.data ?? data, source: "Shopee Affiliate Open API Indonesia" };
+}
+
 async function analyze(input, env) {
   if (!input || !input.metrics || !Array.isArray(input.products) || input.products.length < 1 || input.products.length > MAX_PRODUCTS || !input.products.every(validProduct)) throw new Error("INVALID_INPUT");
   const metrics = input.metrics;
@@ -465,12 +553,39 @@ export default {
       return json({ ok: false, error: "Token tidak valid." }, 401, origin);
     }
 
+    if (request.method === "GET" && path === "/api/shopee/status") {
+      return json({ ok: true, service: "shopee-affiliate-open-api", ...shopeeConfigStatus(env) }, 200, origin);
+    }
+    if (request.method === "POST" && path === "/api/shopee/graphql") {
+      const declaredLength = Number(request.headers.get("Content-Length") || 0);
+      if (declaredLength > MAX_BODY_BYTES) return json({ ok: false, error: "Ukuran permintaan terlalu besar." }, 413, origin);
+      try {
+        const raw = await request.text();
+        if (raw.length > MAX_BODY_BYTES) return json({ ok: false, error: "Ukuran permintaan terlalu besar." }, 413, origin);
+        const result = await callShopeeAffiliate(JSON.parse(raw), env);
+        return json(result, result.ok ? 200 : 502, origin);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : "";
+        const messages = {
+          SHOPEE_API_NOT_CONFIGURED: [503, "Shopee Affiliate Open API belum dikonfigurasi. Tambahkan SHOPEE_AFFILIATE_APP_ID dan SHOPEE_AFFILIATE_SECRET sebagai Worker secrets."],
+          INVALID_SHOPEE_QUERY: [400, "Query GraphQL kosong atau terlalu panjang."],
+          SHOPEE_OPERATION_NOT_ALLOWED: [403, "Operasi Shopee tidak diizinkan oleh gateway."],
+          SHOPEE_ENDPOINT_INVALID: [400, "Endpoint Shopee tidak valid. Gunakan host resmi open-api.affiliate.shopee.co.id melalui HTTPS."],
+          SHOPEE_API_REQUEST_FAILED: [502, "Tidak dapat terhubung ke Shopee Affiliate Open API."],
+          SHOPEE_API_BAD_RESPONSE: [502, "Shopee Affiliate API mengembalikan respons yang tidak valid."],
+          SHOPEE_API_AUTH_FAILED: [502, "Autentikasi Shopee Affiliate API gagal. Periksa App ID, Secret, endpoint, dan kelayakan akses."],
+          SHOPEE_API_RATE_LIMIT: [429, "Batas permintaan Shopee Affiliate API tercapai. Coba lagi nanti."]
+        };
+        const [status, message] = messages[code] || [500, "Kesalahan integrasi Shopee Affiliate."];
+        return json({ ok: false, error: message }, status, origin);
+      }
+    }
     if (request.method === "GET" && path === "/api/approvals") return listApprovals(request, env, origin);
     if (request.method === "POST" && path === "/api/approvals") return createApproval(request, env, origin);
     if (request.method === "POST" && path === "/api/publisher/validate") return validatePublishPackage(request, env, origin);
     const decisionMatch = path.match(/^\/api\/approvals\/([a-zA-Z0-9_-]{1,80})\/decision$/);
     if (request.method === "POST" && decisionMatch) return decideApproval(request, env, origin, decisionMatch[1]);
-    if (request.method !== "POST" || !["/api/analyze", "/api/agents/run", "/api/agents/chat", "/api/agents/delegate"].includes(path)) {
+    if (request.method !== "POST" || !["/api/analyze", "/api/agents/run", "/api/agents/chat", "/api/agents/delegate", "/api/shopee/graphql"].includes(path)) {
       return json({ ok: false, error: "Rute tidak ditemukan." }, 404, origin);
     }
     const declaredLength = Number(request.headers.get("Content-Length") || 0);
@@ -496,6 +611,14 @@ export default {
     } catch (error) {
       const code = error instanceof Error ? error.message : "";
       const messages = {
+        SHOPEE_API_NOT_CONFIGURED: [503, "Shopee Affiliate Open API belum dikonfigurasi."],
+        INVALID_SHOPEE_QUERY: [400, "Query GraphQL tidak valid."],
+        SHOPEE_OPERATION_NOT_ALLOWED: [403, "Operasi Shopee tidak diizinkan."],
+        SHOPEE_ENDPOINT_INVALID: [400, "Endpoint Shopee tidak valid."],
+        SHOPEE_API_REQUEST_FAILED: [502, "Tidak dapat terhubung ke Shopee Affiliate API."],
+        SHOPEE_API_BAD_RESPONSE: [502, "Respons Shopee Affiliate API tidak valid."],
+        SHOPEE_API_AUTH_FAILED: [502, "Autentikasi Shopee Affiliate API gagal."],
+        SHOPEE_API_RATE_LIMIT: [429, "Batas permintaan Shopee Affiliate API tercapai."],
         INVALID_INPUT: [400, "Data CSV tidak valid atau melebihi batas 30 produk."],
         LLM_NOT_CONFIGURED: [503, "Binding Workers AI belum tersedia. Mode default tidak memanggil provider AI berbayar."],
         WORKERS_AI_REQUEST_FAILED: [502, "Workers AI gagal merespons. Periksa ketersediaan model dan kuota gratis harian."],

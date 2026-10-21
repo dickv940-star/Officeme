@@ -615,9 +615,10 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     const id=String(e.detail?.agentId||"").toLowerCase();
     const state=e.detail?.state;
     activityStates.set(id,state==="thinking"?"thinking":state==="speaking"?"speaking":state==="working"?"working":"idle");
-    if(state==="thinking"&&id&&currentRoom!=="director"){
+    if(state==="thinking"&&id){
       const person=loadWorkers().find(w=>String(w.name||"").toLowerCase()===id);
-      if(person)window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director",invite:{id,name:person.name,role:person.role}}}));
+      const alreadyPresent=person&&currentRoom==="director"&&actors.some(a=>String(a.userData.worker?.name||"").toLowerCase()===id);
+      if(person&&!alreadyPresent)window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director",invite:{id,name:person.name,role:person.role}}}));
     }
     actors.forEach(actor=>{
       const name=String(actor.userData.worker?.name||"").toLowerCase();

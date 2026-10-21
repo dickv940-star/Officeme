@@ -12,6 +12,7 @@ on:
       - "index.html"
       - "virtual-office-3d.js"
       - "VIRTUAL_OFFICE_3D.md"
+      - ".github/workflows/virtual-office-3d-check.yml"
 jobs:
   syntax-and-integration:
     runs-on: ubuntu-latest

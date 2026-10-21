@@ -1,0 +1,41 @@
+name: Virtual Office 3D checks
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "virtual-office-3d.js"
+      - "VIRTUAL_OFFICE_3D.md"
+      - ".github/workflows/virtual-office-3d-check.yml"
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "virtual-office-3d.js"
+      - "VIRTUAL_OFFICE_3D.md"
+jobs:
+  syntax-and-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check module syntax
+        run: node --input-type=module --check < virtual-office-3d.js
+      - name: Check integration hooks
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import assert from 'node:assert/strict';
+          const html = readFileSync('index.html', 'utf8');
+          const js = readFileSync('virtual-office-3d.js', 'utf8');
+          assert.match(html, /id="virtualOffice3d"/);
+          assert.match(html, /src="\.\/virtual-office-3d\.js"/);
+          assert.match(html, /appdigi:room-open/);
+          assert.match(html, /appdigi:room-close/);
+          assert.match(js, /OrbitControls/);
+          assert.match(js, /prefers-reduced-motion:\s*reduce/);
+          assert.match(js, /appdigi_officeme_workers_v1/);
+          assert.match(js, /bukan aktivitas AI nyata/);
+          console.log('Virtual Office 3D syntax and integration hooks passed.');
+          NODE

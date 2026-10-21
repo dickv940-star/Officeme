@@ -153,9 +153,9 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
       for(let i=0;i<Math.min(workers.length,8);i++){
         const angle=(-Math.PI/2)+(i*2*Math.PI/Math.max(workers.length,1));
         const x=Math.cos(angle)*3.05,z=Math.sin(angle)*2.55;
-        const actor=makeActor(workers[i],i);actor.position.set(x,0,z);actor.rotation.y=-angle+Math.PI/2;
+        const actor=makeActor(workers[i],i);actor.position.set(x,0,z);actor.rotation.y=-angle-Math.PI/2;actor.userData.mode="sit";
         actor.userData.base.position.set(x,0,z);actor.userData.base.rotation=actor.rotation.y;
-        scene.add(actor);actors.push(actor);makeChair(x-Math.cos(angle)*.35,z-Math.sin(angle)*.35,actor.rotation.y);
+        scene.add(actor);actors.push(actor);makeChair(x+Math.cos(angle)*.35,z+Math.sin(angle)*.35,actor.rotation.y);
       }
     } else if(roomId==="cafe"){
       box(scene,[3.8,.16,1.2],materials.woodLight,[1,.8,-1.6]);roomObjects.push(scene.children[scene.children.length-1]);
@@ -201,8 +201,10 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
       r.desk.visible=false;
     } else if(mode==="sit") {
       r.hips.position.y=.66;r.legL.pivot.rotation.x=-1.15;r.legR.pivot.rotation.x=-1.15;
-      r.armL.pivot.rotation.x=-1.05;r.armR.pivot.rotation.x=-1.05;
-      r.desk.visible=false;
+      r.armL.pivot.rotation.x=-1.05+(reducedMotion.matches?0:Math.sin(t*3.8)*.035);r.armR.pivot.rotation.x=-1.05+(reducedMotion.matches?0:Math.cos(t*4.1)*.035);
+      r.armL.elbow.rotation.x=-.28+(reducedMotion.matches?0:Math.sin(t*4.4)*.045);r.armR.elbow.rotation.x=-.28+(reducedMotion.matches?0:Math.cos(t*4.6)*.045);
+      r.head.rotation.x=reducedMotion.matches?-.04:-.04+Math.sin(t*1.2)*.025;
+      r.desk.visible=true;
     } else {
       r.hips.position.y=.91;r.legL.pivot.rotation.x=0;r.legR.pivot.rotation.x=0;
       r.armL.pivot.rotation.x=-1.0+(reducedMotion.matches?0:Math.sin(t*5)*.08);

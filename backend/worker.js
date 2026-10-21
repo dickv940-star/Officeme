@@ -54,6 +54,36 @@ function configuredProviders(env) {
   return Object.keys(PROVIDER_DEFAULTS).filter((provider) => Boolean(env[PROVIDER_DEFAULTS[provider].key]));
 }
 
+function activeLLMProviders(env) {
+  if (env.ALLOW_EXTERNAL_LLM === "true") return configuredProviders(env);
+  return env.AI && typeof env.AI.run === "function" ? ["cloudflare-workers-ai"] : [];
+}
+
+async function callWorkersAI(systemPrompt, userPrompt, env, maxTokens = 1200) {
+  const model = "@cf/google/gemma-4-26b-a4b-it";
+  let result;
+  try {
+    result = await env.AI.run(model, {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.2,
+      chat_template_kwargs: { enable_thinking: false }
+    });
+  } catch (error) {
+    console.error("Workers AI request failed");
+    if (error && (error.status === 429 || error.code === 429)) throw new Error("LLM_RATE_LIMIT");
+    throw new Error("WORKERS_AI_REQUEST_FAILED");
+  }
+  const answer = typeof result === "string" ? result.trim() :
+    [result?.response, result?.choices?.[0]?.message?.content, result?.result?.response]
+      .find(value => typeof value === "string" && value.trim())?.trim() || "";
+  if (!answer) throw new Error("EMPTY_LLM_RESPONSE");
+  return { provider: "cloudflare-workers-ai", model, answer };
+}
+
 async function callProvider(provider, systemPrompt, userPrompt, env, maxTokens = 1200) {
   const cfg = PROVIDER_DEFAULTS[provider];
   if (!cfg || !env[cfg.key]) throw new Error("LLM_PROVIDER_NOT_CONFIGURED");
@@ -106,6 +136,12 @@ async function callProvider(provider, systemPrompt, userPrompt, env, maxTokens =
 }
 
 async function callLLM(preferredProvider, systemPrompt, userPrompt, env, maxTokens = 1200) {
+  // Rp0-safe default: use the existing Workers AI binding only.
+  // External API providers require an explicit backend opt-in.
+  if (env.ALLOW_EXTERNAL_LLM !== "true") {
+    if (!env.AI || typeof env.AI.run !== "function") throw new Error("LLM_NOT_CONFIGURED");
+    return callWorkersAI(systemPrompt, userPrompt, env, maxTokens);
+  }
   const available = configuredProviders(env);
   if (!available.length) throw new Error("LLM_NOT_CONFIGURED");
   const order = [preferredProvider, ...available.filter(provider => provider !== preferredProvider)].filter((provider, index, list) => available.includes(provider) && list.indexOf(provider) === index);
@@ -202,7 +238,7 @@ async function runAgents(input, env) {
     const agentId = typeof input.agentId === "string" ? input.agentId.toLowerCase() : "alexander";
     if (!Object.prototype.hasOwnProperty.call(AGENTS, agentId)) throw new Error("INVALID_AGENT");
     const result = await runOneAgent(agentId, input.task.trim(), input.context, env);
-    return { ok: true, mode, providersConfigured: configuredProviders(env), results: [result] };
+    return { ok: true, mode, providersConfigured: activeLLMProviders(env), results: [result] };
   }
 
   const specialistIds = ["alexander", "olivia", "ethan", "sophia", "daniel", "isabella", "lucas"];
@@ -460,7 +496,7 @@ export default {
     // All application routes remain restricted to the configured browser origin.
     if (request.method === "GET" && path === "/health" && !request.headers.get("Origin")) {
       return json({ ok: true, service: "appdigi-w001-worker", model: env.OPENAI_MODEL || DEFAULT_MODEL,
-        openAIConfigured: Boolean(env.OPENAI_API_KEY), claudeConfigured: Boolean(env.CLAUDE_API_KEY), geminiConfigured: Boolean(env.GEMINI_API_KEY), llmProvidersConfigured: configuredProviders(env), sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
+        openAIConfigured: Boolean(env.OPENAI_API_KEY), claudeConfigured: Boolean(env.CLAUDE_API_KEY), geminiConfigured: Boolean(env.GEMINI_API_KEY), llmProvidersConfigured: activeLLMProviders(env), llmMode: env.ALLOW_EXTERNAL_LLM === "true" ? "external-provider-opt-in" : "workers-ai-default", sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
         approvalStoreConfigured: Boolean(env.APPROVAL_DB), ownerDecisionConfigured: Boolean(env.APP_OWNER_TOKEN),
         publishingEnabled: false }, 200, "*");
     }
@@ -516,7 +552,8 @@ export default {
       const code = error instanceof Error ? error.message : "";
       const messages = {
         INVALID_INPUT: [400, "Data CSV tidak valid atau melebihi batas 30 produk."],
-        LLM_NOT_CONFIGURED: [503, "Belum ada API key LLM yang dikonfigurasi. Pasang OPENAI_API_KEY, CLAUDE_API_KEY, atau GEMINI_API_KEY di backend."],
+        LLM_NOT_CONFIGURED: [503, "Binding Workers AI belum tersedia. Mode default tidak memanggil provider AI berbayar."],
+        WORKERS_AI_REQUEST_FAILED: [502, "Workers AI gagal merespons. Periksa ketersediaan model dan kuota gratis harian."],
         LLM_PROVIDER_NOT_CONFIGURED: [503, "Provider AI belum dikonfigurasi."],
         LLM_RATE_LIMIT: [429, "Batas permintaan provider AI tercapai. Coba lagi nanti."],
         LLM_REQUEST_FAILED: [502, "Permintaan ke provider AI gagal. Periksa secret, model, kuota, atau akses provider."],

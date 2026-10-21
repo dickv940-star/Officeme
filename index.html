@@ -441,6 +441,10 @@
 .vo3d-cctv-led{display:inline-block;width:7px;height:7px;border-radius:50%;background:#fb7185;box-shadow:0 0 9px #fb7185}
 @media(max-width:650px){.vo3d-cctv-panel{grid-template-columns:1fr;gap:9px}.vo3d-cctv-footer{grid-column:auto}.vo3d-cctv-zoom{min-width:0}}
 
+
+/* Persistent-feeling agent chat UI (conversation history is tab-local, not a claim of server memory) */
+.agent-chat-panel{margin-top:16px;padding:18px;border:1px solid #344b67;border-radius:18px;background:linear-gradient(155deg,#17243a,#0d1525)}
+.agent-chat-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.agent-chat-head h3{margin:3px 0;font-size:19px}.agent-chat-controls{display:grid;grid-template-columns:minmax(180px,1fr) auto auto;gap:9px;align-items:end;margin:14px 0}.agent-chat-controls label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px}.agent-chat-controls select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0a1120;color:var(--text);font:inherit}.agent-chat-messages{height:300px;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:13px;background:#080f1d}.agent-chat-message{max-width:min(88%,780px);padding:11px 13px;border-radius:13px;border:1px solid #2d4059;background:#15233a;white-space:pre-wrap;overflow-wrap:anywhere}.agent-chat-message.user{align-self:flex-end;background:#20365a;border-color:#3e5d88}.agent-chat-message.assistant{align-self:flex-start}.agent-chat-message .message-author{display:block;font-size:10px;letter-spacing:.04em;color:#9fc0f7;font-weight:800;margin-bottom:4px}.agent-chat-compose{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:end;margin-top:10px}.agent-chat-compose textarea{min-height:68px;max-height:180px;resize:vertical}.agent-chat-status{min-height:20px;margin-top:8px;color:var(--green);font-size:12px}.agent-chat-status.error{color:#ffb4b4}.agent-chat-notice{font-size:11px;color:var(--muted);margin-top:9px}@media(max-width:650px){.agent-chat-controls{grid-template-columns:1fr 1fr}.agent-chat-controls label{grid-column:1/-1}.agent-chat-controls button{font-size:12px;padding:9px}.agent-chat-messages{height:340px}.agent-chat-compose{grid-template-columns:1fr}.agent-chat-compose button{width:100%}}
 </style>
 </head>
 <body><main class="wrap">
@@ -539,6 +543,35 @@
     <div class="room-messages" id="roomMessages"></div>
     <form id="roomForm" class="room-compose"><textarea id="roomInput" maxlength="2000" required placeholder="Tulis arahan, catatan, atau hasil yang ingin disimpan di ruangan ini..."></textarea><button class="primary" type="submit">Simpan catatan</button></form>
     <div class="toast" id="roomToast" role="status" aria-live="polite"></div>
+    <section class="agent-chat-panel" id="agentChatPanel" aria-labelledby="agentChatTitle">
+      <div class="agent-chat-head"><div><div class="eyebrow">AI agent · Percakapan langsung</div><h3 id="agentChatTitle">Bicara dengan William atau tim</h3><div class="muted">Setiap agen memiliki peran dan instruksi keahlian sendiri. Riwayat dikirim ke backend agar percakapan tetap nyambung.</div></div><span class="pill">OpenAI · backend</span></div>
+      <div class="agent-chat-controls">
+        <label for="agentChatSelect">Pilih karakter / rekan kerja
+          <select id="agentChatSelect">
+            <option value="william">William Bigboss · Direktur</option>
+            <option value="alexander">Alexander · Data Analyst</option>
+            <option value="olivia">Olivia · Product Researcher</option>
+            <option value="ethan">Ethan · Marketing Strategist</option>
+            <option value="sophia">Sophia · Content Creator</option>
+            <option value="daniel">Daniel · SEO Specialist</option>
+            <option value="isabella">Isabella · Graphic Designer</option>
+            <option value="lucas">Lucas · Automation Engineer</option>
+            <option value="charlotte">Charlotte · Quality Controller</option>
+          </select>
+        </label>
+        <button type="button" id="agentCallBtn">📣 Panggil ke ruang direktur</button>
+        <button type="button" id="agentNewChat">Percakapan baru</button>
+      </div>
+      <div class="agent-chat-messages" id="agentChatMessages" role="log" aria-live="polite" aria-relevant="additions text">
+        <div class="agent-chat-message assistant"><span class="message-author">WILLIAM BIGBOSS</span>Selamat datang. Pilih saya atau salah satu spesialis, lalu mulai diskusi. Saya akan menjelaskan batas data yang tersedia dan tidak mengaku menjalankan tindakan yang belum dilakukan.</div>
+      </div>
+      <form class="agent-chat-compose" id="agentChatForm">
+        <textarea id="agentChatInput" maxlength="2000" required placeholder="Contoh: William, minta Alexander menganalisis laporan komisi ini dan jelaskan langkah berikutnya..."></textarea>
+        <button class="primary" id="agentChatSend" type="submit">Kirim pesan</button>
+      </form>
+      <div class="agent-chat-status" id="agentChatStatus" role="status" aria-live="polite">Percakapan menggunakan backend AppDIGI. Isi URL backend dan APP_SHARED_TOKEN pada panel analisis AI di halaman ini.</div>
+      <div class="agent-chat-notice">Keamanan: token dibaca dari kolom backend yang sudah ada dan tidak disimpan oleh fitur chat. Riwayat percakapan disimpan di session browser ini saja. Agen tidak memiliki akses otomatis ke Shopee atau tindakan eksternal; persetujuan tetap diperlukan.</div>
+    </section>
   </div>
 </section>
 
@@ -748,17 +781,17 @@ function renderRoomCards(){
 }
 updateWorkerCount();
 renderRoomCards();
-function openRoom(id){
+function openRoom(id,invite=null){
  activeRoom=roomTeam.find(r=>r.id===id);if(!activeRoom)return;
  document.getElementById("roomView").hidden=false;
  document.getElementById("roomTitle").textContent=activeRoom.icon+" "+activeRoom.name;
  document.getElementById("roomDescription").textContent=activeRoom.desc;
  document.getElementById("roomToast").textContent="";
  renderRoomNotes();
- window.dispatchEvent(new CustomEvent("appdigi:room-open",{detail:{id}}));
+ window.dispatchEvent(new CustomEvent("appdigi:room-open",{detail:{id,invite:invite||null}}));
  document.getElementById("roomView").scrollIntoView({behavior:"smooth",block:"start"});
 }
-window.addEventListener("appdigi:cctv-room-select",e=>{if(e.detail?.id)openRoom(e.detail.id);});
+window.addEventListener("appdigi:cctv-room-select",e=>{if(e.detail?.id)openRoom(e.detail.id,e.detail.invite||null);});
 function renderRoomNotes(){
  const holder=document.getElementById("roomMessages");holder.replaceChildren();
  const notes=loadRoomNotes()[activeRoom.id]||[];
@@ -1082,6 +1115,84 @@ window.addEventListener("unhandledrejection",function(e){
   const status=document.getElementById("virtualOfficeStatus");
   if(status)status.textContent="Virtual Office 3D mengalami kesalahan: "+String(e.reason&&e.reason.message||e.reason||"kesalahan tidak diketahui");
 });
+</script>
+<script>
+(() => {
+  const byId = id => document.getElementById(id);
+  const select = byId("agentChatSelect"), form = byId("agentChatForm");
+  if (!select || !form || form.dataset.bound === "true") return;
+  form.dataset.bound = "true";
+  const names = {
+    william:["William Bigboss","Direktur AppDIGI"],
+    alexander:["Alexander","Lead Data Analyst"], olivia:["Olivia","Senior Product Researcher"],
+    ethan:["Ethan","Growth & Affiliate Strategist"], sophia:["Sophia","Senior Content Producer"],
+    daniel:["Daniel","SEO & Discovery Specialist"], isabella:["Isabella","Lead Visual Designer"],
+    lucas:["Lucas","Automation & Integration Engineer"], charlotte:["Charlotte","Quality & Compliance Lead"]
+  };
+  const storageKey = id => "officeme_agent_chat_v1_" + id;
+  const conversations = {};
+  const status = (message,error=false) => { const el=byId("agentChatStatus");el.textContent=message;el.classList.toggle("error",error); };
+  function loadConversation(id) {
+    if (conversations[id]) return conversations[id];
+    try { const parsed=JSON.parse(sessionStorage.getItem(storageKey(id))||"[]");conversations[id]=Array.isArray(parsed)?parsed.filter(m=>m&&["user","assistant"].includes(m.role)&&typeof m.content==="string").slice(-30):[]; }
+    catch (_) { conversations[id]=[]; }
+    return conversations[id];
+  }
+  function saveConversation(id) {
+    try { sessionStorage.setItem(storageKey(id),JSON.stringify(loadConversation(id).slice(-30))); }
+    catch (_) { status("Riwayat tidak dapat disimpan dalam sesi browser; percakapan masih tersedia sementara.",true); }
+  }
+  function renderConversation() {
+    const id=select.value, messages=loadConversation(id), holder=byId("agentChatMessages");
+    holder.replaceChildren();
+    if (!messages.length) {
+      const welcome=document.createElement("div");welcome.className="agent-chat-message assistant";
+      const author=document.createElement("span");author.className="message-author";author.textContent=(names[id]||names.william)[0].toUpperCase();
+      welcome.append(author,document.createTextNode(id==="william"?"Saya William Bigboss, direktur tim. Apa prioritas yang perlu kita bahas?":"Halo, saya "+(names[id]||names.william)[0]+". Sampaikan tujuan, data, atau pertanyaan Anda agar saya bisa membantu sesuai bidang saya."));
+      holder.append(welcome);
+    } else messages.forEach(m=>{
+      const bubble=document.createElement("div");bubble.className="agent-chat-message "+m.role;
+      const author=document.createElement("span");author.className="message-author";author.textContent=m.role==="user"?"ANDA":(names[id]||names.william)[0].toUpperCase();
+      bubble.append(author,document.createTextNode(m.content));holder.append(bubble);
+    });
+    holder.scrollTop=holder.scrollHeight;
+    byId("agentChatInput").placeholder=id==="william"?"William, bantu prioritaskan pekerjaan tim...":"Diskusikan tugas "+(names[id]||names.william)[0]+"...";
+  }
+  select.addEventListener("change",()=>{renderConversation();status("Percakapan terpisah untuk "+(names[select.value]||names.william)[0]+".");});
+  byId("agentNewChat").addEventListener("click",()=>{
+    if(!confirm("Mulai percakapan baru dengan "+(names[select.value]||names.william)[0]+"? Riwayat sesi untuk agen ini akan dihapus."))return;
+    conversations[select.value]=[];try{sessionStorage.removeItem(storageKey(select.value));}catch(_){}
+    renderConversation();status("Percakapan baru dimulai.");
+  });
+  byId("agentCallBtn").addEventListener("click",()=>{
+    const id=select.value;
+    if(id==="william"){status("Anda sudah berbicara dengan William di ruang direktur.");window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director"}}));return;}
+    const person=names[id];
+    window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director",invite:{id,name:person[0],role:person[1]}}}));
+    status(person[0]+" dipanggil ke ruangan direktur. Animasi kedatangan bersifat visual; percakapan AI berlangsung melalui panel ini.");
+  });
+  form.addEventListener("submit",async event=>{
+    event.preventDefault();
+    const text=byId("agentChatInput").value.trim();if(!text)return;
+    const id=select.value, history=loadConversation(id);
+    history.push({role:"user",content:text});saveConversation(id);renderConversation();byId("agentChatInput").value="";
+    byId("agentChatSend").disabled=true;status("Menghubungkan ke agen "+(names[id]||names.william)[0]+" melalui backend OpenAI…");
+    try {
+      let url;
+      try { url=new URL(byId("geminiCsvWorkerUrl").value.trim()); } catch (_) { throw new Error("URL backend tidak valid."); }
+      if(url.protocol!=="https:"||!url.hostname.endsWith(".workers.dev")||url.username||url.password||url.pathname!=="/"||url.search||url.hash) throw new Error("Gunakan URL HTTPS Cloudflare Workers .workers.dev tanpa path tambahan.");
+      const token=byId("geminiCsvToken").value.trim();if(!token)throw new Error("APP_SHARED_TOKEN belum diisi pada panel backend AppDIGI.");
+      const response=await fetch(url.origin+"/api/agents/chat",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({agentId:id,messages:history.slice(-16)})});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
+      history.push({role:"assistant",content:data.reply});saveConversation(id);renderConversation();
+      status((data.name||names[id][0])+" menjawab menggunakan "+(data.model||"model AI")+" · Riwayat percakapan dilanjutkan.");
+    } catch(error) {
+      status("Pesan belum terjawab: "+(error.message||"koneksi gagal")+". Periksa koneksi backend dan token; jangan bagikan token di chat.",true);
+    } finally { byId("agentChatSend").disabled=false;byId("agentChatInput").focus(); }
+  });
+  renderConversation();
+})();
 </script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
 <script type="module" src="./virtual-office-3d.js"></script></body></html>

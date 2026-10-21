@@ -1322,6 +1322,7 @@ window.addEventListener("unhandledrejection",function(e){
   }
   function renderConversation() {
     const id=select.value, messages=loadConversation(id), holder=byId("agentChatMessages");
+    byId("agentChatTitle").textContent="Anda sedang berbicara langsung dengan "+(names[id]||names.william)[0];
     holder.replaceChildren();
     if (!messages.length) {
       const welcome=document.createElement("div");welcome.className="agent-chat-message assistant";

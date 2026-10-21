@@ -832,27 +832,82 @@ renderConnectors();
   }
   function parseProductCSV(text) {
     const rows = parseCSV(text);
-    if (rows.length < 2) throw new Error("CSV harus berisi baris judul kolom dan minimal satu produk.");
-    const headers = rows[0].map(value => normalize(String(value).replace(/^\uFEFF/, "")));
+    if (rows.length < 2) throw new Error("CSV harus berisi baris judul kolom dan minimal satu baris data.");
     const aliases = {
-      name: ["nama produk","product name","produk","product","item","nama barang"],
+      name: ["nama produk","product name","produk","product","item","nama barang","nama barange","nama barang e"],
       clicks: ["klik","clicks","jumlah klik","total clicks","total klik"],
       orders: ["pesanan","orders","jumlah pesanan","total pesanan","order count"],
-      commission: ["komisi","commission","estimasi komisi","total komisi","estimated commission"]
+      commission: ["komisi","commission","estimasi komisi","total komisi","estimated commission","komisi bersih affiliate rp","komisi bersih affiliate","total komisi per produk rp","total komisi per pesanan rp","komisi shopee per pesanan rp","komisi xtra per pesanan rp"],
+      orderId: ["id pemesanan","order id","nomor pesanan"],
+      netCommission: ["komisi bersih affiliate rp","komisi bersih affiliate"],
+      itemCommission: ["total komisi per produk rp","komisi barang shopee rp","komisi xtra produk rp"],
+      orderCommission: ["total komisi per pesanan rp","komisi shopee per pesanan rp","komisi xtra per pesanan rp"],
+      quantity: ["jumlah","quantity","qty"]
     };
-    const columns = {};
-    Object.keys(aliases).forEach(key => { columns[key] = headers.findIndex(header => aliases[key].some(alias => header === normalize(alias))); });
-    const missing = Object.keys(columns).filter(key => columns[key] < 0);
-    if (missing.length) throw new Error("Kolom belum ditemukan: " + missing.join(", ") + ". Pastikan CSV memiliki nama produk, klik, pesanan, dan komisi.");
+    const normalizeHeader = value => normalize(String(value).replace(/^\uFEFF/, ""));
+    const headerMatches = row => {
+      const hs = row.map(normalizeHeader);
+      return hs.some(h => aliases.name.some(a => h === normalize(a))) &&
+        (hs.some(h => aliases.clicks.some(a => h === normalize(a))) ||
+         hs.some(h => aliases.orderId.some(a => h === normalize(a))));
+    };
+    const headerIndex = rows.findIndex(headerMatches);
+    if (headerIndex < 0) throw new Error("Baris judul kolom tidak ditemukan. Gunakan laporan pesanan/komisi Shopee dalam format CSV.");
+    const headers = rows[headerIndex].map(normalizeHeader);
+    const findCol = list => headers.findIndex(h => list.some(a => h === normalize(a)));
+    const columns = {
+      name: findCol(aliases.name), clicks: findCol(aliases.clicks), orders: findCol(aliases.orders),
+      commission: findCol(aliases.netCommission) >= 0 ? findCol(aliases.netCommission) : findCol(aliases.commission),
+      orderId: findCol(aliases.orderId), quantity: findCol(aliases.quantity)
+    };
+    const orderReport = columns.orderId >= 0 && columns.clicks < 0;
+    if (columns.name < 0 || columns.commission < 0 || (!orderReport && (columns.clicks < 0 || columns.orders < 0))) {
+      const missing = [];
+      if (columns.name < 0) missing.push("nama produk");
+      if (columns.commission < 0) missing.push("komisi");
+      if (!orderReport && columns.clicks < 0) missing.push("klik");
+      if (!orderReport && columns.orders < 0) missing.push("pesanan");
+      throw new Error("Kolom belum ditemukan: " + missing.join(", ") + ". CSV pesanan/komisi Shopee akan dikenali otomatis jika memiliki ID Pemesanan, nama barang, dan kolom komisi.");
+    }
+    const dataRows = rows.slice(headerIndex + 1);
     const products = [];
-    rows.slice(1).forEach(values => {
+    if (orderReport) {
+      const byProduct = new Map();
+      const uniqueOrders = new Set();
+      let totalCommission = 0;
+      dataRows.forEach(values => {
+        const name = String(values[columns.name] || "").trim();
+        if (!name) return;
+        const orderId = String(values[columns.orderId] || "").trim();
+        const commission = numberValue(values[columns.commission]) ?? 0;
+        const quantity = columns.quantity >= 0 ? (numberValue(values[columns.quantity]) ?? 0) : 0;
+        if (orderId) uniqueOrders.add(orderId);
+        totalCommission += commission;
+        if (!byProduct.has(name)) byProduct.set(name, {name: name.slice(0, 120), clicks: null, orders: 0, commission: 0, quantity: 0, orderIds: new Set()});
+        const product = byProduct.get(name);
+        product.commission += commission;
+        product.quantity += quantity;
+        if (orderId) product.orderIds.add(orderId);
+      });
+      byProduct.forEach(product => {
+        product.orders = product.orderIds.size;
+        delete product.orderIds;
+        products.push(product);
+      });
+      if (!products.length) throw new Error("Tidak ditemukan baris produk valid pada laporan Shopee.");
+      products.sort((a,b) => b.commission - a.commission);
+      return {
+        reportType: "orders",
+        metrics: {productCount: products.length, clicks: null, orders: uniqueOrders.size, commission: totalCommission, conversionRate: null},
+        products
+      };
+    }
+    dataRows.forEach(values => {
       const name = String(values[columns.name] || "").trim();
       const clicks = numberValue(values[columns.clicks]);
       const orders = numberValue(values[columns.orders]);
       const commission = numberValue(values[columns.commission]);
-      if (name && clicks !== null && orders !== null && commission !== null) {
-        products.push({name: name.slice(0, 120), clicks, orders, commission});
-      }
+      if (name && clicks !== null && orders !== null && commission !== null) products.push({name: name.slice(0, 120), clicks, orders, commission});
     });
     if (!products.length) throw new Error("Tidak ada baris produk valid. Periksa isi dan format angka CSV.");
     const metrics = {
@@ -863,7 +918,7 @@ renderConnectors();
       conversionRate: 0
     };
     metrics.conversionRate = metrics.clicks ? Number((metrics.orders / metrics.clicks * 100).toFixed(4)) : 0;
-    return {metrics, products};
+    return {reportType: "products", metrics, products};
   }
   function config(requireToken) {
     let url;
@@ -898,10 +953,10 @@ renderConnectors();
       state.parsed = parseProductCSV(await file.text());
       const m = state.parsed.metrics;
       byId("geminiCsvProductCount").textContent = m.productCount.toLocaleString("id-ID");
-      byId("geminiCsvClicks").textContent = m.clicks.toLocaleString("id-ID");
+      byId("geminiCsvClicks").textContent = m.clicks == null ? "Tidak tersedia" : m.clicks.toLocaleString("id-ID");
       byId("geminiCsvCommission").textContent = new Intl.NumberFormat("id-ID", {style:"currency",currency:"IDR",maximumFractionDigits:0}).format(m.commission);
       byId("geminiCsvAnalyze").disabled = false;
-      status("CSV berhasil dibaca di browser. Belum ada data yang dikirim ke Gemini.", false);
+      status(state.parsed.reportType === "orders" ? "Laporan pesanan/komisi Shopee berhasil dibaca. Data klik tidak tersedia di file ini. Belum ada data yang dikirim ke Gemini." : "CSV berhasil dibaca di browser. Belum ada data yang dikirim ke Gemini.", false);
     } catch (error) {
       byId("geminiCsvProductCount").textContent = "—";
       byId("geminiCsvClicks").textContent = "—";

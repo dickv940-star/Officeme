@@ -620,6 +620,18 @@ a{color:#a9b7ff}
   <div class="gemini-csv-help">CSV perlu memiliki kolom nama produk, klik, pesanan, dan komisi. Nama kolom umum dalam Bahasa Indonesia atau Inggris didukung. Token tidak disimpan di browser, tidak ditampilkan, dan tidak boleh dikirim ke chat. Jika Anda tidak mengetahui tokennya, jangan menebak; minta bantuan untuk menyetel ulang secret di Cloudflare.</div>
 </section>
 
+<section class="gemini-csv-panel" id="shopeeApiPanel">
+  <div class="eyebrow">Integrasi resmi · Shopee Affiliate Open API Indonesia</div>
+  <h2>Koneksi akun Shopee Affiliate</h2>
+  <p class="muted">Gateway aman sudah dipasang di backend. Pemeriksaan ini hanya membaca status konfigurasi, tidak menampilkan App Secret, dan tidak melakukan publikasi.</p>
+  <div class="gemini-csv-actions">
+    <button type="button" class="primary" id="shopeeApiCheck">Periksa koneksi Shopee API</button>
+    <a href="https://open-api.affiliate.shopee.co.id/explorer/v2" target="_blank" rel="noopener noreferrer">Buka Shopee Affiliate Open API Explorer ↗</a>
+  </div>
+  <div id="shopeeApiStatus" class="gemini-csv-status" role="status" aria-live="polite">Belum diperiksa. Siapkan akses Open API resmi dan konfigurasi secret di Cloudflare untuk mengaktifkan koneksi.</div>
+  <div class="gemini-csv-help">Jika status menyebut kredensial belum dikonfigurasi, buka Cloudflare → Workers & Pages → appdigi-w001-backend → Settings → Variables and Secrets. Tambahkan SHOPEE_AFFILIATE_APP_ID dan SHOPEE_AFFILIATE_SECRET sebagai secrets/variables yang sesuai. Jangan menaruh nilainya di HTML, GitHub, atau chat. Akses API tetap bergantung pada persetujuan Shopee.</div>
+</section>
+
 <section class="section">
   <div class="eyebrow">Ruang kerja · animasi aktif</div>
   <h2 style="margin:3px 0 12px">3 Ruangan Interaktif</h2>
@@ -1527,6 +1539,41 @@ window.addEventListener("unhandledrejection",function(e){
   finally{submit.disabled=false;}
  });
  if(!gate.hidden) setTimeout(()=>input.focus(),80);
+})();
+</script>
+
+<script id="SHOPEE_AFFILIATE_STATUS_SCRIPT">
+(()=> {
+ const button=document.getElementById("shopeeApiCheck");
+ const status=document.getElementById("shopeeApiStatus");
+ const urlInput=document.getElementById("geminiCsvWorkerUrl");
+ const tokenInput=document.getElementById("geminiCsvToken");
+ if(!button||!status)return;
+ button.addEventListener("click",async()=>{
+  let base;
+  try{
+   const url=new URL(urlInput?.value.trim()||"");
+   if(url.protocol!=="https:"||!url.hostname.endsWith(".workers.dev")||url.pathname!=="/"||url.search||url.hash||url.username||url.password)throw new Error();
+   base=url.origin;
+  }catch(_){status.textContent="URL backend Cloudflare Workers tidak valid.";return}
+  const token=tokenInput?.value.trim();
+  if(!token){status.textContent="Masuk dahulu menggunakan APP_SHARED_TOKEN di panel login. Token tidak perlu dikirim ke chat.";return}
+  button.disabled=true;status.textContent="Memeriksa konfigurasi Shopee Affiliate API di backend…";
+  try{
+   const response=await fetch(base+"/api/shopee/status",{method:"GET",headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
+   if(data.configured){
+    status.textContent="Konfigurasi API tersedia. Endpoint: "+data.endpoint+". Operasi diizinkan: "+(data.supportedOperations||[]).join(", ")+". Kredensial tidak ditampilkan. Langkah berikutnya: uji operasi yang diizinkan menggunakan API Explorer.";
+   }else{
+    const missing=[];
+    if(!data.appIdConfigured)missing.push("SHOPEE_AFFILIATE_APP_ID");
+    if(!data.secretConfigured)missing.push("SHOPEE_AFFILIATE_SECRET");
+    status.textContent="Backend terhubung, tetapi akses Shopee API belum aktif. Secret/variabel yang belum tersedia: "+missing.join(", ")+". Tambahkan di Cloudflare Worker Settings → Variables and Secrets. Pastikan App ID/Secret resmi dan akses Affiliate Open API sudah disetujui Shopee.";
+   }
+  }catch(error){status.textContent="Pemeriksaan gagal: "+(error.message||"Kesalahan koneksi")+". Pastikan token valid dan backend aktif."}
+  finally{button.disabled=false}
+ });
 })();
 </script>
 </body></html>

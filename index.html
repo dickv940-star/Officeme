@@ -425,6 +425,22 @@
 @media(max-width:650px){.vo3d-canvas-wrap{height:380px;min-height:280px}.vo3d-panel{padding:9px}.vo3d-help{max-width:100%}}
 @media(prefers-reduced-motion:reduce){.vo3d-canvas-wrap *{animation:none!important;scroll-behavior:auto!important}}
 
+
+/* Virtual CCTV camera controls */
+.vo3d-cctv-button{border:1px solid #2dd4bf!important;background:linear-gradient(135deg,#0c766e,#164e63)!important;color:#f0fdfa!important;font-weight:800!important}
+.vo3d-cctv-button[aria-pressed="true"]{box-shadow:0 0 0 2px #2dd4bf55,inset 0 0 18px #2dd4bf22}
+.vo3d-cctv-panel{display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(180px,1fr) auto;gap:12px;align-items:end;padding:13px;margin:0 0 10px;border:1px solid #2a746f;border-radius:11px;background:linear-gradient(125deg,#0d202d,#101827)}
+.vo3d-cctv-panel[hidden]{display:none}
+.vo3d-cctv-panel label{display:flex;flex-direction:column;gap:6px;color:#b9d6df;font-size:11px;font-weight:700}
+.vo3d-cctv-panel select{width:100%;min-width:0;background:#101c2a;color:#e6f4f8;border:1px solid #426171;border-radius:8px;padding:9px;font:inherit;font-size:12px}
+.vo3d-cctv-zoom{min-width:170px}
+.vo3d-cctv-zoom-row{display:flex;align-items:center;gap:9px}
+.vo3d-cctv-zoom input{width:100%;accent-color:#2dd4bf}
+.vo3d-cctv-zoom output{color:#5eead4;font-size:12px;min-width:38px;text-align:right}
+.vo3d-cctv-footer{grid-column:1/-1;display:flex;align-items:center;gap:8px;color:#83b8bd;font-size:10px}
+.vo3d-cctv-led{display:inline-block;width:7px;height:7px;border-radius:50%;background:#fb7185;box-shadow:0 0 9px #fb7185}
+@media(max-width:650px){.vo3d-cctv-panel{grid-template-columns:1fr;gap:9px}.vo3d-cctv-footer{grid-column:auto}.vo3d-cctv-zoom{min-width:0}}
+
 </style>
 </head>
 <body><main class="wrap">
@@ -498,7 +514,23 @@
     <div class="vo3d-panel" id="virtualOffice3d" aria-label="Kantor virtual 3D">
       <div class="vo3d-toolbar">
         <div><div class="vo3d-title">Virtual Office 3D</div><div class="vo3d-help">Seret untuk memutar · scroll/pinch untuk zoom · geser dua jari atau klik kanan untuk pan</div></div>
-        <div class="vo3d-actions"><button type="button" id="vo3dReset">Reset kamera</button><button type="button" id="vo3dMotion">Jeda gerakan</button></div>
+        <div class="vo3d-actions"><button type="button" id="vo3dCctvToggle" class="vo3d-cctv-button" aria-expanded="false" aria-controls="vo3dCctvPanel" aria-pressed="false">◉ CCTV Sensor</button><button type="button" id="vo3dReset">Reset kamera</button><button type="button" id="vo3dMotion">Jeda gerakan</button></div>
+      </div>
+      <div class="vo3d-cctv-panel" id="vo3dCctvPanel" hidden>
+        <label for="vo3dCctvTarget">Arahkan kamera ke ruangan / aktivitas
+          <select id="vo3dCctvTarget">
+            <option value="room">Ikhtisar ruangan</option>
+            <option value="activity:type">Aktivitas simulasi: mengetik</option>
+            <option value="activity:walk">Aktivitas simulasi: berjalan</option>
+            <option value="activity:stand">Aktivitas simulasi: berdiri</option>
+            <option value="activity:sit">Aktivitas simulasi: duduk</option>
+          </select>
+        </label>
+        <label class="vo3d-cctv-zoom" for="vo3dCctvZoom">Zoom kamera
+          <div class="vo3d-cctv-zoom-row">− <input id="vo3dCctvZoom" type="range" min="5" max="23" step="0.5" value="12" aria-label="Jarak zoom kamera"> <icon name="plus" size="sm" /><output id="vo3dCctvZoomValue" for="vo3dCctvZoom">12×</output></div>
+        </label>
+        <button type="button" id="vo3dCctvFocus">Arahkan kamera</button>
+        <div class="vo3d-cctv-footer"><span class="vo3d-cctv-led"></span><span>KAMERA VIRTUAL · simulasi tampilan 3D, bukan perangkat CCTV sungguhan. Klik karakter untuk fokus; zoom bisa disetel manual.</span></div>
       </div>
       <div class="vo3d-canvas-wrap"><div class="vo3d-placeholder">Memuat ruang 3D… Jika tidak muncul, periksa koneksi internet atau dukungan WebGL browser.</div></div>
       <div class="vo3d-status" id="virtualOfficeStatus" role="status" aria-live="polite">Gerakan karakter adalah simulasi visual, bukan aktivitas AI nyata.</div>
@@ -726,6 +758,7 @@ function openRoom(id){
  window.dispatchEvent(new CustomEvent("appdigi:room-open",{detail:{id}}));
  document.getElementById("roomView").scrollIntoView({behavior:"smooth",block:"start"});
 }
+window.addEventListener("appdigi:cctv-room-select",e=>{if(e.detail?.id)openRoom(e.detail.id);});
 function renderRoomNotes(){
  const holder=document.getElementById("roomMessages");holder.replaceChildren();
  const notes=loadRoomNotes()[activeRoom.id]||[];

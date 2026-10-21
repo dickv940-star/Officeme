@@ -13,7 +13,7 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   const mobile = window.matchMedia("(max-width: 650px)");
   const storageKey = "appdigi_officeme_workers_v1";
   let renderer, scene, camera, controls, raf = 0, lastTime = 0, elapsed = 0, active = false;
-  let actors = [], roomObjects = [], resizeObserver, currentRoom = "workers", motionPaused = false;
+  let actors = [], roomObjects = [], resizeObserver, currentRoom = "workers", motionPaused = false, cctvEnabled = false, cctvDistance = 12, cctvTarget = "room";
   const status = document.getElementById("virtualOfficeStatus");
   const canvasWrap = host.querySelector(".vo3d-canvas-wrap");
 
@@ -236,6 +236,15 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
     resizeObserver=new ResizeObserver(resize);resizeObserver.observe(canvasWrap);resize();
     document.getElementById("vo3dReset")?.addEventListener("click",resetCamera);
     document.getElementById("vo3dMotion")?.addEventListener("click",toggleMotion);
+    document.getElementById("vo3dCctvToggle")?.addEventListener("click",toggleCctv);
+    document.getElementById("vo3dCctvFocus")?.addEventListener("click",()=>focusCctvTarget(document.getElementById("vo3dCctvTarget")?.value||"room"));
+    document.getElementById("vo3dCctvTarget")?.addEventListener("change",e=>{cctvTarget=e.target.value;focusCctvTarget(cctvTarget);});
+    document.getElementById("vo3dCctvZoom")?.addEventListener("input",e=>{
+      cctvDistance=Number(e.target.value)||12;
+      const output=document.getElementById("vo3dCctvZoomValue");if(output)output.textContent=cctvDistance.toFixed(cctvDistance%1?1:0)+"×";
+      applyCctvZoom();
+    });
+    attachActorFocus();
     reducedMotion.addEventListener?.("change",()=>{if(controls)controls.enableDamping=!reducedMotion.matches;});
     setStatus("Simulasi visual aktif · gerakan karakter bukan aktivitas AI nyata.");
   }
@@ -244,7 +253,102 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
     const w=Math.max(1,canvasWrap.clientWidth),h=Math.max(260,canvasWrap.clientHeight);
     camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);
   }
-  function resetCamera(){if(!camera||!controls)return;camera.position.set(9,9,12);controls.target.set(0,1,0);controls.update();}
+  function resetCamera(){
+    if(!camera||!controls)return;
+    camera.position.set(9,9,12);controls.target.set(0,1,0);controls.update();
+    cctvTarget="room";
+    const selector=document.getElementById("vo3dCctvTarget");if(selector)selector.value="room";
+    const zoom=document.getElementById("vo3dCctvZoom");if(zoom)zoom.value="12";
+    cctvDistance=12;const output=document.getElementById("vo3dCctvZoomValue");if(output)output.textContent="12×";
+  }
+  function toggleCctv(){
+    cctvEnabled=!cctvEnabled;
+    const panel=document.getElementById("vo3dCctvPanel"),button=document.getElementById("vo3dCctvToggle");
+    if(panel)panel.hidden=!cctvEnabled;
+    if(button){button.setAttribute("aria-expanded",String(cctvEnabled));button.setAttribute("aria-pressed",String(cctvEnabled));button.textContent=cctvEnabled?"◉ CCTV Sensor Aktif":"◉ CCTV Sensor";}
+    if(cctvEnabled){populateCctvTargets();focusCctvTarget(cctvTarget);setStatus("Kamera virtual aktif · pilih ruangan/aktivitas atau klik karakter untuk fokus. Ini bukan CCTV sungguhan.");}
+    else setStatus("Kamera virtual ditutup · kontrol kamera 3D biasa tetap tersedia.");
+  }
+  function populateCctvTargets(){
+    const select=document.getElementById("vo3dCctvTarget");if(!select)return;
+    const current=cctvTarget||select.value||"room";
+    const workerOptions=actors.map((actor,i)=>({value:"actor:"+i,label:"Pekerja: "+String(actor.userData.worker?.name||("Pekerja "+(i+1)))+" — "+String(actor.userData.worker?.role||actor.userData.worker?.department||"Tim")}));
+    select.replaceChildren();
+    const options=[
+      {value:"room",label:"Ikhtisar ruangan"},
+      {value:"room:workers",label:"Fokus ruang kolaborasi"},
+      {value:"room:director",label:"Fokus meja direktur"},
+      {value:"room:cafe",label:"Fokus area café"},
+      {value:"activity:type",label:"Aktivitas simulasi: mengetik"},
+      {value:"activity:walk",label:"Aktivitas simulasi: berjalan"},
+      {value:"activity:stand",label:"Aktivitas simulasi: berdiri"},
+      {value:"activity:sit",label:"Aktivitas simulasi: duduk"},
+      ...workerOptions
+    ];
+    options.forEach(item=>{const option=document.createElement("option");option.value=item.value;option.textContent=item.label;select.append(option);});
+    select.value=options.some(o=>o.value===current)?current:"room";
+    cctvTarget=select.value;
+  }
+  function focusCctvTarget(target){
+    if(!camera||!controls)return;
+    cctvTarget=target||"room";
+    const select=document.getElementById("vo3dCctvTarget");if(select&&select.value!==cctvTarget)select.value=cctvTarget;
+    if(cctvTarget.startsWith("room:")){
+      const destination=cctvTarget.split(":")[1];
+      if(["workers","director","cafe"].includes(destination)&&destination!==currentRoom){
+        window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:destination}}));
+        return;
+      }
+    }
+    let point=new THREE.Vector3(0,1,0),actor=null,description="ikhtisar ruangan";
+    if(cctvTarget.startsWith("actor:")){
+      actor=actors[Number(cctvTarget.split(":")[1])];
+      if(actor){point.copy(actor.position).add(new THREE.Vector3(0,1.25,0));description="pekerja "+(actor.userData.worker?.name||"terpilih");}
+    }else if(cctvTarget.startsWith("activity:")){
+      const mode=cctvTarget.split(":")[1];actor=actors.find(a=>a.userData.mode===mode);
+      if(actor){point.copy(actor.position).add(new THREE.Vector3(0,1.2,0));description="aktivitas simulasi "+({type:"mengetik",walk:"berjalan",stand:"berdiri",sit:"duduk"}[mode]||mode);}
+      else {setStatus("Belum ada karakter dengan pose simulasi tersebut di ruangan ini. Pilih pekerja atau ruangan lain.");return;}
+    }else if(cctvTarget.startsWith("room:")){
+      const room=cctvTarget.split(":")[1];
+      point.set(room==="cafe"?1:0,1,room==="director"?-1.5:room==="cafe"?-1.6:0);
+      description=room==="cafe"?"area café":room==="director"?"meja direktur":"ruang kolaborasi";
+    }
+    controls.target.copy(point);
+    const direction=new THREE.Vector3().subVectors(camera.position,controls.target);
+    if(direction.lengthSq()<.01)direction.set(4,2,6);
+    direction.normalize();
+    camera.position.copy(point).add(direction.multiplyScalar(cctvDistance));
+    controls.update();
+    setStatus("Kamera virtual diarahkan ke "+description+". Gunakan slider Zoom untuk mengatur jarak; seret layar untuk mengubah sudut.");
+  }
+  function applyCctvZoom(){
+    if(!camera||!controls)return;
+    const direction=new THREE.Vector3().subVectors(camera.position,controls.target);
+    if(direction.lengthSq()<.01)direction.set(4,2,6);
+    direction.normalize();camera.position.copy(controls.target).add(direction.multiplyScalar(cctvDistance));controls.update();
+  }
+  function attachActorFocus(){
+    if(!renderer)return;
+    const canvas=renderer.domElement,raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+    let start=null;
+    canvas.addEventListener("pointerdown",e=>{start={x:e.clientX,y:e.clientY,id:e.pointerId};});
+    canvas.addEventListener("pointerup",e=>{
+      if(!start||start.id!==e.pointerId)return;
+      const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y);start=null;
+      if(moved>6)return;
+      const rect=canvas.getBoundingClientRect();
+      pointer.x=((e.clientX-rect.left)/rect.width)*2-1;pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;
+      raycaster.setFromCamera(pointer,camera);
+      const roots=raycaster.intersectObjects(actors,true);
+      if(!roots.length)return;
+      let obj=roots[0].object;while(obj&& !obj.userData.rig)obj=obj.parent;
+      if(!obj)return;
+      const index=actors.indexOf(obj);if(index<0)return;
+      cctvTarget="actor:"+index;
+      if(cctvEnabled){populateCctvTargets();const select=document.getElementById("vo3dCctvTarget");if(select)select.value=cctvTarget;}
+      focusCctvTarget(cctvTarget);
+    });
+  }
   function toggleMotion(){
     motionPaused=!motionPaused;
     const button=document.getElementById("vo3dMotion");
@@ -253,11 +357,17 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   }
   function showRoom(roomId) {
     currentRoom=roomId||"workers";
+    const requestedCctvTarget=cctvTarget;
     init();
     active=true;motionPaused=reducedMotion.matches;lastTime=0;elapsed=0;
     const motionButton=document.getElementById("vo3dMotion");if(motionButton)motionButton.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
     buildRoom(currentRoom,loadWorkers());
     resetCamera();
+    if(cctvEnabled){
+      if(requestedCctvTarget==="room:"+currentRoom)cctvTarget=requestedCctvTarget;
+      populateCctvTargets();
+      if(cctvTarget!=="room")focusCctvTarget(cctvTarget);
+    }
     if(!raf)raf=requestAnimationFrame(frame);
     setStatus("Simulasi visual · karakter 3D berartikulasi · bukan status kerja AI nyata.");
     if(host.hidden)host.hidden=false;

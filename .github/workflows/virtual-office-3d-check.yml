@@ -34,6 +34,17 @@ jobs:
           grep -q 'claudeConfigured' backend/worker.js
           grep -q 'geminiConfigured' backend/worker.js
           grep -q 'result.provider' index.html
+      - name: Smoke test deployed Worker health
+        run: |
+          node --input-type=module <<'NODE'
+          const response = await fetch('https://appdigi-w001-backend.dickv940.workers.dev/health', { signal: AbortSignal.timeout(15000) });
+          if (!response.ok) throw new Error(`Worker health returned HTTP ${response.status}`);
+          const data = await response.json();
+          if (data.ok !== true || data.service !== 'appdigi-w001-worker') {
+            throw new Error('Worker health payload did not match the expected service.');
+          }
+          console.log('Live Worker health passed; provider secret values were not read or logged.');
+          NODE
       - name: Check module syntax
         run: node --input-type=module --check < virtual-office-3d.js
       - name: Check integration hooks

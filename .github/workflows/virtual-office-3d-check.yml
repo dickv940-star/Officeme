@@ -4,6 +4,9 @@ on:
     paths:
       - "index.html"
       - "backend/worker.js"
+      - "affiliate-ops.js"
+      - "backend/migrations/0002_affiliate_ops.sql"
+      - "AFFILIATE_OPS.md"
       - "virtual-office-3d.js"
       - "VIRTUAL_OFFICE_3D.md"
       - ".github/workflows/virtual-office-3d-check.yml"
@@ -32,6 +35,22 @@ jobs:
           ! grep -q 'fetch("https://generativelanguage.googleapis.com' backend/worker.js
           grep -q 'AGENT_PROVIDER_PREFERENCES' backend/worker.js
           grep -q 'async function delegateAgent' backend/worker.js
+          grep -q 'async function ensureAffiliateOpsSchema' backend/worker.js
+          grep -q 'async function seedAffiliateDay' backend/worker.js
+          grep -q 'async function generateAffiliateOpsContent' backend/worker.js
+          grep -q 'async scheduled(controller, env, ctx)' backend/worker.js
+          grep -q 'humanApprovalRequired: true' backend/worker.js
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import assert from 'node:assert/strict';
+          const source = readFileSync('backend/worker.js', 'utf8');
+          const auth = source.indexOf('else if (!authorized(request, env))');
+          const ops = source.indexOf('path === "/api/ops/dashboard"');
+          const session = source.indexOf('path === "/api/session"');
+          assert.ok(auth >= 0 && ops > auth && session > auth, 'Operations and session routes must be behind shared-token authentication');
+          assert.match(source, /status='IDEA',decision_note=NULL/);
+          console.log('Operations routes are authenticated and stale drafts are invalidated on edits.');
+          NODE
           grep -q 'path === "/api/agents/delegate"' backend/worker.js
           grep -q 'INVALID_DELEGATION_INPUT' backend/worker.js
           grep -q 'claudeConfigured' backend/worker.js
@@ -57,7 +76,9 @@ jobs:
           console.log('Live Worker Workers-AI-only mode and budget guard passed; provider secret values were not read or logged.');
           NODE
       - name: Check module syntax
-        run: node --input-type=module --check < virtual-office-3d.js
+        run: |
+          node --input-type=module --check < virtual-office-3d.js
+          node --input-type=module --check < affiliate-ops.js
       - name: Check integration hooks
         run: |
           node --input-type=module <<'NODE'
@@ -66,6 +87,13 @@ jobs:
           const html = readFileSync('index.html', 'utf8');
           const js = readFileSync('virtual-office-3d.js', 'utf8');
           assert.match(html, /id="virtualOffice3d"/);
+          assert.match(html, /src="\.\/affiliate-ops\.js(?:\?[^\"]*)?"/);
+          assert.match(js, /bukan aktivitas AI nyata/);
+          const ops = readFileSync('affiliate-ops.js', 'utf8');
+          assert.match(ops, /Siapkan 10 tugas hari ini/);
+          assert.match(ops, /X-Owner-Token/);
+          assert.match(ops, /PUBLISHED_MANUALLY/);
+          assert.match(ops, /api\/ops\/dashboard/);
           assert.match(html, /src="\.\/virtual-office-3d\.js(?:\?[^"]*)?"/);
           assert.match(html, /appdigi:room-open/);
           assert.match(html, /appdigi:room-close/);

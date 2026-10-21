@@ -41,8 +41,8 @@ jobs:
           assert.match(html, /id="agentMonitorRun"/);
           assert.match(html, /id="agentMonitorTaskInput"/);
           assert.match(html, /mode:"single",agentId:id/);
-          assert.match(html, /window\.__appdigiAgentMonitor\.lastRun/);
-          assert.match(html, /agent-monitor-overlay\[hidden\]/);
+          assert.ok(html.includes("window.__appdigiAgentMonitor.lastRun"));
+          assert.ok(html.includes(".agent-monitor-overlay[hidden]"));
           assert.match(js, /OrbitControls/);
           assert.match(js, /function toggleCctv/);
           assert.match(js, /function focusCctvTarget/);

@@ -55,7 +55,6 @@ function configuredProviders(env) {
 }
 
 function activeLLMProviders(env) {
-  if (env.ALLOW_EXTERNAL_LLM === "true") return configuredProviders(env);
   return env.AI && typeof env.AI.run === "function" ? ["cloudflare-workers-ai"] : [];
 }
 
@@ -99,79 +98,10 @@ async function callWorkersAI(systemPrompt, userPrompt, env, maxTokens = 1200) {
   return { provider: "cloudflare-workers-ai", model, answer };
 }
 
-async function callProvider(provider, systemPrompt, userPrompt, env, maxTokens = 1200) {
-  const cfg = PROVIDER_DEFAULTS[provider];
-  if (!cfg || !env[cfg.key]) throw new Error("LLM_PROVIDER_NOT_CONFIGURED");
-  const model = String(env[cfg.modelKey] || cfg.model).trim();
-  if (!/^[a-zA-Z0-9._-]{1,100}$/.test(model)) throw new Error("INVALID_MODEL");
-  let response;
-  if (provider === "openai") {
-    response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "content-type": "application/json", "authorization": "Bearer " + env.OPENAI_API_KEY },
-      body: JSON.stringify({ model, messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], temperature: 0.2, max_tokens: maxTokens })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      console.error("OpenAI request failed with status", response.status);
-      throw new Error(response.status === 429 ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
-    }
-    const answer = result?.choices?.[0]?.message?.content?.trim();
-    if (!answer) throw new Error("EMPTY_LLM_RESPONSE");
-    return { provider, model, answer };
-  }
-  if (provider === "claude") {
-    response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": env.CLAUDE_API_KEY, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model, system: systemPrompt, messages: [{ role: "user", content: userPrompt }], max_tokens: maxTokens, temperature: 0.2 })
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      console.error("Claude request failed with status", response.status);
-      throw new Error(response.status === 429 ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
-    }
-    const answer = Array.isArray(result?.content) ? result.content.filter(x => x.type === "text").map(x => x.text).join("\n").trim() : "";
-    if (!answer) throw new Error("EMPTY_LLM_RESPONSE");
-    return { provider, model, answer };
-  }
-  response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(env.GEMINI_API_KEY), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ systemInstruction: { parts: [{ text: systemPrompt }] }, contents: [{ role: "user", parts: [{ text: userPrompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens } })
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    console.error("Gemini request failed with status", response.status);
-    throw new Error(response.status === 429 ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
-  }
-  const answer = result?.candidates?.[0]?.content?.parts?.map(x => x.text || "").join("\n").trim();
-  if (!answer) throw new Error("EMPTY_LLM_RESPONSE");
-  return { provider, model, answer };
-}
-
 async function callLLM(preferredProvider, systemPrompt, userPrompt, env, maxTokens = 1200) {
-  // Rp0-safe default: use the existing Workers AI binding only.
-  // External API providers require an explicit backend opt-in.
-  if (env.ALLOW_EXTERNAL_LLM !== "true") {
-    if (!env.AI || typeof env.AI.run !== "function") throw new Error("LLM_NOT_CONFIGURED");
-    return callWorkersAI(systemPrompt, userPrompt, env, maxTokens);
-  }
-  const available = configuredProviders(env);
-  if (!available.length) throw new Error("LLM_NOT_CONFIGURED");
-  const order = [preferredProvider, ...available.filter(provider => provider !== preferredProvider)].filter((provider, index, list) => available.includes(provider) && list.indexOf(provider) === index);
-  let lastError;
-  for (const provider of order) {
-    try {
-      return await callProvider(provider, systemPrompt, userPrompt, env, maxTokens);
-    } catch (error) {
-      lastError = error;
-      if (error.message === "LLM_RATE_LIMIT") continue;
-      if (error.message === "LLM_REQUEST_FAILED" || error.message === "EMPTY_LLM_RESPONSE") continue;
-      throw error;
-    }
-  }
-  throw lastError || new Error("LLM_REQUEST_FAILED");
+  // Hard safety rule: never call external paid-provider APIs from this Worker.
+  if (!env.AI || typeof env.AI.run !== "function") throw new Error("LLM_NOT_CONFIGURED");
+  return callWorkersAI(systemPrompt, userPrompt, env, maxTokens);
 }
 
 async function analyze(input, env) {
@@ -510,8 +440,8 @@ export default {
     // Allow direct navigation to the read-only health endpoint (no Origin header).
     // All application routes remain restricted to the configured browser origin.
     if (request.method === "GET" && path === "/health" && !request.headers.get("Origin")) {
-      return json({ ok: true, service: "appdigi-w001-worker", model: env.ALLOW_EXTERNAL_LLM === "true" ? (env.OPENAI_MODEL || DEFAULT_MODEL) : "@cf/google/gemma-4-26b-a4b-it",
-        openAIConfigured: Boolean(env.OPENAI_API_KEY), claudeConfigured: Boolean(env.CLAUDE_API_KEY), geminiConfigured: Boolean(env.GEMINI_API_KEY), llmProvidersConfigured: activeLLMProviders(env), llmMode: env.ALLOW_EXTERNAL_LLM === "true" ? "external-provider-opt-in" : "workers-ai-default", externalProviderOptInRequired: true, freeAIBudgetGuard: true, dailyInferenceLimit: 40, maxOutputTokens: 600, sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
+      return json({ ok: true, service: "appdigi-w001-worker", model: "@cf/google/gemma-4-26b-a4b-it",
+        openAIConfigured: Boolean(env.OPENAI_API_KEY), claudeConfigured: Boolean(env.CLAUDE_API_KEY), geminiConfigured: Boolean(env.GEMINI_API_KEY), llmProvidersConfigured: activeLLMProviders(env), llmMode: "workers-ai-only", externalProvidersDisabled: true, freeAIBudgetGuard: true, dailyInferenceLimit: 40, maxOutputTokens: 600, sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
         approvalStoreConfigured: Boolean(env.APPROVAL_DB), ownerDecisionConfigured: Boolean(env.APP_OWNER_TOKEN),
         publishingEnabled: false }, 200, "*");
     }

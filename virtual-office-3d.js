@@ -376,7 +376,19 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
         actor.userData.hands.handL.thumb.rotation.x=reducedMotion.matches?0:Math.sin(t*5.4)*.08;
         actor.userData.hands.handR.thumb.rotation.x=reducedMotion.matches?0:Math.cos(t*5.7)*.08;
       }
-      r.head.rotation.x=reducedMotion.matches?-.04:-.04+Math.sin(t*.85)*.018;
+      if(actor.userData.conversationMode==="speaking"){
+        r.head.rotation.x=reducedMotion.matches?-.025:-.025+Math.sin(t*3.2)*.035;
+        r.head.rotation.y=reducedMotion.matches?0:Math.sin(t*2.1)*.09;
+        r.armL.pivot.rotation.x=-.82+(reducedMotion.matches?0:Math.sin(t*3.4)*.12);
+        r.armR.pivot.rotation.x=-.72+(reducedMotion.matches?0:Math.cos(t*3.1)*.12);
+        r.armL.elbow.rotation.x=-.38+(reducedMotion.matches?0:Math.sin(t*3.8)*.1);
+        r.armR.elbow.rotation.x=-.32+(reducedMotion.matches?0:Math.cos(t*3.6)*.1);
+      } else if(actor.userData.conversationMode==="thinking"){
+        r.head.rotation.x=reducedMotion.matches?-.08:-.08+Math.sin(t*.8)*.025;
+        r.head.rotation.y=reducedMotion.matches?0:-.12+Math.sin(t*.55)*.035;
+      } else {
+        r.head.rotation.x=reducedMotion.matches?-.04:-.04+Math.sin(t*.85)*.018;
+      }
       r.desk.visible=true;
     } else {
       r.hips.position.y=.91;r.legL.pivot.rotation.x=0;r.legR.pivot.rotation.x=0;
@@ -559,6 +571,30 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
   }
   function hideRoom(){active=false;}
   window.addEventListener("appdigi:room-open",e=>showRoom(e.detail?.id||"workers",e.detail?.invite||null));
+  window.addEventListener("appdigi:agent-activity",e=>{
+    const id=String(e.detail?.agentId||"").toLowerCase();
+    const state=e.detail?.state;
+    actors.forEach(actor=>{
+      const name=String(actor.userData.worker?.name||"").toLowerCase();
+      const match=(id==="william"&&name.includes("william"))||name===id;
+      if(match)actor.userData.conversationMode=["thinking","speaking"].includes(state)?state:null;
+    });
+  });
+  window.addEventListener("appdigi:agent-pose",e=>{
+    const id=String(e.detail?.agentId||"").toLowerCase();
+    const mode=String(e.detail?.mode||"");
+    if(!["sit","type","stand","walk"].includes(mode))return;
+    let found=false;
+    actors.forEach(actor=>{
+      const name=String(actor.userData.worker?.name||"").toLowerCase();
+      if((id==="william"&&name.includes("william"))||name===id){
+        actor.userData.mode=mode;actor.userData.conversationMode=null;
+        actor.userData.base.position.copy(actor.position);actor.userData.base.rotation=actor.rotation.y;
+        found=true;
+      }
+    });
+    if(found)setStatus("Pose visual "+mode+" diterapkan pada "+id+". Ini simulasi animasi, bukan status kerja AI nyata.");
+  });
   window.addEventListener("appdigi:room-close",hideRoom);
   window.addEventListener("storage",e=>{if(e.key===storageKey&&active)showRoom(currentRoom);});
   document.addEventListener("visibilitychange",()=>{if(document.hidden)active=false;else if(!host.hidden){active=true;lastTime=0;}});

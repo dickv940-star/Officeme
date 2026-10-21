@@ -86,7 +86,7 @@ async function callProvider(provider, systemPrompt, userPrompt, env, maxTokens =
       console.error("Claude request failed with status", response.status);
       throw new Error(response.status === 429 ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
     }
-    const answer = Array.isArray(result?.content) ? result.content.filter(x => x.type === "text").map(x => x.text).join("\\n").trim() : "";
+    const answer = Array.isArray(result?.content) ? result.content.filter(x => x.type === "text").map(x => x.text).join("\n").trim() : "";
     if (!answer) throw new Error("EMPTY_LLM_RESPONSE");
     return { provider, model, answer };
   }
@@ -100,7 +100,7 @@ async function callProvider(provider, systemPrompt, userPrompt, env, maxTokens =
     console.error("Gemini request failed with status", response.status);
     throw new Error(response.status === 429 ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
   }
-  const answer = result?.candidates?.[0]?.content?.parts?.map(x => x.text || "").join("\\n").trim();
+  const answer = result?.candidates?.[0]?.content?.parts?.map(x => x.text || "").join("\n").trim();
   if (!answer) throw new Error("EMPTY_LLM_RESPONSE");
   return { provider, model, answer };
 }
@@ -182,6 +182,48 @@ async function runAgents(input, env) {
   const reviewContext = results.map(r => ({ agent: r.name, role: r.role, findings: r.result }));
   const qa = await runOneAgent("charlotte", "Tinjau dan sintesis hasil 7 spesialis berikut untuk tugas: " + input.task + ". Temukan kontradiksi, klaim tanpa bukti, risiko kepatuhan, lalu berikan rekomendasi final berprioritas.", reviewContext, env);
   return { ok: true, mode, providersConfigured: configuredProviders(env), providerRouting: "Preferensi per agen dengan fallback hanya ke provider yang secret-nya tersedia", results: [...results, qa], finalReview: qa.result };
+}
+
+
+async function delegateAgent(input, env) {
+  const agentId = typeof input?.agentId === "string" ? input.agentId.toLowerCase() : "";
+  if (!Object.prototype.hasOwnProperty.call(AGENTS, agentId)) throw new Error("INVALID_AGENT");
+  if (agentId === "charlotte") throw new Error("INVALID_DELEGATION_INPUT");
+  if (typeof input?.task !== "string" || !input.task.trim() || input.task.length > 8000) {
+    throw new Error("INVALID_DELEGATION_INPUT");
+  }
+  const context = input.context && typeof input.context === "object" ? input.context : {};
+  const assigned = await runOneAgent(agentId, input.task.trim(), context, env);
+  const reviewContext = {
+    originalTask: input.task.trim(),
+    specialist: { name: assigned.name, role: assigned.role, result: assigned.result },
+    recentConversation: Array.isArray(context.recentConversation) ? context.recentConversation.slice(-8) : []
+  };
+  const review = await runOneAgent(
+    "charlotte",
+    "Lakukan QA atas hasil spesialis untuk tugas ini. Tandai klaim tanpa bukti, asumsi, risiko kepatuhan, dan perbaikan yang diperlukan. Berikan status LULUS / PERLU REVISI beserta alasan.",
+    reviewContext,
+    env
+  );
+  const directorSystem = "Anda William Bigboss, direktur AI TEAM AppDIGI. Rangkum hasil spesialis dan QA dalam Bahasa Indonesia yang alami. Berikan keputusan, langkah berikutnya, dan hal yang masih perlu diverifikasi. Jangan mengklaim tindakan eksternal telah dilakukan.";
+  const directorPrompt = [
+    "Tugas pengguna: " + input.task.trim(),
+    "Hasil spesialis " + assigned.name + ":\n" + assigned.result,
+    "Tinjauan Charlotte: \n" + review.result,
+    "Buat ringkasan keputusan yang singkat, praktis, dan jujur."
+  ].join("\n\n");
+  const summary = await callLLM("openai", directorSystem, directorPrompt, env, 700);
+  return {
+    ok: true,
+    result: assigned,
+    review,
+    directorSummary: summary.answer,
+    communication: [
+      { from: "William Bigboss", to: assigned.name, status: "delegasi diproses backend" },
+      { from: assigned.name, to: "Charlotte", status: "hasil dikirim untuk QA" },
+      { from: "Charlotte", to: "William Bigboss", status: "hasil QA diterima" }
+    ]
+  };
 }
 
 
@@ -382,7 +424,7 @@ export default {
     if (request.method === "POST" && path === "/api/publisher/validate") return validatePublishPackage(request, env, origin);
     const decisionMatch = path.match(/^\/api\/approvals\/([a-zA-Z0-9_-]{1,80})\/decision$/);
     if (request.method === "POST" && decisionMatch) return decideApproval(request, env, origin, decisionMatch[1]);
-    if (request.method !== "POST" || !["/api/analyze", "/api/agents/run", "/api/agents/chat"].includes(path)) {
+    if (request.method !== "POST" || !["/api/analyze", "/api/agents/run", "/api/agents/chat", "/api/agents/delegate"].includes(path)) {
       return json({ ok: false, error: "Rute tidak ditemukan." }, 404, origin);
     }
     const declaredLength = Number(request.headers.get("Content-Length") || 0);
@@ -397,6 +439,10 @@ export default {
       }
       if (path === "/api/agents/chat") {
         const result = await chatAgent(input, env);
+        return json(result, 200, origin);
+      }
+      if (path === "/api/agents/delegate") {
+        const result = await delegateAgent(input, env);
         return json(result, 200, origin);
       }
       const result = await analyze(input, env);
@@ -415,6 +461,7 @@ export default {
         OPENAI_REQUEST_FAILED: [502, "Permintaan ke OpenAI gagal. Periksa konfigurasi atau kuota."],
         EMPTY_OPENAI_RESPONSE: [502, "OpenAI tidak menghasilkan jawaban."],
         INVALID_AGENT_INPUT: [400, "Tugas agent harus berupa teks 1 sampai 8000 karakter."],
+        INVALID_DELEGATION_INPUT: [400, "Delegasi harus berisi tugas 1–8000 karakter dan memilih spesialis selain Charlotte, yang bertugas sebagai reviewer."],
         INVALID_CHAT_INPUT: [400, "Riwayat percakapan tidak valid. Gunakan 1–16 pesan user/assistant, masing-masing maksimal 4000 karakter, dan akhiri dengan pesan pengguna."],
         INVALID_AGENT: [400, "ID agent tidak dikenal."],
         INVALID_MODEL: [500, "Nama model backend tidak valid."]

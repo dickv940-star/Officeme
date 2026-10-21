@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - "index.html"
+      - "backend/worker.js"
       - "virtual-office-3d.js"
       - "VIRTUAL_OFFICE_3D.md"
       - ".github/workflows/virtual-office-3d-check.yml"

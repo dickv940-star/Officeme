@@ -458,7 +458,7 @@
 <section class="gemini-csv-panel" id="geminiCsvAnalyzer">
   <div class="eyebrow">Analisis AI · CSV Shopee Affiliate</div>
   <h2>Analisis produk dengan Gemini</h2>
-  <p class="muted">Pilih CSV dari akun Anda. File dihitung di browser; hanya setelah Anda menekan “Jalankan analisis Gemini”, ringkasan dan maksimal 30 produk dikirim ke backend AppDIGI. Tidak ada posting atau publikasi otomatis.</p>
+  <p class="muted">Pilih CSV dari akun Anda. File dihitung di browser; hanya setelah Anda menekan “Jalankan analisis AI”, ringkasan dan maksimal 30 produk dikirim ke backend AppDIGI. Tidak ada posting atau publikasi otomatis.</p>
   <label for="geminiCsvFile">1. Pilih file CSV</label>
   <input id="geminiCsvFile" type="file" accept=".csv,.txt,text/csv">
   <div class="gemini-csv-stats">
@@ -472,7 +472,7 @@
   </div>
   <div class="gemini-csv-actions">
     <button type="button" id="geminiCsvHealth">Tes koneksi backend</button>
-    <button type="button" class="primary" id="geminiCsvAnalyze" disabled>Jalankan analisis Gemini</button>
+    <button type="button" class="primary" id="geminiCsvAnalyze" disabled>Jalankan analisis AI</button>
   </div>
   <div id="geminiCsvStatus" class="gemini-csv-status" role="status" aria-live="polite">Belum ada CSV yang dipilih. Belum ada data yang dikirim ke server.</div>
   <div id="geminiCsvResult" class="gemini-csv-result" aria-live="polite" hidden></div>
@@ -1063,7 +1063,7 @@ renderConnectors();
       byId("geminiCsvClicks").textContent = m.clicks == null ? "Tidak tersedia" : m.clicks.toLocaleString("id-ID");
       byId("geminiCsvCommission").textContent = new Intl.NumberFormat("id-ID", {style:"currency",currency:"IDR",maximumFractionDigits:0}).format(m.commission);
       byId("geminiCsvAnalyze").disabled = false;
-      status(state.parsed.reportType === "orders" ? "Laporan pesanan/komisi Shopee berhasil dibaca. Data klik tidak tersedia di file ini. Belum ada data yang dikirim ke Gemini." : "CSV berhasil dibaca di browser. Belum ada data yang dikirim ke Gemini.", false);
+      status(state.parsed.reportType === "orders" ? "Laporan pesanan/komisi Shopee berhasil dibaca. Data klik tidak tersedia di file ini. Belum ada data yang dikirim ke AI." : "CSV berhasil dibaca di browser. Belum ada data yang dikirim ke AI.", false);
     } catch (error) {
       byId("geminiCsvProductCount").textContent = "—";
       byId("geminiCsvClicks").textContent = "—";
@@ -1077,7 +1077,7 @@ renderConnectors();
     status("Sedang memeriksa koneksi backend…", false);
     try {
       const result = await call("/health", "GET");
-      status("Backend merespons. Model: " + result.model + ". OpenAI terkonfigurasi: " + (result.openAIConfigured ? "ya" : "belum") + ".", false);
+      status("Backend merespons. Model: " + result.model + ". Cloudflare Workers AI terkonfigurasi: " + (result.openAIConfigured ? "ya" : "belum") + ".", false);
     } catch (error) { status("Tes koneksi gagal: " + error.message, true); }
     finally { button.disabled = false; }
   });
@@ -1086,7 +1086,7 @@ renderConnectors();
     const button = byId("geminiCsvAnalyze");
     button.disabled = true;
     byId("geminiCsvResult").hidden = true;
-    status("Mengirim ringkasan dan maksimal 30 produk ke backend OpenAI…", false);
+    status("Mengirim ringkasan dan maksimal 30 produk ke Cloudflare Workers AI…", false);
     try {
       const products = state.parsed.products.slice().sort((a,b) => b.commission - a.commission).slice(0,30);
       const sourceMetrics = state.parsed.metrics;
@@ -1109,7 +1109,7 @@ renderConnectors();
       const result = await call("/api/analyze", "POST", {metrics: payloadMetrics, products: payloadProducts});
       byId("geminiCsvResult").textContent = result.analysis || "Backend merespons tanpa isi analisis.";
       byId("geminiCsvResult").hidden = false;
-      status("Analisis OpenAI berhasil. Model: " + result.model + ". Produk dianalisis: " + result.productsAnalyzed + ". Tidak ada publikasi yang dilakukan.", false);
+      status("Analisis AI berhasil. Model: " + result.model + ". Produk dianalisis: " + result.productsAnalyzed + ". Tidak ada publikasi yang dilakukan.", false);
     } catch (error) {
       status("Analisis belum berhasil: " + (error.message || "Kesalahan tidak diketahui") + ". Periksa token, format CSV, dan konfigurasi backend.", true);
     } finally { button.disabled = false; }

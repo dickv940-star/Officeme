@@ -43,15 +43,15 @@ jobs:
           if (data.ok !== true || data.service !== 'appdigi-w001-worker') {
             throw new Error('Worker health payload did not match the expected service.');
           }
-          if (data.llmMode !== 'workers-ai-default' ||
+          if (data.llmMode !== 'workers-ai-only' ||
               data.model !== '@cf/google/gemma-4-26b-a4b-it' ||
               data.freeAIBudgetGuard !== true ||
-              data.externalProviderOptInRequired !== true ||
+              data.externalProvidersDisabled !== true ||
               data.dailyInferenceLimit !== 40 ||
               data.maxOutputTokens !== 600) {
-            throw new Error('Live Worker is not in the expected Rp0-safe AI mode.');
+            throw new Error('Live Worker is not in the expected Rp0-only AI mode.');
           }
-          console.log('Live Worker free AI mode and budget guard passed; provider secret values were not read or logged.');
+          console.log('Live Worker Workers-AI-only mode and budget guard passed; provider secret values were not read or logged.');
           NODE
       - name: Check module syntax
         run: node --input-type=module --check < virtual-office-3d.js

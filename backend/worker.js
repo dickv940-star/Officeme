@@ -185,7 +185,7 @@ async function callShopeeAffiliate(input, env) {
   }
   const operation = extractShopeeOperation(input.query);
   if (!SHOPEE_ALLOWED_OPERATIONS.has(operation)) throw new Error("SHOPEE_OPERATION_NOT_ALLOWED");
-  const isMutation = /\\bmutation\\b/i.test(input.query);
+  const isMutation = /\bmutation\b/i.test(input.query);
   if (isMutation && operation !== "generateShortLink") throw new Error("SHOPEE_OPERATION_NOT_ALLOWED");
 
   const endpoint = env.SHOPEE_AFFILIATE_ENDPOINT || SHOPEE_AFFILIATE_DEFAULT_ENDPOINT;

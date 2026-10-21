@@ -113,8 +113,8 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   }
 
   function clearRoom() {
-    actors.forEach(a => { scene.remove(a); a.traverse(o => { if(o.geometry) o.geometry.dispose(); }); });
-    actors=[]; roomObjects.forEach(o=>{scene.remove(o);}); roomObjects=[];
+    actors.forEach(a => { scene.remove(a); a.traverse(o => { if(o.geometry) o.geometry.dispose(); if(o.material){const list=Array.isArray(o.material)?o.material:[o.material];list.forEach(material=>{if(material.map)material.map.dispose();material.dispose();});} }); });
+    actors=[]; roomObjects.forEach(o=>{scene.remove(o);o.traverse?.(child=>{if(child.geometry)child.geometry.dispose();});if(o.geometry)o.geometry.dispose();}); roomObjects=[];
   }
   function addRoomObject(o){scene.add(o);roomObjects.push(o);return o;}
   function makePlant(x,z) {
@@ -188,8 +188,8 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
     r.head.rotation.y=reducedMotion.matches?0:Math.sin(t*.8)*.06;
     if(mode==="walk" && !reducedMotion.matches) {
       const walk=t*2.3;
-      actor.position.x=actor.userData.base.position.x+Math.sin(t*.45)*.32;
-      actor.position.z=actor.userData.base.position.z+Math.cos(t*.45)*.22;
+      actor.position.x=actor.userData.base.position.x+Math.sin(t*.45)*.65;
+      actor.position.z=actor.userData.base.position.z+Math.cos(t*.45)*.45;
       r.legL.pivot.rotation.x=Math.sin(walk)*.5;r.legR.pivot.rotation.x=-Math.sin(walk)*.5;
       r.armL.pivot.rotation.x=-Math.sin(walk)*.3;r.armR.pivot.rotation.x=Math.sin(walk)*.3;
       r.hips.position.y=.91+Math.abs(Math.sin(walk))*.035;

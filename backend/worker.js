@@ -205,10 +205,11 @@ async function chatAgent(input, env) {
     : AGENTS[agentId];
   const transcript = history.slice(-12).map((message) =>
     (message.role === "user" ? "PENGGUNA" : agent.name) + ": " + message.content
-  ).join("\\n\\n");
+  ).join("\n\n");
   const system = [
     "Anda adalah " + agent.name + ", " + agent.role + " dalam AI TEAM AppDIGI.",
     "Keahlian utama: " + agent.focus + ".",
+    "Anda juga teman bicara yang ramah: pengguna boleh menyapa, bercanda ringan, bertanya kabar, atau mengobrol biasa. Balas percakapan santai secara alami; jangan memaksa setiap pesan menjadi tugas teknis. Jika pertanyaan masuk bidang spesialisasi Anda, gunakan keahlian tersebut. Jika di luar bidang, tetap bantu secara umum dan jelaskan batasan bila relevan.",
     "Bahasa percakapan: Bahasa Indonesia yang alami, hangat, jelas, profesional, dan mudah dipahami. Pengguna mungkin memakai bahasa sehari-hari, salah ketik, huruf kapital, atau instruksi singkat; pahami maksudnya tanpa mengoreksi bahasa kecuali diminta.",
     "Jawab langsung sesuai konteks percakapan. Jangan mengulang salam atau memberi pengantar panjang pada setiap balasan. Jika permintaan ambigu secara material, ajukan satu pertanyaan singkat. Jika bisa dikerjakan dengan asumsi wajar, nyatakan asumsi itu lalu bantu.",
     "Jujur tentang kemampuan dan batasan. Jangan mengaku telah membuka situs, melihat data akun, menjalankan kode, mengirim pesan, atau menyelesaikan tindakan eksternal kecuali benar-benar dilakukan oleh alat yang tersedia.",
@@ -217,7 +218,7 @@ async function chatAgent(input, env) {
     "Berikan jawaban praktis dan bertahap; gunakan daftar singkat bila membantu."
   ].join(" ");
   const result = await callLLM(AGENT_PROVIDER_PREFERENCES[agentId] || "openai", system,
-    "Berikut riwayat percakapan terbaru. Balas pesan terakhir pengguna dengan mempertimbangkan konteks sebelumnya.\\n\\n" + transcript,
+    "Berikut riwayat percakapan terbaru. Balas pesan terakhir pengguna dengan mempertimbangkan konteks sebelumnya.\n\n" + transcript,
     env, 1000);
   return { ok: true, agentId, name: agent.name, role: agent.role, provider: result.provider, model: result.model, reply: result.answer };
 }
@@ -394,6 +395,10 @@ export default {
         const result = await runAgents(input, env);
         return json(result, 200, origin);
       }
+      if (path === "/api/agents/chat") {
+        const result = await chatAgent(input, env);
+        return json(result, 200, origin);
+      }
       const result = await analyze(input, env);
       return json(result, 200, origin);
     } catch (error) {
@@ -409,7 +414,8 @@ export default {
         OPENAI_RATE_LIMIT: [429, "Batas permintaan OpenAI tercapai. Coba lagi nanti."],
         OPENAI_REQUEST_FAILED: [502, "Permintaan ke OpenAI gagal. Periksa konfigurasi atau kuota."],
         EMPTY_OPENAI_RESPONSE: [502, "OpenAI tidak menghasilkan jawaban."],
-        INVALID_AGENT_INPUT: [400, "Tugas agent harus berupa teks 1 sampai 8000 karakter."],\n        INVALID_CHAT_INPUT: [400, "Riwayat percakapan tidak valid. Gunakan 1–16 pesan user/assistant, masing-masing maksimal 4000 karakter, dan akhiri dengan pesan pengguna."],
+        INVALID_AGENT_INPUT: [400, "Tugas agent harus berupa teks 1 sampai 8000 karakter."],
+        INVALID_CHAT_INPUT: [400, "Riwayat percakapan tidak valid. Gunakan 1–16 pesan user/assistant, masing-masing maksimal 4000 karakter, dan akhiri dengan pesan pengguna."],
         INVALID_AGENT: [400, "ID agent tidak dikenal."],
         INVALID_MODEL: [500, "Nama model backend tidak valid."]
       };

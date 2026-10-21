@@ -80,10 +80,10 @@ async function callWorkersAI(systemPrompt, userPrompt, env, maxTokens = 1200) {
   try {
     result = await env.AI.run(model, {
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
+        { role: "system", content: String(systemPrompt || "").slice(0, 6000) },
+        { role: "user", content: String(userPrompt || "").slice(0, 8000) }
       ],
-      max_tokens: maxTokens,
+      max_tokens: Math.max(1, Math.min(Number(maxTokens) || 600, 600)),
       temperature: 0.2,
       chat_template_kwargs: { enable_thinking: false }
     });

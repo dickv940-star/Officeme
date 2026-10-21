@@ -569,6 +569,8 @@ export default {
         INVALID_INPUT: [400, "Data CSV tidak valid atau melebihi batas 30 produk."],
         LLM_NOT_CONFIGURED: [503, "Binding Workers AI belum tersedia. Mode default tidak memanggil provider AI berbayar."],
         WORKERS_AI_REQUEST_FAILED: [502, "Workers AI gagal merespons. Periksa ketersediaan model dan kuota gratis harian."],
+        FREE_AI_DAILY_LIMIT: [429, "Batas aman AI gratis aplikasi hari ini tercapai (40 pemanggilan). Coba lagi setelah pergantian hari UTC."],
+        FREE_AI_BUDGET_UNAVAILABLE: [503, "Pengaman anggaran AI gratis tidak tersedia. Permintaan dihentikan agar tidak memicu biaya."],
         LLM_PROVIDER_NOT_CONFIGURED: [503, "Provider AI belum dikonfigurasi."],
         LLM_RATE_LIMIT: [429, "Batas permintaan provider AI tercapai. Coba lagi nanti."],
         LLM_REQUEST_FAILED: [502, "Permintaan ke provider AI gagal. Periksa secret, model, kuota, atau akses provider."],

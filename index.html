@@ -703,9 +703,9 @@ a{color:#a9b7ff}
     <form id="roomForm" class="room-compose"><textarea id="roomInput" maxlength="2000" required placeholder="Tulis arahan, catatan, atau hasil yang ingin disimpan di ruangan ini..."></textarea><button class="primary" type="submit">Simpan catatan</button></form>
     <div class="toast" id="roomToast" role="status" aria-live="polite"></div>
     <section class="agent-chat-panel" id="agentChatPanel" aria-labelledby="agentChatTitle">
-      <div class="agent-chat-head"><div><div class="eyebrow">AI agent · Percakapan langsung</div><h3 id="agentChatTitle">Bicara dengan William atau tim</h3><div class="muted">Setiap agen memiliki peran dan instruksi keahlian sendiri. Riwayat dikirim ke backend agar percakapan tetap nyambung.</div></div><span class="pill">Cloudflare Workers AI · backend</span></div>
+      <div class="agent-chat-head"><div><div class="eyebrow">AI agent · Percakapan langsung</div><h3 id="agentChatTitle">Percakapan langsung dengan agen</h3><div class="muted">Pilih William atau nama spesialis yang ingin Anda ajak bicara. Pesan akan diarahkan langsung ke agen terpilih; percakapan setiap agen terpisah.</div></div><span class="pill">Cloudflare Workers AI · backend</span></div>
       <div class="agent-chat-controls">
-        <label for="agentChatSelect">Pilih karakter / rekan kerja
+        <label for="agentChatSelect">Anda sedang berbicara dengan
           <select id="agentChatSelect">
             <option value="william">William Bigboss · Direktur</option>
             <option value="alexander">Alexander · Data Analyst</option>
@@ -718,7 +718,7 @@ a{color:#a9b7ff}
             <option value="charlotte">Charlotte · Quality Controller</option>
           </select>
         </label>
-        <button type="button" id="agentCallBtn">📣 Panggil ke ruang direktur</button>
+        <button type="button" id="agentCallBtn">📣 Panggil & buka chat agen</button>
         <button type="button" id="agentNewChat">Percakapan baru</button>
       </div>
       <div class="agent-chat-controls">
@@ -729,7 +729,7 @@ a{color:#a9b7ff}
         <span class="pill">Animasi simulasi</span>
       </div>
       <div class="agent-chat-controls">
-        <label for="agentDelegateSelect">William menugaskan spesialis
+        <label for="agentDelegateSelect">Pilih spesialis untuk tugas dari William
           <select id="agentDelegateSelect">
             <option value="alexander">Alexander · Data</option><option value="olivia">Olivia · Riset Produk</option>
             <option value="ethan">Ethan · Strategi</option><option value="sophia">Sophia · Konten</option>
@@ -744,11 +744,11 @@ a{color:#a9b7ff}
         <div class="agent-chat-message assistant"><span class="message-author">WILLIAM BIGBOSS</span>Selamat datang. Pilih saya atau salah satu spesialis, lalu mulai diskusi. Saya akan menjelaskan batas data yang tersedia dan tidak mengaku menjalankan tindakan yang belum dilakukan.</div>
       </div>
       <form class="agent-chat-compose" id="agentChatForm">
-        <textarea id="agentChatInput" maxlength="2000" required placeholder="Contoh: William, minta Alexander menganalisis laporan komisi ini dan jelaskan langkah berikutnya..."></textarea>
+        <textarea id="agentChatInput" maxlength="2000" required placeholder="Tulis pesan langsung kepada agen yang dipilih di atas..."></textarea>
         <button class="primary" id="agentChatSend" type="submit">Kirim pesan</button>
       </form>
       <div class="agent-chat-status" id="agentChatStatus" role="status" aria-live="polite">Percakapan menggunakan backend AppDIGI. Isi URL backend dan APP_SHARED_TOKEN pada panel analisis AI di halaman ini.</div>
-      <div class="agent-chat-notice">Keamanan: token dibaca dari kolom backend yang sudah ada dan tidak disimpan oleh fitur chat. Riwayat percakapan disimpan di session browser ini saja. Agen tidak memiliki akses otomatis ke Shopee atau tindakan eksternal; persetujuan tetap diperlukan.</div>
+      <div class="agent-chat-notice">Mode percakapan langsung: saat Anda memilih atau memanggil Alexander, Olivia, atau spesialis lain, pesan berikutnya masuk ke agen tersebut—bukan William. Riwayat tiap agen terpisah di sesi browser ini. Token tidak disimpan oleh fitur chat. Akses Shopee dan tindakan eksternal tidak dianggap tersedia tanpa bukti integrasi; publikasi tetap memerlukan persetujuan manusia.</div>
     </section>
   </div>
 </section>
@@ -1336,7 +1336,14 @@ window.addEventListener("unhandledrejection",function(e){
     holder.scrollTop=holder.scrollHeight;
     byId("agentChatInput").placeholder=id==="william"?"Ngobrol dengan William...":"Ngobrol dengan "+(names[id]||names.william)[0]+"...";
   }
-  select.addEventListener("change",()=>{renderConversation();status("Percakapan terpisah untuk "+(names[select.value]||names.william)[0]+".");});
+  select.addEventListener("change",()=>{renderConversation();status("Mode chat langsung aktif: Anda berbicara dengan "+(names[select.value]||names.william)[0]+". Pesan tidak dikirim ke William kecuali William yang dipilih.");});
+  window.addEventListener("appdigi:cctv-room-select",event=>{
+    const invitedId=String(event.detail?.invite?.id||"").toLowerCase();
+    if(!names[invitedId]||invitedId==="william")return;
+    select.value=invitedId;
+    renderConversation();
+    status("Anda sekarang berbicara langsung dengan "+names[invitedId][0]+". Percakapan terpisah dari William.");
+  });
   byId("agentNewChat").addEventListener("click",()=>{
     if(!confirm("Mulai percakapan baru dengan "+(names[select.value]||names.william)[0]+"? Riwayat sesi untuk agen ini akan dihapus."))return;
     conversations[select.value]=[];try{sessionStorage.removeItem(storageKey(select.value));}catch(_){}
@@ -1347,8 +1354,12 @@ window.addEventListener("unhandledrejection",function(e){
     if(id==="william")id=byId("agentDelegateSelect").value;
     if(id==="william"){window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director"}}));status("William berada di ruang direktur.");return;}
     const person=names[id];
+    if(id!=="william"){
+      select.value=id;
+      renderConversation();
+    }
     window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director",invite:{id,name:person[0],role:person[1]}}}));
-    status(person[0]+" dipanggil ke ruangan direktur. Percakapan AI berlangsung melalui panel ini.");
+    status(id==="william"?"Anda sekarang berbicara langsung dengan William Bigboss.": "Anda sekarang berbicara langsung dengan "+person[0]+". Pesan berikutnya diarahkan ke "+person[0]+", bukan William.");
   });
   byId("agentDelegateBtn").addEventListener("click",async()=>{
     if(select.value!=="william"){status("Pilih William Bigboss sebagai pembicara untuk mendelegasikan tugas.",true);return;}

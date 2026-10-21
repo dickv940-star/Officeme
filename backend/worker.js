@@ -578,13 +578,13 @@ export default {
       catch (e) { return json({ok:false,error:e && e.message==="OPS_DB_UNAVAILABLE"?"D1 belum tersedia.":"Dashboard operasional belum dapat dibaca."},503,origin); }
     }
     if (request.method === "POST" && path === "/api/ops/tasks") return createAffiliateOpsTasks(request,env,origin);
-    const opsGenerateMatch = path.match(/^\\/api\\/ops\\/tasks\\/([a-zA-Z0-9_-]{1,80})\\/generate$/);
+    const opsGenerateMatch = path.match(/^\/api\/ops\/tasks\/([a-zA-Z0-9_-]{1,80})\/generate$/);
     if (request.method === "POST" && opsGenerateMatch) return generateAffiliateOpsContent(request,env,origin,opsGenerateMatch[1]);
-    const opsDecisionMatch = path.match(/^\\/api\\/ops\\/tasks\\/([a-zA-Z0-9_-]{1,80})\\/decision$/);
+    const opsDecisionMatch = path.match(/^\/api\/ops\/tasks\/([a-zA-Z0-9_-]{1,80})\/decision$/);
     if (request.method === "POST" && opsDecisionMatch) return decideAffiliateOpsTask(request,env,origin,opsDecisionMatch[1]);
-    const opsMetricsMatch = path.match(/^\\/api\\/ops\\/tasks\\/([a-zA-Z0-9_-]{1,80})\\/metrics$/);
+    const opsMetricsMatch = path.match(/^\/api\/ops\/tasks\/([a-zA-Z0-9_-]{1,80})\/metrics$/);
     if (request.method === "POST" && opsMetricsMatch) return recordAffiliateOpsMetrics(request,env,origin,opsMetricsMatch[1]);
-    const opsTaskMatch = path.match(/^\\/api\\/ops\\/tasks\\/([a-zA-Z0-9_-]{1,80})$/);
+    const opsTaskMatch = path.match(/^\/api\/ops\/tasks\/([a-zA-Z0-9_-]{1,80})$/);
     if (request.method === "POST" && opsTaskMatch) return updateAffiliateOpsTask(request,env,origin,opsTaskMatch[1]);
 
     const ownerRoute = (request.method === "GET" && path === "/api/approvals") ||

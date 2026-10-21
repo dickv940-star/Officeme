@@ -196,7 +196,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     for(const dx of [-.17,.17])for(const dz of [-.15,.15])cylinder(g,.025,.025,.47,materials.metal,[dx,.23,dz],8);
     return addRoomObject(g);
   }
-  function buildRoom(roomId, workers) {
+  function buildRoom(roomId, workers, invite = null) {
     clearRoom();
     const floor = addRoomObject(new THREE.Mesh(new THREE.PlaneGeometry(14,10),materials.floor));
     floor.rotation.x=-Math.PI/2; floor.position.y=-.04; floor.receiveShadow=true;

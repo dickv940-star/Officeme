@@ -168,6 +168,33 @@ async function runOneAgent(agentId, task, context, env) {
   return { agentId, name: agent.name, role: agent.role, provider: result.provider, model: result.model, result: result.answer };
 }
 
+function agentErrorMessage(error) {
+  const code = error instanceof Error ? error.message : "";
+  const messages = {
+    LLM_NOT_CONFIGURED: "Belum ada provider AI yang dikonfigurasi di backend.",
+    LLM_RATE_LIMIT: "Batas permintaan provider AI tercapai; coba lagi nanti.",
+    LLM_REQUEST_FAILED: "Provider AI gagal merespons. Periksa model, akses, atau kuota.",
+    EMPTY_LLM_RESPONSE: "Provider AI tidak menghasilkan jawaban.",
+    LLM_PROVIDER_NOT_CONFIGURED: "Provider AI yang dibutuhkan belum dikonfigurasi."
+  };
+  return messages[code] || "Agen gagal menyelesaikan tugas. Periksa konfigurasi backend.";
+}
+
+async function tryRunOneAgent(agentId, task, context, env) {
+  try {
+    return { ok: true, ...(await runOneAgent(agentId, task, context, env)) };
+  } catch (error) {
+    const agent = AGENTS[agentId];
+    return {
+      ok: false,
+      agentId,
+      name: agent?.name || agentId,
+      role: agent?.role || "AI Agent",
+      error: agentErrorMessage(error)
+    };
+  }
+}
+
 async function runAgents(input, env) {
   if (!input || typeof input.task !== "string" || !input.task.trim() || input.task.length > 8000) throw new Error("INVALID_AGENT_INPUT");
   const mode = input.mode === "team" ? "team" : "single";
@@ -177,13 +204,51 @@ async function runAgents(input, env) {
     const result = await runOneAgent(agentId, input.task.trim(), input.context, env);
     return { ok: true, mode, providersConfigured: configuredProviders(env), results: [result] };
   }
-  const specialistIds = ["alexander", "olivia", "ethan", "sophia", "daniel", "isabella", "lucas"];
-  const results = await Promise.all(specialistIds.map(id => runOneAgent(id, input.task.trim(), input.context, env)));
-  const reviewContext = results.map(r => ({ agent: r.name, role: r.role, findings: r.result }));
-  const qa = await runOneAgent("charlotte", "Tinjau dan sintesis hasil 7 spesialis berikut untuk tugas: " + input.task + ". Temukan kontradiksi, klaim tanpa bukti, risiko kepatuhan, lalu berikan rekomendasi final berprioritas.", reviewContext, env);
-  return { ok: true, mode, providersConfigured: configuredProviders(env), providerRouting: "Preferensi per agen dengan fallback hanya ke provider yang secret-nya tersedia", results: [...results, qa], finalReview: qa.result };
-}
 
+  const specialistIds = ["alexander", "olivia", "ethan", "sophia", "daniel", "isabella", "lucas"];
+  const specialists = await Promise.all(specialistIds.map(id =>
+    tryRunOneAgent(id, input.task.trim(), input.context, env)
+  ));
+  const successful = specialists.filter(result => result.ok);
+  let qa;
+  if (successful.length) {
+    qa = await tryRunOneAgent(
+      "charlotte",
+      "Tinjau dan sintesis hasil spesialis berikut untuk tugas: " + input.task +
+        ". Temukan kontradiksi, klaim tanpa bukti, risiko kepatuhan, dan rekomendasi final berprioritas. Nyatakan juga jika sebagian spesialis gagal.",
+      successful.map(r => ({ agent: r.name, role: r.role, findings: r.result })),
+      env
+    );
+  } else {
+    qa = {
+      ok: false,
+      agentId: "charlotte",
+      name: AGENTS.charlotte.name,
+      role: AGENTS.charlotte.role,
+      error: "Tinjauan belum dapat dijalankan karena tidak ada spesialis yang berhasil."
+    };
+  }
+  const results = [...specialists, qa];
+  const specialistsSucceeded = successful.length;
+  const qualityStatus = qa.ok && specialistsSucceeded === specialistIds.length
+    ? "REVIEW_SELESAI"
+    : qa.ok ? "REVIEW_SELESAI_DENGAN_KEGAGALAN_AGEN" : "REVIEW_GAGAL";
+  return {
+    ok: specialistsSucceeded === specialistIds.length && qa.ok,
+    mode,
+    providersConfigured: configuredProviders(env),
+    providerRouting: "Preferensi per agen dengan fallback hanya ke provider yang secret-nya tersedia",
+    results,
+    finalReview: qa.ok ? qa.result : qa.error,
+    qualityStatus,
+    qualityGate: {
+      specialistsSucceeded,
+      specialistsTotal: specialistIds.length,
+      reviewerSucceeded: qa.ok ? 1 : 0,
+      humanReviewRequired: true
+    }
+  };
+}
 
 async function delegateAgent(input, env) {
   const agentId = typeof input?.agentId === "string" ? input.agentId.toLowerCase() : "";

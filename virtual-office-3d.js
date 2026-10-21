@@ -284,55 +284,72 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     return addRoomObject(g);
   }
   function buildRoom(roomId, workers, invite = null) {
+    // One shared building: collaboration room (left), director room (center), café (right).
     clearRoom();
-    const floor = addRoomObject(new THREE.Mesh(new THREE.PlaneGeometry(14,10),materials.floor));
-    floor.rotation.x=-Math.PI/2; floor.position.y=-.04; floor.receiveShadow=true;
-    const back = box(scene,[14,3.6,.18],materials.wall,[0,1.8,-5]);
-    const left = box(scene,[.18,3.6,10],materials.wallDark,[-7,1.8,0]);
-    roomObjects.push(back,left);
-    // windows, trim, and warm overhead lights
-    for(let i=0;i<4;i++){
-      const win=box(scene,[2.1,1.15,.045],new THREE.MeshStandardMaterial({color:"#8ed4e7",emissive:"#367a96",emissiveIntensity:.22,roughness:.25}),[-4.7+i*2.7,2.35,-4.88]);
-      roomObjects.push(win);
-      const frame=box(scene,[2.2,.07,.07],materials.white,[-4.7+i*2.7,2.96,-4.84]);roomObjects.push(frame);
+    const floor=addRoomObject(new THREE.Mesh(new THREE.PlaneGeometry(30,10),materials.floor));
+    floor.rotation.x=-Math.PI/2;floor.position.y=-.04;floor.receiveShadow=true;
+    addRoomObject(box(scene,[30,3.6,.18],materials.wall,[0,1.8,-5]));
+    addRoomObject(box(scene,[.18,3.6,10],materials.wallDark,[-15,1.8,0]));
+    addRoomObject(box(scene,[.18,3.6,10],materials.wallDark,[15,1.8,0]));
+    // Internal partitions stop before the front corridor, leaving open doorways.
+    for(const x of [-5,5]){
+      addRoomObject(box(scene,[.16,3.1,7.1],materials.wallDark,[x,1.55,-1.45]));
+      addRoomObject(box(scene,[.16,.35,2.8],materials.wallDark,[x,3.35,3.55]));
     }
-    makePlant(-5.9, -3.8); makePlant(5.9,-3.8);
-    const deskMat=materials.wood;
-    if(roomId==="workers"){
-      // shared collaboration table plus individual workstations
-      cylinder(scene,1.5,1.6,.16,deskMat,[0,.83,0],48).receiveShadow=true;
-      const tableTop=scene.children[scene.children.length-1];roomObjects.push(tableTop);
-      cylinder(scene,.35,.48,.76,materials.metal,[0,.39,0],24);roomObjects.push(scene.children[scene.children.length-1]);
-      for(let i=0;i<Math.min(workers.length,8);i++){
-        const angle=(-Math.PI/2)+(i*2*Math.PI/Math.max(workers.length,1));
-        const x=Math.cos(angle)*3.05,z=Math.sin(angle)*2.55;
-        const actor=makeActor(workers[i],i);actor.position.set(x,0,z);actor.rotation.y=-angle-Math.PI/2;actor.userData.mode="sit";
-        actor.userData.base.position.set(x,0,z);actor.userData.base.rotation=actor.rotation.y;
-        scene.add(actor);actors.push(actor);loadCustomCharacterModel(actor);makeChair(x+Math.cos(angle)*.35,z+Math.sin(angle)*.35,actor.rotation.y);
+    for(const center of [-10,0,10]){
+      for(const dx of [-3.2,0,3.2]){
+        addRoomObject(box(scene,[1.7,1.05,.055],new THREE.MeshStandardMaterial({color:"#8ed4e7",emissive:"#367a96",emissiveIntensity:.18,roughness:.28}),[center+dx,2.25,-4.88]));
+        addRoomObject(box(scene,[1.8,.06,.07],materials.white,[center+dx,2.82,-4.83]));
       }
-    } else if(roomId==="cafe"){
-      box(scene,[3.8,.16,1.2],materials.woodLight,[1,.8,-1.6]);roomObjects.push(scene.children[scene.children.length-1]);
-      for(let i=0;i<2;i++){cylinder(scene,.42,.42,.12,materials.wood,[i*1.5,.92,-1.5],24);roomObjects.push(scene.children[scene.children.length-1]);}
-      box(scene,[4,.65,.35],materials.wood,[3,.4,-3.8]);roomObjects.push(scene.children[scene.children.length-1]);
-      workers.slice(0,2).forEach((w,i)=>{const a=makeActor(w,i);a.position.set(i?2:0,0,.3);a.userData.mode="sit";scene.add(a);actors.push(a);loadCustomCharacterModel(a);makeChair(i?2:0,.6,Math.PI);});
-    } else {
-      box(scene,[3.4,.15,1.1],materials.woodLight,[0,.82,-1.8]);roomObjects.push(scene.children[scene.children.length-1]);
-      box(scene,[.65,.6,.08],materials.screen,[0,1.2,-2]);roomObjects.push(scene.children[scene.children.length-1]);
-      const director={name:"William Bigboss",role:"Director"};
-      const a=makeActor(director,8);a.position.set(invite&&invite.name?-.82:0,0,.15);a.rotation.y=invite&&invite.name?-.18:0;a.userData.mode="sit";a.userData.base.position.copy(a.position);a.userData.base.rotation=a.rotation.y;scene.add(a);actors.push(a);loadCustomCharacterModel(a);makeChair(a.position.x,.7,Math.PI);
-      if(invite&&typeof invite.name==="string"&&invite.name.trim()){
-        const guest={name:invite.name.trim().slice(0,60),role:String(invite.role||"Spesialis AppDIGI").slice(0,100)};
-        const guestIndex=Math.max(0,workers.findIndex(w=>String(w.name).toLowerCase()===guest.name.toLowerCase()));
-        const guestActor=makeActor(guest,guestIndex);
-        // The invited agent visibly enters the director room and walks to the meeting chair.
-        guestActor.position.set(5.7,0,3.65);guestActor.rotation.y=-Math.PI/2;guestActor.userData.mode="walk";
-        guestActor.userData.base.position.copy(guestActor.position);guestActor.userData.base.rotation=guestActor.rotation.y;
-        guestActor.userData.walkTarget=new THREE.Vector3(1.28,0,.25);guestActor.userData.destinationMode="sit";
-        scene.add(guestActor);actors.push(guestActor);loadCustomCharacterModel(guestActor);makeChair(1.58,.7,.2);
+      makePlant(center-4.25,-3.8);makePlant(center+4.25,-3.8);
+      for(const x of [center-2,center,center+2]){
+        cylinder(scene,.08,.08,.2,materials.metal,[x,3.28,-.8],12);roomObjects.push(scene.children[scene.children.length-1]);
+        sphere(scene,mat("#ffe4a2",.4),[x,3.08,-.8],[.17,.065,.17]);roomObjects.push(scene.children[scene.children.length-1]);
       }
     }
-    // ceiling lights represented by emissive pendants
-    for(const x of [-3,0,3]){cylinder(scene,.09,.09,.22,materials.metal,[x,3.3,-.8],12);roomObjects.push(scene.children[scene.children.length-1]);sphere(scene,mat("#ffe4a2",.4),[x,3.12,-.8],[.18,.07,.18]);roomObjects.push(scene.children[scene.children.length-1]);}
+    // Shared collaboration room.
+    cylinder(scene,1.5,1.6,.16,materials.wood,[-10,.83,0],48);roomObjects.push(scene.children[scene.children.length-1]);
+    cylinder(scene,.35,.48,.76,materials.metal,[-10,.39,0],24);roomObjects.push(scene.children[scene.children.length-1]);
+    for(let i=0;i<Math.min(workers.length,8);i++){
+      const angle=(-Math.PI/2)+(i*2*Math.PI/Math.max(workers.length,1));
+      const x=-10+Math.cos(angle)*3.05,z=Math.sin(angle)*2.55;
+      const actor=makeActor(workers[i],i);actor.position.set(x,0,z);actor.rotation.y=-angle-Math.PI/2;actor.userData.mode="sit";
+      actor.userData.base.position.set(x,0,z);actor.userData.base.rotation=actor.rotation.y;
+      scene.add(actor);actors.push(actor);loadCustomCharacterModel(actor);makeChair(x+Math.cos(angle)*.35,z+Math.sin(angle)*.35,actor.rotation.y);
+    }
+    // Director's desk and host character.
+    addRoomObject(box(scene,[3.4,.15,1.1],materials.woodLight,[0,.82,-1.8]));
+    addRoomObject(box(scene,[.65,.6,.08],materials.screen,[0,1.2,-2]));
+    const director={name:"William Bigboss",role:"Director"};
+    const host=makeActor(director,8);host.position.set(-.72,0,.15);host.rotation.y=.15;host.userData.mode="sit";
+    host.userData.base.position.copy(host.position);host.userData.base.rotation=host.rotation.y;
+    scene.add(host);actors.push(host);loadCustomCharacterModel(host);makeChair(-.72,.7,Math.PI);
+    if(invite&&typeof invite.name==="string"&&invite.name.trim()){
+      const guest={name:invite.name.trim().slice(0,60),role:String(invite.role||"Spesialis AppDIGI").slice(0,100)};
+      const guestIndex=Math.max(0,workers.findIndex(w=>String(w.name).toLowerCase()===guest.name.toLowerCase()));
+      const visitor=makeActor(guest,guestIndex);
+      visitor.position.set(3.8,0,3.8);visitor.rotation.y=-Math.PI/2;visitor.userData.mode="walk";
+      visitor.userData.base.position.copy(visitor.position);visitor.userData.base.rotation=visitor.rotation.y;
+      visitor.userData.walkTarget=new THREE.Vector3(.95,0,.35);visitor.userData.destinationMode="stand";
+      scene.add(visitor);actors.push(visitor);loadCustomCharacterModel(visitor);makeChair(1.58,.7,.2);
+    }
+    // Café / break room. Workers remain visible as part of the same building.
+    addRoomObject(box(scene,[3.8,.16,1.2],materials.woodLight,[10,.8,-1.6]));
+    for(let i=0;i<2;i++){cylinder(scene,.42,.42,.12,materials.wood,[10+i*1.5,.92,-1.5],24);roomObjects.push(scene.children[scene.children.length-1]);}
+    addRoomObject(box(scene,[4,.65,.35],materials.wood,[12,.4,-3.8]));
+    workers.slice(0,2).forEach((w,i)=>{
+      const actor=makeActor(w,i);actor.position.set(9+i*2,0,.3);actor.userData.mode="sit";
+      actor.userData.base.position.copy(actor.position);actor.userData.base.rotation=actor.rotation.y;
+      scene.add(actor);actors.push(actor);loadCustomCharacterModel(actor);makeChair(9+i*2,.6,Math.PI);
+    });
+    // Small room labels, visible in the shared 3D layout.
+    for(const [x,label,color] of [[-10,"RUANG AI AGEN","#dce9ff"],[0,"RUANG DIREKTUR","#ffe2a5"],[10,"CAFE / BREAK","#b9f4d9"]]){
+      const textureCanvas=document.createElement("canvas");textureCanvas.width=512;textureCanvas.height=96;
+      const ctx=textureCanvas.getContext("2d");ctx.fillStyle="#101b2d";ctx.fillRect(0,0,512,96);
+      ctx.strokeStyle=color;ctx.lineWidth=4;ctx.strokeRect(3,3,506,90);ctx.fillStyle=color;ctx.font="bold 30px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(label,256,48);
+      const texture=new THREE.CanvasTexture(textureCanvas);texture.colorSpace=THREE.SRGBColorSpace;
+      const sign=box(scene,[3.8,.55,.08],materials.wall,[x,3.1,-4.7]);sign.material= new THREE.MeshStandardMaterial({map:texture,roughness:.8});roomObjects.push(sign);
+    }
   }
   function loadWorkers() {
     try { const data=JSON.parse(localStorage.getItem(storageKey)||"null"); if(Array.isArray(data)&&data.length)return data; } catch(_) {}
@@ -439,7 +456,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
       if(a.userData.walkTarget&&!motionPaused&&!reducedMotion.matches){
         const target=a.userData.walkTarget,dx=target.x-a.position.x,dz=target.z-a.position.z,dist=Math.hypot(dx,dz);
         if(dist<.13){a.position.x=target.x;a.position.z=target.z;a.userData.walkTarget=null;a.userData.mode=a.userData.destinationMode||"sit";a.userData.base.position.copy(a.position);a.userData.base.rotation=a.rotation.y;activityStates.set(String(a.userData.worker?.name||"").toLowerCase(),a.userData.mode);}
-        else {const step=Math.min(dist,1.35*dt);a.position.x+=dx/dist*step;a.position.z+=dz/dist*step;a.rotation.y=Math.atan2(dx,dz);}
+        else {const step=Math.min(dist,1.15*dt);a.position.x+=dx/dist*step;a.position.z+=dz/dist*step;a.rotation.y=Math.atan2(dx,dz);}
       }
       animateActor(a,elapsed);
       if(a.userData.modelMixer)a.userData.modelMixer.update(dt);
@@ -483,7 +500,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
   }
   function resetCamera(){
     if(!camera||!controls)return;
-    camera.position.set(9,9,12);controls.target.set(0,1,0);controls.update();
+    const roomX=currentRoom==="workers"?-10:currentRoom==="cafe"?10:0;camera.position.set(roomX+9,9,12);controls.target.set(roomX,1,0);controls.update();
     cctvTarget="room";
     const selector=document.getElementById("vo3dCctvTarget");if(selector)selector.value="room";
     const zoom=document.getElementById("vo3dCctvZoom");if(zoom)zoom.value="12";
@@ -538,7 +555,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
       else {setStatus("Belum ada karakter dengan pose simulasi tersebut di ruangan ini. Pilih pekerja atau ruangan lain.");return;}
     }else if(cctvTarget.startsWith("room:")){
       const room=cctvTarget.split(":")[1];
-      point.set(room==="cafe"?1:0,1,room==="director"?-1.5:room==="cafe"?-1.6:0);
+      point.set(room==="workers"?-10:room==="cafe"?10:0,1,room==="director"?-1.5:room==="cafe"?-1.6:0);
       description=room==="cafe"?"area café":room==="director"?"meja direktur":"ruang kolaborasi";
     }
     controls.target.copy(point);

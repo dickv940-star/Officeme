@@ -1,4 +1,4 @@
-/* AppDIGI Virtual Office 3D — procedural articulated characters; original code under repository license.
+/* AppDIGI Virtual Office 3D — procedural fallback plus optional rigged GLB characters; original code under repository license.
  * No remote character meshes are downloaded. All geometry is generated in code.
  * Motion is a visual simulation only; it does not represent real AI execution.
  */

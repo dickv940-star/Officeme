@@ -569,6 +569,18 @@
         <button type="button" id="agentPoseApply">Terapkan pose visual</button>
         <span class="pill">Animasi simulasi</span>
       </div>
+      <div class="agent-chat-controls">
+        <label for="agentDelegateSelect">William menugaskan spesialis
+          <select id="agentDelegateSelect">
+            <option value="alexander">Alexander · Data</option><option value="olivia">Olivia · Riset Produk</option>
+            <option value="ethan">Ethan · Strategi</option><option value="sophia">Sophia · Konten</option>
+            <option value="daniel">Daniel · SEO</option><option value="isabella">Isabella · Desain</option>
+            <option value="lucas">Lucas · Otomasi</option><option value="charlotte">Charlotte · QA</option>
+          </select>
+        </label>
+        <button type="button" id="agentDelegateBtn">William: tugaskan pesan terakhir</button>
+        <span class="pill">Delegasi AI nyata</span>
+      </div>
       <div class="agent-chat-messages" id="agentChatMessages" role="log" aria-live="polite" aria-relevant="additions text">
         <div class="agent-chat-message assistant"><span class="message-author">WILLIAM BIGBOSS</span>Selamat datang. Pilih saya atau salah satu spesialis, lalu mulai diskusi. Saya akan menjelaskan batas data yang tersedia dan tidak mengaku menjalankan tindakan yang belum dilakukan.</div>
       </div>
@@ -1159,7 +1171,7 @@ window.addEventListener("unhandledrejection",function(e){
       holder.append(welcome);
     } else messages.forEach(m=>{
       const bubble=document.createElement("div");bubble.className="agent-chat-message "+m.role;
-      const author=document.createElement("span");author.className="message-author";author.textContent=m.role==="user"?"ANDA":(names[id]||names.william)[0].toUpperCase();
+      const author=document.createElement("span");author.className="message-author";author.textContent=m.role==="user"?"ANDA":(m.speaker||(names[id]||names.william)[0]).toUpperCase();
       bubble.append(author,document.createTextNode(m.content));holder.append(bubble);
     });
     holder.scrollTop=holder.scrollHeight;
@@ -1172,11 +1184,38 @@ window.addEventListener("unhandledrejection",function(e){
     renderConversation();status("Percakapan baru dimulai.");
   });
   byId("agentCallBtn").addEventListener("click",()=>{
-    const id=select.value;
-    if(id==="william"){status("Anda sudah berbicara dengan William di ruang direktur.");window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director"}}));return;}
+    let id=select.value;
+    if(id==="william")id=byId("agentDelegateSelect").value;
+    if(id==="william"){window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director"}}));status("William berada di ruang direktur.");return;}
     const person=names[id];
     window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director",invite:{id,name:person[0],role:person[1]}}}));
-    status(person[0]+" dipanggil ke ruangan direktur. Animasi kedatangan bersifat visual; percakapan AI berlangsung melalui panel ini.");
+    status(person[0]+" dipanggil ke ruangan direktur. Percakapan AI berlangsung melalui panel ini.");
+  });
+  byId("agentDelegateBtn").addEventListener("click",async()=>{
+    if(select.value!=="william"){status("Pilih William Bigboss sebagai pembicara untuk mendelegasikan tugas.",true);return;}
+    const history=loadConversation("william");
+    const lastUser=[...history].reverse().find(m=>m.role==="user");
+    if(!lastUser){status("Kirim arahan kepada William terlebih dahulu, lalu delegasikan pesan terakhir.",true);return;}
+    const id=byId("agentDelegateSelect").value,person=names[id];
+    window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director",invite:{id,name:person[0],role:person[1]}}}));
+    window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"thinking"}}));
+    byId("agentDelegateBtn").disabled=true;status("William sedang menugaskan "+person[0]+" untuk mengerjakan arahan terakhir…");
+    try{
+      let url;try{url=new URL(byId("geminiCsvWorkerUrl").value.trim());}catch(_){throw new Error("URL backend tidak valid.");}
+      if(url.protocol!=="https:"||!url.hostname.endsWith(".workers.dev")||url.pathname!=="/"||url.username||url.password||url.search||url.hash)throw new Error("Gunakan URL HTTPS Cloudflare Workers .workers.dev.");
+      const token=byId("geminiCsvToken").value.trim();if(!token)throw new Error("APP_SHARED_TOKEN belum diisi.");
+      const response=await fetch(url.origin+"/api/agents/delegate",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({from:"william",agentId:id,task:lastUser.content,context:{recentConversation:history.slice(-8).map(m=>({role:m.role,content:m.content}))}})});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
+      history.push({role:"assistant",speaker:"William · laporan dari "+data.result.name,content:"Saya sudah menugaskan "+data.result.name+" ("+data.result.role+"). Berikut laporannya:\n\n"+data.result.result});
+      saveConversation("william");renderConversation();
+      window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"speaking"}}));
+      window.setTimeout(()=>window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"idle"}})),4200);
+      status("Delegasi selesai: "+data.result.name+" menyampaikan hasil kepada William. Tinjau hasil sebelum mengambil tindakan.");
+    }catch(error){
+      window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"idle"}}));
+      status("Delegasi gagal: "+(error.message||"koneksi gagal"),true);
+    }finally{byId("agentDelegateBtn").disabled=false;}
   });
   byId("agentPoseApply").addEventListener("click",()=>{
     const id=select.value,mode=byId("agentPoseSelect").value;

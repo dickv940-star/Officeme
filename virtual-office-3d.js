@@ -271,7 +271,7 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   }
   function populateCctvTargets(){
     const select=document.getElementById("vo3dCctvTarget");if(!select)return;
-    const current=select.value||cctvTarget;
+    const current=cctvTarget||select.value||"room";
     const workerOptions=actors.map((actor,i)=>({value:"actor:"+i,label:"Pekerja: "+String(actor.userData.worker?.name||("Pekerja "+(i+1)))+" — "+String(actor.userData.worker?.role||actor.userData.worker?.department||"Tim")}));
     select.replaceChildren();
     const options=[

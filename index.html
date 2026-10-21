@@ -586,8 +586,9 @@ a{color:#a9b7ff}
 }
 
 </style>
+<style>#appLoginGate{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 50% 0%,#1b2b4b,#070b14 68%);color:#edf3ff}#appLoginGate[hidden]{display:none!important}#appLoginGate form{width:min(440px,100%);padding:30px;border:1px solid #344865;border-radius:22px;background:linear-gradient(155deg,#17243c,#0d1424);box-shadow:0 24px 90px #0009}#appLoginGate .app-login-mark{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(135deg,#8c7bff,#4c9dff);font-weight:900;font-size:24px;margin-bottom:20px;color:white}#appLoginGate h1{font-size:25px;letter-spacing:-.04em;margin:7px 0 10px}#appLoginGate p{font-size:13px;line-height:1.65;color:#aabbd5;margin:0 0 22px}#appLoginGate label{display:block;font-size:12px;font-weight:700;margin-bottom:7px}#appLoginGate .app-login-input{display:flex;gap:8px}#appLoginGate input{min-width:0;flex:1;width:100%;background:#080f1d;color:#edf3ff;border:1px solid #344865;border-radius:10px;padding:13px;font:inherit}#appLoginGate button{cursor:pointer;border:1px solid #344865;border-radius:10px;padding:11px 14px;color:#edf3ff;background:#1a2942;font:inherit}#appLoginGate button.primary{width:100%;margin-top:14px;background:linear-gradient(110deg,#7664f7,#4b8cf6);border:0;font-weight:800}#appLoginGate button:disabled{opacity:.6;cursor:wait}#appLoginStatus{font-size:12px;line-height:1.5;margin-top:12px;color:#ffb4b4;min-height:18px}#appLoginStatus[data-ok="true"]{color:#72e0b2}#appLoginGate .app-login-foot{font-size:11px;line-height:1.6;color:#8193ae;margin-top:12px}@media(max-width:480px){#appLoginGate form{padding:23px}}</style>
 </head>
-<body><main class="wrap">
+<body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>
 <section class="hero">
 <div class="panel"><div class="eyebrow">Command center</div><h2>Selamat datang, Direktur.</h2><div class="muted">Berikan instruksi kepada tim AI. Tugas penting dan tindakan eksternal tetap memerlukan persetujuan Anda.</div><div class="stats"><div class="stat"><strong>8</strong><span>Pekerja AI</span></div><div class="stat"><strong id="taskCount">0</strong><span>Tugas lokal</span></div><div class="stat"><strong>1</strong><span>Akun affiliate</span></div></div></div>
@@ -1493,6 +1494,39 @@ window.addEventListener("unhandledrejection",function(e){
   card.addEventListener("click",()=>open(card));
   card.addEventListener("keydown",e=>{if(e.target===card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();open(card)}});
  });
+})();
+</script>
+
+<script id="APP_LOGIN_GATE_SCRIPT">
+(()=> {
+ const KEY="appdigi.sharedToken.session.v1";
+ const tokenInput=document.getElementById("geminiCsvToken");
+ const urlInput=document.getElementById("geminiCsvWorkerUrl");
+ const gate=document.getElementById("appLoginGate");
+ const form=document.getElementById("appLoginForm");
+ const input=document.getElementById("appLoginToken");
+ const submit=document.getElementById("appLoginSubmit");
+ const status=document.getElementById("appLoginStatus");
+ const reveal=document.getElementById("appLoginReveal");
+ const backend=(urlInput&&urlInput.value.trim())||"https://appdigi-w001-backend.dickv940.workers.dev";
+ if(urlInput) urlInput.value=backend;
+ function unlock(token){tokenInput.value=token;gate.hidden=true;document.documentElement.dataset.appAuthenticated="true";}
+ async function validate(token){
+  const response=await fetch(backend.replace(/\/$/,"")+"/api/session",{method:"GET",headers:{Authorization:"Bearer "+token},cache:"no-store"});
+  let data={};try{data=await response.json()}catch(_){}
+  if(!response.ok||data.authenticated!==true)throw new Error(response.status===401?"APP_SHARED_TOKEN salah. Periksa token Cloudflare Anda.":(data.error||"Tidak dapat memverifikasi token. Periksa koneksi backend."));
+  return true;
+ }
+ try{const saved=sessionStorage.getItem(KEY);if(saved){unlock(saved);}}catch(_){}
+ reveal.addEventListener("click",()=>{const showing=input.type==="text";input.type=showing?"password":"text";reveal.textContent=showing?"Lihat":"Sembunyikan";input.focus();});
+ form.addEventListener("submit",async event=>{
+  event.preventDefault();const token=input.value.trim();if(!token){status.textContent="Masukkan APP_SHARED_TOKEN.";return;}
+  submit.disabled=true;status.removeAttribute("data-ok");status.textContent="Memeriksa token ke backend AppDIGI…";
+  try{await validate(token);try{sessionStorage.setItem(KEY,token)}catch(_){}unlock(token);status.textContent="";status.setAttribute("data-ok","true");}
+  catch(error){status.textContent=error.message||"Login gagal.";input.focus();input.select();}
+  finally{submit.disabled=false;}
+ });
+ if(!gate.hidden) setTimeout(()=>input.focus(),80);
 })();
 </script>
 </body></html>

@@ -153,11 +153,37 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     sphere(head,hair,[-.18,.08,0],[.065,.18,.17]);
     sphere(head,hair,[.18,.08,0],[.065,.18,.17]);
     // tiny eyes face the front (+Z)
-    sphere(head,mat("#292d33"),[-.075,.075,.199],[.022,.022,.012]);
-    sphere(head,mat("#292d33"),[.075,.075,.199],[.022,.022,.012]);
+    const eyeMat = mat("#292d33", .38);
+    const eyeL = sphere(head,eyeMat,[-.075,.075,.199],[.022,.022,.012]);
+    const eyeR = sphere(head,eyeMat,[.075,.075,.199],[.022,.022,.012]);
+    // Face and clothing details add readable volume without using a flat character image.
+    sphere(head,skin,[-.222,.025,.015],[.035,.07,.045]);
+    sphere(head,skin,[.222,.025,.015],[.035,.07,.045]);
+    sphere(head,skin,[0,.015,.208],[.032,.047,.035]); // nose
+    const mouth = sphere(head,mat("#8c514b"),[0,-.075,.195],[.047,.009,.009]);
+    const browMat = mat(hairSet[index % hairSet.length], .88);
+    sphere(head,browMat,[-.075,.119,.193],[.046,.012,.012]);
+    sphere(head,browMat,[.075,.119,.193],[.046,.012,.012]);
+    // Neckline, jacket seams and buttons are separate 3D geometry.
+    cylinder(torso,.105,.105,.035,mat("#f3f2ec"),[0,.735,.015],12);
+    for(let b=0;b<3;b++) sphere(torso,mat("#e6e0d3"),[.015,.43-b*.105,.115],[.012,.012,.009]);
     const shoulders = new THREE.Group(); shoulders.position.set(0,.53,0); torso.add(shoulders);
     const armL = makeLimb(shoulders,shirt,-.28,0,0,.34,.3);
     const armR = makeLimb(shoulders,shirt,.28,0,0,.34,.3);
+    // Visible palms and individual fingers make typing poses less like rigid sticks.
+    const makeHand = limb => {
+      const hand = sphere(limb.elbow,skin,[0,-.315,.055],[.095,.105,.065]);
+      const fingers = [];
+      for (let f=0; f<4; f++) {
+        const finger = capsulePart(limb.elbow,skin,[-.057+f*.038,-.385,.105],[.22,.23,.22]);
+        finger.rotation.z=(f-1.5)*-.08;
+        fingers.push(finger);
+      }
+      const thumb = capsulePart(limb.elbow,skin,[.085,-.325,.105],[.2,.22,.2]);
+      thumb.rotation.z=.55;
+      return {hand,fingers,thumb};
+    };
+    const handL = makeHand(armL), handR = makeHand(armR);
     const legL = makeLimb(hips,trousers,-.13,-.1,0,.36,.34);
     const legR = makeLimb(hips,trousers,.13,-.1,0,.36,.34);
     const footL = box(legL.elbow,[.16,.09,.28],shoe,[0,-.34,.07],"shoe");
@@ -169,8 +195,22 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     box(desk,[.92,.09,.54],materials.woodLight,[0,0,0],"desk-top");
     box(desk,[.07,.7,.07],materials.metal,[-.37,-.38,0]); box(desk,[.07,.7,.07],materials.metal,[.37,-.38,0]);
     const laptop = new THREE.Group(); desk.add(laptop); laptop.position.set(0,.06,-.08);
-    box(laptop,[.35,.025,.24],materials.metal,[0,0,0]);
-    const screen = box(laptop,[.32,.22,.025],materials.screen,[0,.12,-.1]); screen.rotation.x=-.12;
+    box(laptop,[.38,.025,.27],materials.metal,[0,0,0]);
+    // Keyboard rows and trackpad give the workstation a tangible, readable silhouette.
+    const keyMat = mat("#8ea0ad", .58);
+    for(let row=0;row<3;row++) for(let col=0;col<9;col++)
+      box(laptop,[.025,.004,.018],keyMat,[-.145+col*.036,.015,.075-row*.027]);
+    box(laptop,[.09,.003,.045],mat("#b7c3cc",.5),[0,.016,-.005]);
+    const screen = box(laptop,[.34,.235,.025],materials.screen,[0,.13,-.115]); screen.rotation.x=-.12;
+    const screenGlow = box(laptop,[.29,.19,.004],mat("#286d86",.34,.1),[0,.132,-.131]); screenGlow.rotation.x=-.12;
+    for(let line=0;line<4;line++) box(laptop,[.17-(line%2)*.045,.005,.004],mat("#6bd0cb",.35),[-.015,.17-line*.035,-.134]);
+    // Cuff bands visually separate forearms from the shirt sleeves.
+    const cuffL = cylinder(shoulders,.078,.078,.055,mat("#dfe5e9"),[-.28,-.29,0],10);
+    cuffL.rotation.z=Math.PI/2;
+    const cuffR = cylinder(shoulders,.078,.078,.055,mat("#dfe5e9"),[.28,-.29,0],10);
+    cuffR.rotation.z=Math.PI/2;
+    root.userData.face = {eyeL,eyeR,mouth};
+    root.userData.hands = {handL,handR};
     root.userData.rig = {hips,torso,head,shoulders,armL,armR,legL,legR,desk,laptop,footL,footR};
     root.userData.base = {position:new THREE.Vector3(), rotation:0};
     root.userData.mode = index % 5 === 0 ? "stand" : index % 4 === 0 ? "walk" : "type";
@@ -249,9 +289,14 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
   function animateActor(actor, time) {
     const r=actor.userData.rig, t=time+actor.userData.phase, mode=actor.userData.mode;
     if(motionPaused){r.torso.rotation.z=0;r.head.rotation.y=0;r.legL.pivot.rotation.x=0;r.legR.pivot.rotation.x=0;r.armL.pivot.rotation.x=mode==="type"?-1:0;r.armR.pivot.rotation.x=mode==="type"?-1:0;return;}
-    const sway = reducedMotion.matches ? 0 : Math.sin(t*2)*.035;
+    const sway = reducedMotion.matches ? 0 : Math.sin(t*1.35)*.022;
     r.torso.rotation.z=sway;
-    r.head.rotation.y=reducedMotion.matches?0:Math.sin(t*.8)*.06;
+    r.torso.rotation.x=reducedMotion.matches ? 0 : Math.sin(t*.9)*.012;
+    r.head.rotation.y=reducedMotion.matches?0:Math.sin(t*.63)*.075;
+    r.head.rotation.x=reducedMotion.matches ? -.035 : -.035+Math.sin(t*.72)*.018;
+    // Subtle blinking is time-based, with no timer allocations per actor.
+    const blink = reducedMotion.matches ? 1 : Math.max(.12,1-Math.pow(Math.max(0,Math.cos(t*1.9+actor.userData.phase)),36)*.9);
+    if(actor.userData.face){actor.userData.face.eyeL.scale.y=.022*blink;actor.userData.face.eyeR.scale.y=.022*blink;}
     if(mode==="walk" && !reducedMotion.matches) {
       const walk=t*2.3;
       actor.position.x=actor.userData.base.position.x+Math.sin(t*.45)*.65;
@@ -268,8 +313,17 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     } else if(mode==="sit") {
       r.hips.position.y=.66;r.legL.pivot.rotation.x=-1.15;r.legR.pivot.rotation.x=-1.15;
       r.armL.pivot.rotation.x=-1.05+(reducedMotion.matches?0:Math.sin(t*3.8)*.035);r.armR.pivot.rotation.x=-1.05+(reducedMotion.matches?0:Math.cos(t*4.1)*.035);
-      r.armL.elbow.rotation.x=-.28+(reducedMotion.matches?0:Math.sin(t*4.4)*.045);r.armR.elbow.rotation.x=-.28+(reducedMotion.matches?0:Math.cos(t*4.6)*.045);
-      r.head.rotation.x=reducedMotion.matches?-.04:-.04+Math.sin(t*1.2)*.025;
+      r.armL.elbow.rotation.x=-.28+(reducedMotion.matches?0:Math.sin(t*3.1)*.055);r.armR.elbow.rotation.x=-.28+(reducedMotion.matches?0:Math.cos(t*3.35)*.055);
+      r.armL.elbow.rotation.z=reducedMotion.matches?0:Math.sin(t*2.2)*.025;
+      r.armR.elbow.rotation.z=reducedMotion.matches?0:Math.cos(t*2.45)*.025;
+      // Tiny alternating finger and wrist motions suggest active typing, not a mechanical loop.
+      if(actor.userData.hands){
+        actor.userData.hands.handL.fingers.forEach((finger,i)=>{finger.rotation.x=reducedMotion.matches?0:Math.sin(t*7+i*.8)*.12;});
+        actor.userData.hands.handR.fingers.forEach((finger,i)=>{finger.rotation.x=reducedMotion.matches?0:Math.cos(t*7.4+i*.75)*.12;});
+        actor.userData.hands.handL.thumb.rotation.x=reducedMotion.matches?0:Math.sin(t*5.4)*.08;
+        actor.userData.hands.handR.thumb.rotation.x=reducedMotion.matches?0:Math.cos(t*5.7)*.08;
+      }
+      r.head.rotation.x=reducedMotion.matches?-.04:-.04+Math.sin(t*.85)*.018;
       r.desk.visible=true;
     } else {
       r.hips.position.y=.91;r.legL.pivot.rotation.x=0;r.legR.pivot.rotation.x=0;

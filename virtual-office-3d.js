@@ -15,6 +15,8 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
   const storageKey = "appdigi_officeme_workers_v1";
   let renderer, scene, camera, controls, raf = 0, lastTime = 0, elapsed = 0, active = false;
   let actors = [], roomObjects = [], resizeObserver, currentRoom = "workers", motionPaused = false, cctvEnabled = false, cctvDistance = 12, cctvTarget = "room";
+  const activityStates = new Map();
+  let statusHud = null, lastHudUpdate = 0;
   const status = document.getElementById("virtualOfficeStatus");
   const canvasWrap = host.querySelector(".vo3d-canvas-wrap");
   const modelManifestUrl = new URL("./assets/models/manifest.json", import.meta.url).href;
@@ -322,7 +324,10 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
         const guest={name:invite.name.trim().slice(0,60),role:String(invite.role||"Spesialis AppDIGI").slice(0,100)};
         const guestIndex=Math.max(0,workers.findIndex(w=>String(w.name).toLowerCase()===guest.name.toLowerCase()));
         const guestActor=makeActor(guest,guestIndex);
-        guestActor.position.set(1.28,0,.25);guestActor.rotation.y=-Math.PI/2;guestActor.userData.mode="sit";guestActor.userData.base.position.copy(guestActor.position);guestActor.userData.base.rotation=guestActor.rotation.y;
+        // The invited agent visibly enters the director room and walks to the meeting chair.
+        guestActor.position.set(5.7,0,3.65);guestActor.rotation.y=-Math.PI/2;guestActor.userData.mode="walk";
+        guestActor.userData.base.position.copy(guestActor.position);guestActor.userData.base.rotation=guestActor.rotation.y;
+        guestActor.userData.walkTarget=new THREE.Vector3(1.28,0,.25);guestActor.userData.destinationMode="sit";
         scene.add(guestActor);actors.push(guestActor);loadCustomCharacterModel(guestActor);makeChair(1.58,.7,.2);
       }
     }
@@ -339,6 +344,33 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     ];
   }
   function setStatus(text){if(status)status.textContent=text;}
+  function ensureStatusHud(){
+    if(statusHud||!host)return;
+    host.style.position="relative";
+    statusHud=document.createElement("section");statusHud.setAttribute("aria-label","Status pekerja AI");
+    Object.assign(statusHud.style,{position:"absolute",left:"12px",top:"76px",zIndex:"4",width:"min(245px,calc(100% - 24px))",maxHeight:"min(48%,320px)",overflowY:"auto",padding:"10px 12px",borderRadius:"12px",background:"rgba(15,28,42,.88)",color:"#f3f7fb",font:"12px/1.45 system-ui,sans-serif",boxShadow:"0 8px 24px rgba(0,0,0,.22)",backdropFilter:"blur(8px)",pointerEvents:"none"});
+    const heading=document.createElement("div");heading.textContent="TIM AI · STATUS LANGSUNG";Object.assign(heading.style,{fontWeight:"800",fontSize:"10px",letterSpacing:"1px",marginBottom:"7px",color:"#8fe1dc"});
+    const list=document.createElement("div");list.dataset.statusList="true";statusHud.append(heading,list);host.append(statusHud);renderStatusHud();
+  }
+  function renderStatusHud(){
+    if(!statusHud)return;const list=statusHud.querySelector("[data-status-list]");if(!list)return;list.replaceChildren();
+    const roster=[{name:"William Bigboss",role:"Direktur"},...loadWorkers()];
+    roster.forEach(person=>{
+      const key=String(person.name||"").toLowerCase();
+      const actor=actors.find(a=>String(a.userData.worker?.name||"").toLowerCase()===key);
+      let state=activityStates.get(key)||"idle";
+      if(actor?.userData.walkTarget)state="walking";
+      else if(actor?.userData.conversationMode==="thinking")state="thinking";
+      else if(actor?.userData.conversationMode==="speaking")state="speaking";
+      else if(actor?.userData.mode==="type")state="working";
+      else if(actor?.userData.mode==="sit"&&!activityStates.has(key))state="at desk";
+      const labels={idle:"Siaga",walking:"Berjalan",thinking:"Berpikir",speaking:"Berbicara",working:"Bekerja",type:"Bekerja",sit:"Duduk",stand:"Berdiri","at desk":"Di tempat kerja"};
+      const row=document.createElement("div");Object.assign(row.style,{display:"flex",justifyContent:"space-between",gap:"8px",padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,.08)"});
+      const name=document.createElement("span");name.textContent=person.name;name.style.fontWeight="600";
+      const statusText=document.createElement("span");statusText.textContent=labels[state]||state;statusText.style.color=state==="walking"?"#ffd58a":state==="thinking"?"#b8c7ff":state==="speaking"?"#8fe1dc":"#d3dfeb";
+      row.append(name,statusText);list.append(row);
+    });
+  }
   function animateActor(actor, time) {
     const r=actor.userData.rig, t=time+actor.userData.phase, mode=actor.userData.mode;
     if(motionPaused){r.torso.rotation.z=0;r.head.rotation.y=0;r.legL.pivot.rotation.x=0;r.legR.pivot.rotation.x=0;r.armL.pivot.rotation.x=mode==="type"?-1:0;r.armR.pivot.rotation.x=mode==="type"?-1:0;return;}
@@ -352,8 +384,6 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     if(actor.userData.face){actor.userData.face.eyeL.scale.y=.022*blink;actor.userData.face.eyeR.scale.y=.022*blink;}
     if(mode==="walk" && !reducedMotion.matches) {
       const walk=t*2.3;
-      actor.position.x=actor.userData.base.position.x+Math.sin(t*.45)*.65;
-      actor.position.z=actor.userData.base.position.z+Math.cos(t*.45)*.45;
       r.legL.pivot.rotation.x=Math.sin(walk)*.5;r.legR.pivot.rotation.x=-Math.sin(walk)*.5;
       r.armL.pivot.rotation.x=-Math.sin(walk)*.3;r.armR.pivot.rotation.x=Math.sin(walk)*.3;
       r.hips.position.y=.91+Math.abs(Math.sin(walk))*.035;
@@ -404,13 +434,23 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     if(!active||!renderer||!scene)return;
     const dt=Math.min((now-lastTime)/1000||0,.05);lastTime=now;
     if(!reducedMotion.matches) elapsed+=dt;
-    actors.forEach(a=>{animateActor(a,elapsed);if(a.userData.modelMixer)a.userData.modelMixer.update(dt);});
+    actors.forEach(a=>{
+      if(a.userData.walkTarget&&!motionPaused&&!reducedMotion.matches){
+        const target=a.userData.walkTarget,dx=target.x-a.position.x,dz=target.z-a.position.z,dist=Math.hypot(dx,dz);
+        if(dist<.13){a.position.x=target.x;a.position.z=target.z;a.userData.walkTarget=null;a.userData.mode=a.userData.destinationMode||"sit";a.userData.base.position.copy(a.position);a.userData.base.rotation=a.rotation.y;activityStates.set(String(a.userData.worker?.name||"").toLowerCase(),a.userData.mode);}
+        else {const step=Math.min(dist,1.35*dt);a.position.x+=dx/dist*step;a.position.z+=dz/dist*step;a.rotation.y=Math.atan2(dx,dz);}
+      }
+      animateActor(a,elapsed);
+      if(a.userData.modelMixer)a.userData.modelMixer.update(dt);
+    });
+    if(statusHud&&now-lastHudUpdate>450){renderStatusHud();lastHudUpdate=now;}
     controls.update();renderer.render(scene,camera);
   }
   function init() {
     if(renderer)return;
     scene=new THREE.Scene();scene.background=new THREE.Color("#c8dbe4");scene.fog=new THREE.Fog("#c8dbe4",13,28);
     camera=new THREE.PerspectiveCamera(42,1,.1,80);camera.position.set(9,9,12);
+    ensureStatusHud();
     renderer=new THREE.WebGLRenderer({antialias:!mobile.matches,alpha:false,powerPreference:"low-power"});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,mobile.matches?1.25:1.7));
     renderer.shadowMap.enabled=!mobile.matches;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -574,10 +614,15 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
   window.addEventListener("appdigi:agent-activity",e=>{
     const id=String(e.detail?.agentId||"").toLowerCase();
     const state=e.detail?.state;
+    activityStates.set(id,state==="thinking"?"thinking":state==="speaking"?"speaking":state==="working"?"working":"idle");
+    if(state==="thinking"&&id&&currentRoom!=="director"){
+      const person=loadWorkers().find(w=>String(w.name||"").toLowerCase()===id);
+      if(person)showRoom("director",{id,name:person.name,role:person.role});
+    }
     actors.forEach(actor=>{
       const name=String(actor.userData.worker?.name||"").toLowerCase();
       const match=(id==="william"&&name.includes("william"))||name===id;
-      if(match)actor.userData.conversationMode=["thinking","speaking"].includes(state)?state:null;
+      if(match){actor.userData.conversationMode=["thinking","speaking"].includes(state)?state:null;if(state==="working")actor.userData.mode="type";if(state==="idle"){actor.userData.conversationMode=null;if(actor.userData.mode==="type")actor.userData.mode="sit";}}
     });
   });
   window.addEventListener("appdigi:agent-pose",e=>{
@@ -593,7 +638,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
         found=true;
       }
     });
-    if(found)setStatus("Pose visual "+mode+" diterapkan pada "+id+". Ini simulasi animasi, bukan status kerja AI nyata.");
+    if(found){activityStates.set(id,mode==="type"?"working":mode);renderStatusHud();setStatus("Pose visual "+mode+" diterapkan pada "+id+". Gerakan karakter adalah visualisasi; status kerja mengikuti event aplikasi.");}
   });
   window.addEventListener("appdigi:room-close",hideRoom);
   window.addEventListener("storage",e=>{if(e.key===storageKey&&active)showRoom(currentRoom);});

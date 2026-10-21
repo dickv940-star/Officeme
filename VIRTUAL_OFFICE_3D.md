@@ -4,7 +4,7 @@
 - The room view uses Three.js 0.180.0 from jsDelivr and OrbitControls for free orbit, zoom, and pan.
 - Characters are generated from original procedural geometry with an articulated hierarchy (torso, head, shoulders, elbows, hips, knees, feet). The visual states include typing, sitting, standing, and a gentle walking loop.
 - The worker roster is read from the existing `appdigi_officeme_workers_v1` localStorage key. Names and roles appear on 3D labels; existing staff CRUD and room notes remain in `index.html`.
-- The director, worker, and cafe rooms share the same 3D renderer. Camera reset and motion pause controls are included.
+- The director, worker, and cafe rooms are laid out side-by-side inside one shared 3D building scene, separated by partition walls with open front entrances. Camera focus changes by room without rebuilding separate scenes. Camera reset and motion pause controls are included.
 - The UI explicitly labels all motion as a visual simulation. It does not claim the characters are doing real work or that AI agents are active.
 
 ## Asset and license decision
@@ -37,3 +37,11 @@ The repository connector cannot execute a real browser/WebGL session, so those v
 - The zoom slider adjusts camera distance, and the standard orbit controls still let the user rotate and pan manually.
 - Clicking a visible character in the 3D canvas focuses that character. Activity targets only work when a character with that simulated pose exists in the current room.
 - Automated CI checks the control markup and integration hooks. Visual interaction still needs a browser/WebGL smoke test.
+
+
+## Compact navigation and director intercom
+- A sticky compact navigation links to the command overview, shared 3D office, AI roster, affiliate operations panel, and connectors. The CSV analyzer is collapsed by default to reduce page length and can be opened on demand.
+- The **Toa Direktur / Panggil agen** control accepts a text command such as "Lucas masuk ke ruangan saya". It checks for a known agent name, displays a visual speech-bubble announcement, opens the director room view, and animates the selected character from the doorway toward the meeting position.
+- This first version is text-triggered and visual only: it does not play audio, perform speech recognition, prove that an AI agent received a real task, or execute external actions. Movement remains a simulation and respects reduced-motion settings.
+- Commands currently support inviting a named agent to the director room; other natural-language actions are not implemented yet.
+- New branch tests verify the command controls, shared-building labels, and walk-target hooks. CI does not replace a visual browser test.

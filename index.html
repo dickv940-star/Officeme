@@ -1064,4 +1064,24 @@ renderConnectors();
   });
 })();
 
-</script><script type="module" src="./virtual-office-3d.js"></script></body></html>
+</script><script>
+window.addEventListener("error",function(e){
+  const host=document.getElementById("virtualOffice3d");
+  if(!host)return;
+  const detail=((e.message||"") + " " + (e.filename||""));
+  if(/virtual-office-3d|three|OrbitControls|module script/i.test(detail)){
+    const status=document.getElementById("virtualOfficeStatus");
+    if(status)status.textContent="Virtual Office 3D gagal dimuat: "+(e.message||"modul 3D tidak tersedia")+". Periksa koneksi internet/CDN dan dukungan WebGL.";
+    const placeholder=host.querySelector(".vo3d-placeholder");
+    if(placeholder)placeholder.textContent="Gagal memuat modul 3D. Muat ulang halaman setelah koneksi internet pulih.";
+  }
+});
+window.addEventListener("unhandledrejection",function(e){
+  const host=document.getElementById("virtualOffice3d");
+  if(!host)return;
+  const status=document.getElementById("virtualOfficeStatus");
+  if(status)status.textContent="Virtual Office 3D mengalami kesalahan: "+String(e.reason&&e.reason.message||e.reason||"kesalahan tidak diketahui");
+});
+</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
+<script type="module" src="./virtual-office-3d.js"></script></body></html>

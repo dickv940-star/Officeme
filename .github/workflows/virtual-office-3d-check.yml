@@ -87,6 +87,10 @@ jobs:
           const html = readFileSync('index.html', 'utf8');
           const js = readFileSync('virtual-office-3d.js', 'utf8');
           assert.match(html, /id="virtualOffice3d"/);
+          assert.match(html, /id="officeIntercomForm"/);
+          assert.match(html, /officeCommandCenterStyles/);
+          assert.match(html, /officeCommandCenterScript/);
+          assert.match(html, /id="toggleCsvPanel"/);
           assert.match(html, /src="\.\/affiliate-ops\.js(?:\?[^\"]*)?"/);
           assert.match(js, /bukan aktivitas AI nyata/);
           const ops = readFileSync('affiliate-ops.js', 'utf8');
@@ -112,6 +116,11 @@ jobs:
           assert.ok(html.includes("window.__appdigiAgentMonitor.lastRun"));
           assert.ok(html.includes(".agent-monitor-overlay[hidden]"));
           assert.match(js, /OrbitControls/);
+          assert.match(js, /One shared building/);
+          assert.match(js, /RUANG AI AGEN/);
+          assert.match(js, /RUANG DIREKTUR/);
+          assert.match(js, /CAFE \/ BREAK/);
+          assert.match(js, /visitor\.userData\.walkTarget/);
           assert.match(js, /function toggleCctv/);
           assert.match(js, /function focusCctvTarget/);
           assert.match(js, /attachActorFocus/);

@@ -1308,7 +1308,7 @@ window.addEventListener("unhandledrejection",function(e){
     if (!messages.length) {
       const welcome=document.createElement("div");welcome.className="agent-chat-message assistant";
       const author=document.createElement("span");author.className="message-author";author.textContent=(names[id]||names.william)[0].toUpperCase();
-      welcome.append(author,document.createTextNode(id==="william"?"Saya William Bigboss, direktur tim. Apa prioritas yang perlu kita bahas?":"Halo, saya "+(names[id]||names.william)[0]+". Sampaikan tujuan, data, atau pertanyaan Anda agar saya bisa membantu sesuai bidang saya."));
+      welcome.append(author,document.createTextNode(id==="william"?"Halo! Saya William Bigboss. Senang ngobrol dengan Anda—ada yang ingin dibahas, atau kita bisa mulai dengan obrolan santai.":"Halo! Saya "+(names[id]||names.william)[0]+". Senang berkenalan dan siap ngobrol santai. Kalau topiknya sesuai bidang saya, saya juga bisa membantu lebih mendalam."));
       holder.append(welcome);
     } else messages.forEach(m=>{
       const bubble=document.createElement("div");bubble.className="agent-chat-message "+m.role;
@@ -1316,7 +1316,7 @@ window.addEventListener("unhandledrejection",function(e){
       bubble.append(author,document.createTextNode(m.content));holder.append(bubble);
     });
     holder.scrollTop=holder.scrollHeight;
-    byId("agentChatInput").placeholder=id==="william"?"William, bantu prioritaskan pekerjaan tim...":"Diskusikan tugas "+(names[id]||names.william)[0]+"...";
+    byId("agentChatInput").placeholder=id==="william"?"Ngobrol dengan William...":"Ngobrol dengan "+(names[id]||names.william)[0]+"...";
   }
   select.addEventListener("change",()=>{renderConversation();status("Percakapan terpisah untuk "+(names[select.value]||names.william)[0]+".");});
   byId("agentNewChat").addEventListener("click",()=>{
@@ -1392,7 +1392,7 @@ window.addEventListener("unhandledrejection",function(e){
 })();
 </script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
-<script type="module" src="./virtual-office-3d.js?v=20261021-director-arrival-1"></script>
+<script type="module" src="./virtual-office-3d.js?v=20261021-agent-chat-1"></script>
 <style>
 /* Individual AI agent monitor */
 .specialist-card{cursor:pointer;position:relative;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}

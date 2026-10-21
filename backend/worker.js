@@ -537,6 +537,9 @@ async function recordAffiliateOpsMetrics(request,env,origin,id) {
 }
 
 export default {
+  async scheduled(controller, env, ctx) {
+    await seedAffiliateDay(env, jakartaDayKey(new Date(controller.scheduledTime || Date.now())));
+  },
   async fetch(request, env) {
     const origin = allowedOrigin(request, env);
     const path = new URL(request.url).pathname.replace(/\/$/, "") || "/";
@@ -556,7 +559,7 @@ export default {
       return json({ ok: true, service: "appdigi-w001-worker", model: "@cf/google/gemma-4-26b-a4b-it",
         openAIConfigured: Boolean(env.OPENAI_API_KEY), claudeConfigured: Boolean(env.CLAUDE_API_KEY), geminiConfigured: Boolean(env.GEMINI_API_KEY), llmProvidersConfigured: activeLLMProviders(env), llmMode: "workers-ai-only", externalProvidersDisabled: true, freeAIBudgetGuard: true, dailyInferenceLimit: 40, maxOutputTokens: 600, sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
         approvalStoreConfigured: Boolean(env.APPROVAL_DB), ownerDecisionConfigured: Boolean(env.APP_OWNER_TOKEN),
-        publishingEnabled: false }, 200, "*");
+        publishingEnabled: false, affiliateOpsSupported: true, dailyTargetVideos: 10, humanApprovalRequired: true }, 200, "*");
     }
     if (!origin) return json({ ok: false, error: "Origin tidak diizinkan." }, 403, "null");
     // Health is intentionally read-only and may be checked before secrets are configured.
@@ -567,9 +570,23 @@ export default {
       return json({ ok: true, service: "appdigi-w001-worker", model: env.ALLOW_EXTERNAL_LLM === "true" ? (env.OPENAI_MODEL || DEFAULT_MODEL) : "@cf/google/gemma-4-26b-a4b-it",
         openAIConfigured: Boolean(env.OPENAI_API_KEY), claudeConfigured: Boolean(env.CLAUDE_API_KEY), geminiConfigured: Boolean(env.GEMINI_API_KEY), llmProvidersConfigured: activeLLMProviders(env), llmMode: env.ALLOW_EXTERNAL_LLM === "true" ? "external-provider-opt-in" : "workers-ai-default", externalProviderOptInRequired: true, freeAIBudgetGuard: true, dailyInferenceLimit: 40, maxOutputTokens: 600, sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
         approvalStoreConfigured: Boolean(env.APPROVAL_DB), ownerDecisionConfigured: Boolean(env.APP_OWNER_TOKEN),
-        publishingEnabled: false }, 200, origin);
+        publishingEnabled: false, affiliateOpsSupported: true, dailyTargetVideos: 10, humanApprovalRequired: true }, 200, origin);
     }
     if (!env.APP_SHARED_TOKEN) return json({ ok: false, error: "Backend belum dikonfigurasi." }, 503, origin);
+    if (request.method === "GET" && path === "/api/ops/dashboard") {
+      try { return json(await getAffiliateOpsDashboard(env), 200, origin); }
+      catch (e) { return json({ok:false,error:e && e.message==="OPS_DB_UNAVAILABLE"?"D1 belum tersedia.":"Dashboard operasional belum dapat dibaca."},503,origin); }
+    }
+    if (request.method === "POST" && path === "/api/ops/tasks") return createAffiliateOpsTasks(request,env,origin);
+    const opsGenerateMatch = path.match(/^\\/api\\/ops\\/tasks\\/([a-zA-Z0-9_-]{1,80})\\/generate$/);
+    if (request.method === "POST" && opsGenerateMatch) return generateAffiliateOpsContent(request,env,origin,opsGenerateMatch[1]);
+    const opsDecisionMatch = path.match(/^\\/api\\/ops\\/tasks\\/([a-zA-Z0-9_-]{1,80})\\/decision$/);
+    if (request.method === "POST" && opsDecisionMatch) return decideAffiliateOpsTask(request,env,origin,opsDecisionMatch[1]);
+    const opsMetricsMatch = path.match(/^\\/api\\/ops\\/tasks\\/([a-zA-Z0-9_-]{1,80})\\/metrics$/);
+    if (request.method === "POST" && opsMetricsMatch) return recordAffiliateOpsMetrics(request,env,origin,opsMetricsMatch[1]);
+    const opsTaskMatch = path.match(/^\\/api\\/ops\\/tasks\\/([a-zA-Z0-9_-]{1,80})$/);
+    if (request.method === "POST" && opsTaskMatch) return updateAffiliateOpsTask(request,env,origin,opsTaskMatch[1]);
+
     const ownerRoute = (request.method === "GET" && path === "/api/approvals") ||
       (request.method === "POST" && /^\/api\/approvals\/[a-zA-Z0-9_-]{1,80}\/decision$/.test(path));
     if (ownerRoute) {

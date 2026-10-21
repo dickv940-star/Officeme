@@ -630,6 +630,12 @@ a{color:#a9b7ff}
   </div>
   <div id="shopeeApiStatus" class="gemini-csv-status" role="status" aria-live="polite">Belum diperiksa. Siapkan akses Open API resmi dan konfigurasi secret di Cloudflare untuk mengaktifkan koneksi.</div>
   <div class="gemini-csv-help">Jika status menyebut kredensial belum dikonfigurasi, buka Cloudflare → Workers & Pages → appdigi-w001-backend → Settings → Variables and Secrets. Tambahkan SHOPEE_AFFILIATE_APP_ID dan SHOPEE_AFFILIATE_SECRET sebagai secrets/variables yang sesuai. Jangan menaruh nilainya di HTML, GitHub, atau chat. Akses API tetap bergantung pada persetujuan Shopee.</div>
+  <label for="shopeeApiQuery">Query GraphQL dari API Explorer</label>
+  <textarea id="shopeeApiQuery" rows="5" maxlength="30000" placeholder="Tempel query resmi yang sudah Anda verifikasi di Shopee Affiliate Open API Explorer. Operasi yang didukung: productOfferV2, shopOfferV2, shopeeOfferV2, conversionReport, validatedReport, generateShortLink."></textarea>
+  <label for="shopeeApiVariables">Variables JSON (opsional)</label>
+  <textarea id="shopeeApiVariables" rows="2" maxlength="8000" placeholder='{"input": {}}'></textarea>
+  <div class="gemini-csv-actions"><button type="button" class="primary" id="shopeeApiRun">Jalankan query resmi</button></div>
+  <div id="shopeeApiResult" class="gemini-csv-result" aria-live="polite" hidden></div>
 </section>
 
 <section class="section">
@@ -1572,6 +1578,40 @@ window.addEventListener("unhandledrejection",function(e){
     status.textContent="Backend terhubung, tetapi akses Shopee API belum aktif. Secret/variabel yang belum tersedia: "+missing.join(", ")+". Tambahkan di Cloudflare Worker Settings → Variables and Secrets. Pastikan App ID/Secret resmi dan akses Affiliate Open API sudah disetujui Shopee.";
    }
   }catch(error){status.textContent="Pemeriksaan gagal: "+(error.message||"Kesalahan koneksi")+". Pastikan token valid dan backend aktif."}
+  finally{button.disabled=false}
+ });
+})();
+</script>
+<script id="SHOPEE_AFFILIATE_QUERY_SCRIPT">
+(()=> {
+ const button=document.getElementById("shopeeApiRun");
+ const queryInput=document.getElementById("shopeeApiQuery");
+ const variablesInput=document.getElementById("shopeeApiVariables");
+ const output=document.getElementById("shopeeApiResult");
+ const urlInput=document.getElementById("geminiCsvWorkerUrl");
+ const tokenInput=document.getElementById("geminiCsvToken");
+ if(!button||!output)return;
+ button.addEventListener("click",async()=>{
+  const query=queryInput?.value.trim()||"";
+  if(!query){output.hidden=false;output.textContent="Tempel query GraphQL dari API Explorer terlebih dahulu.";return}
+  let base;
+  try{
+   const url=new URL(urlInput?.value.trim()||"");
+   if(url.protocol!=="https:"||!url.hostname.endsWith(".workers.dev")||url.pathname!=="/"||url.search||url.hash||url.username||url.password)throw new Error();
+   base=url.origin;
+  }catch(_){output.hidden=false;output.textContent="URL backend Cloudflare Workers tidak valid.";return}
+  const token=tokenInput?.value.trim();
+  if(!token){output.hidden=false;output.textContent="Masuk dahulu menggunakan APP_SHARED_TOKEN. Jangan kirim token ke chat.";return}
+  let variables={};
+  const rawVariables=variablesInput?.value.trim()||"";
+  if(rawVariables){try{variables=JSON.parse(rawVariables);if(!variables||typeof variables!=="object"||Array.isArray(variables))throw new Error()}catch(_){output.hidden=false;output.textContent="Variables harus berupa objek JSON yang valid.";return}}
+  button.disabled=true;output.hidden=false;output.textContent="Mengirim query ke Shopee Affiliate Open API melalui backend aman…";
+  try{
+   const response=await fetch(base+"/api/shopee/graphql",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({query,variables}),cache:"no-store"});
+   const data=await response.json().catch(()=>({}));
+   output.textContent=JSON.stringify(data,null,2);
+   if(!response.ok||!data.ok)output.dataset.state="error";else output.dataset.state="success";
+  }catch(error){output.textContent="Permintaan gagal: "+(error.message||"Kesalahan koneksi");output.dataset.state="error"}
   finally{button.disabled=false}
  });
 })();

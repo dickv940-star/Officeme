@@ -293,8 +293,9 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     addRoomObject(box(scene,[.18,3.6,10],materials.wallDark,[15,1.8,0]));
     // Internal partitions stop before the front corridor, leaving open doorways.
     for(const x of [-5,5]){
-      addRoomObject(box(scene,[.16,3.1,7.1],materials.wallDark,[x,1.55,-1.45]));
-      addRoomObject(box(scene,[.16,.35,2.8],materials.wallDark,[x,3.35,3.55]));
+      // Leave a real 2 m doorway (z=1.2..3.2) so characters can pass between rooms.
+      addRoomObject(box(scene,[.16,3.1,6.2],materials.wallDark,[x,1.55,-1.9]));
+      addRoomObject(box(scene,[.16,3.1,1.8],materials.wallDark,[x,1.55,4.1]));
     }
     for(const center of [-10,0,10]){
       for(const dx of [-3.2,0,3.2]){
@@ -327,11 +328,23 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     if(invite&&typeof invite.name==="string"&&invite.name.trim()){
       const guest={name:invite.name.trim().slice(0,60),role:String(invite.role||"Spesialis AppDIGI").slice(0,100)};
       const guestIndex=Math.max(0,workers.findIndex(w=>String(w.name).toLowerCase()===guest.name.toLowerCase()));
-      const visitor=makeActor(guest,guestIndex);
-      visitor.position.set(3.8,0,3.8);visitor.rotation.y=-Math.PI/2;visitor.userData.mode="walk";
-      visitor.userData.base.position.copy(visitor.position);visitor.userData.base.rotation=visitor.rotation.y;
-      visitor.userData.walkTarget=new THREE.Vector3(.95,0,.35);visitor.userData.destinationMode="stand";
-      scene.add(visitor);actors.push(visitor);loadCustomCharacterModel(visitor);makeChair(1.58,.7,.2);
+      // Reuse the visible roster actor when present to avoid a duplicate character.
+      let visitor=actors.find(a=>String(a.userData.worker?.name||"").toLowerCase()===guest.name.toLowerCase());
+      if(visitor){
+        visitor.position.set(-8,0,3.8);
+        visitor.rotation.y=-Math.PI/2;
+        visitor.userData.base.position.copy(visitor.position);
+        visitor.userData.base.rotation=visitor.rotation.y;
+      }else{
+        visitor=makeActor(guest,guestIndex);
+        visitor.position.set(-8,0,3.8);visitor.rotation.y=-Math.PI/2;
+        visitor.userData.base.position.copy(visitor.position);visitor.userData.base.rotation=visitor.rotation.y;
+        scene.add(visitor);actors.push(visitor);loadCustomCharacterModel(visitor);
+      }
+      visitor.userData.mode="walk";
+      visitor.userData.walkTarget=new THREE.Vector3(.95,0,.35);
+      visitor.userData.destinationMode="stand";
+      makeChair(1.58,.7,.2);
     }
     // Café / break room. Workers remain visible as part of the same building.
     addRoomObject(box(scene,[3.8,.16,1.2],materials.woodLight,[10,.8,-1.6]));

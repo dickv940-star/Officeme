@@ -293,6 +293,13 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
     if(!camera||!controls)return;
     cctvTarget=target||"room";
     const select=document.getElementById("vo3dCctvTarget");if(select&&select.value!==cctvTarget)select.value=cctvTarget;
+    if(cctvTarget.startsWith("room:")){
+      const destination=cctvTarget.split(":")[1];
+      if(["workers","director","cafe"].includes(destination)&&destination!==currentRoom){
+        window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:destination}}));
+        return;
+      }
+    }
     let point=new THREE.Vector3(0,1,0),actor=null,description="ikhtisar ruangan";
     if(cctvTarget.startsWith("actor:")){
       actor=actors[Number(cctvTarget.split(":")[1])];
@@ -350,12 +357,17 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   }
   function showRoom(roomId) {
     currentRoom=roomId||"workers";
+    const requestedCctvTarget=cctvTarget;
     init();
     active=true;motionPaused=reducedMotion.matches;lastTime=0;elapsed=0;
     const motionButton=document.getElementById("vo3dMotion");if(motionButton)motionButton.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
     buildRoom(currentRoom,loadWorkers());
     resetCamera();
-    if(cctvEnabled)populateCctvTargets();
+    if(cctvEnabled){
+      if(requestedCctvTarget==="room:"+currentRoom)cctvTarget=requestedCctvTarget;
+      populateCctvTargets();
+      if(cctvTarget!=="room")focusCctvTarget(cctvTarget);
+    }
     if(!raf)raf=requestAnimationFrame(frame);
     setStatus("Simulasi visual · karakter 3D berartikulasi · bukan status kerja AI nyata.");
     if(host.hidden)host.hidden=false;

@@ -74,6 +74,7 @@ async function reserveFreeAICall(env) {
 }
 
 async function callWorkersAI(systemPrompt, userPrompt, env, maxTokens = 1200) {
+  await reserveFreeAICall(env);
   const model = "@cf/google/gemma-4-26b-a4b-it";
   let result;
   try {

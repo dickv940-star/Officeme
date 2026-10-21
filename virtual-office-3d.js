@@ -13,7 +13,7 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   const mobile = window.matchMedia("(max-width: 650px)");
   const storageKey = "appdigi_officeme_workers_v1";
   let renderer, scene, camera, controls, raf = 0, lastTime = 0, elapsed = 0, active = false;
-  let actors = [], roomObjects = [], resizeObserver, currentRoom = "workers";
+  let actors = [], roomObjects = [], resizeObserver, currentRoom = "workers", motionPaused = false;
   const status = document.getElementById("virtualOfficeStatus");
   const canvasWrap = host.querySelector(".vo3d-canvas-wrap");
 
@@ -182,6 +182,7 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   function setStatus(text){if(status)status.textContent=text;}
   function animateActor(actor, time) {
     const r=actor.userData.rig, t=time+actor.userData.phase, mode=actor.userData.mode;
+    if(motionPaused){r.torso.rotation.z=0;r.head.rotation.y=0;r.legL.pivot.rotation.x=0;r.legR.pivot.rotation.x=0;r.armL.pivot.rotation.x=mode==="type"?-1:0;r.armR.pivot.rotation.x=mode==="type"?-1:0;return;}
     const sway = reducedMotion.matches ? 0 : Math.sin(t*2)*.035;
     r.torso.rotation.z=sway;
     r.head.rotation.y=reducedMotion.matches?0:Math.sin(t*.8)*.06;
@@ -245,14 +246,16 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   }
   function resetCamera(){if(!camera||!controls)return;camera.position.set(9,9,12);controls.target.set(0,1,0);controls.update();}
   function toggleMotion(){
-    if(!reducedMotion.matches){setStatus("Animasi dikurangi sesuai pengaturan aksesibilitas perangkat. Untuk mengubahnya, gunakan pengaturan Reduce Motion sistem/browser.");return;}
-    actors.forEach(a=>{a.userData.mode="stand";});
-    setStatus("Gerakan otomatis dijeda. Kamera 3D tetap bisa diputar dan digeser.");
+    motionPaused=!motionPaused;
+    const button=document.getElementById("vo3dMotion");
+    if(button)button.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
+    setStatus(motionPaused?"Gerakan karakter dijeda. Kamera 3D tetap bisa diputar dan digeser.":"Simulasi gerakan dilanjutkan; ini bukan aktivitas AI nyata.");
   }
   function showRoom(roomId) {
     currentRoom=roomId||"workers";
     init();
-    active=true;lastTime=0;elapsed=0;
+    active=true;motionPaused=reducedMotion.matches;lastTime=0;elapsed=0;
+    const motionButton=document.getElementById("vo3dMotion");if(motionButton)motionButton.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
     buildRoom(currentRoom,loadWorkers());
     resetCamera();
     if(!raf)raf=requestAnimationFrame(frame);

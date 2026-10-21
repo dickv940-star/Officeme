@@ -620,6 +620,14 @@ a{color:#a9b7ff}
   <div class="gemini-csv-help">CSV perlu memiliki kolom nama produk, klik, pesanan, dan komisi. Nama kolom umum dalam Bahasa Indonesia atau Inggris didukung. Token tidak disimpan di browser, tidak ditampilkan, dan tidak boleh dikirim ke chat. Jika Anda tidak mengetahui tokennya, jangan menebak; minta bantuan untuk menyetel ulang secret di Cloudflare.</div>
 </section>
 
+<section class="gemini-csv-panel" id="platformIntegrationPanel">
+  <div class="eyebrow">Kesiapan integrasi multi-platform</div>
+  <h2>Status akses Instagram, Shopee, dan YouTube</h2>
+  <p class="muted">Status ini memeriksa konfigurasi backend tanpa menampilkan nilai rahasia. Publikasi tetap terkunci sampai alur OAuth, izin platform, dan persetujuan manusia terverifikasi.</p>
+  <div class="gemini-csv-actions"><button type="button" class="primary" id="platformIntegrationCheck">Periksa semua platform</button></div>
+  <div id="platformIntegrationStatus" class="gemini-csv-status" role="status" aria-live="polite">Belum diperiksa.</div>
+</section>
+
 <section class="gemini-csv-panel" id="shopeeApiPanel">
   <div class="eyebrow">Integrasi resmi · Shopee Affiliate Open API Indonesia</div>
   <h2>Koneksi akun Shopee Affiliate</h2>
@@ -1571,6 +1579,36 @@ window.addEventListener("unhandledrejection",function(e){
 })();
 </script>
 
+<script id="PLATFORM_INTEGRATION_STATUS_SCRIPT">
+(()=> {
+ const button=document.getElementById("platformIntegrationCheck");
+ const status=document.getElementById("platformIntegrationStatus");
+ const urlInput=document.getElementById("geminiCsvWorkerUrl");
+ const tokenInput=document.getElementById("geminiCsvToken");
+ if(!button||!status)return;
+ button.addEventListener("click",async()=>{
+  let base;
+  try{
+   const url=new URL(urlInput?.value.trim()||"");
+   if(url.protocol!=="https:"||!url.hostname.endsWith(".workers.dev")||url.pathname!=="/"||url.search||url.hash||url.username||url.password)throw new Error();
+   base=url.origin;
+  }catch(_){status.textContent="URL backend Cloudflare Workers tidak valid.";return}
+  const token=tokenInput?.value.trim();
+  if(!token){status.textContent="Masuk dahulu melalui panel login. Jangan kirim token ke chat.";return}
+  button.disabled=true;status.textContent="Memeriksa status konfigurasi platform…";
+  try{
+   const response=await fetch(base+"/api/integrations/status",{method:"GET",headers:{Authorization:"Bearer "+token},cache:"no-store"});
+   const data=await response.json().catch(()=>({}));
+   if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
+   const p=data.platforms||{};
+   const line=(label,x)=>label+": "+(x?.configured?"konfigurasi tersedia":"belum siap")+(x?.blockers?.length?"; perlu: "+x.blockers.join(", "):"");
+   status.textContent=[line("Shopee Affiliate",p.shopeeAffiliate),line("Instagram/Reels",p.instagram),line("YouTube Shorts",p.youtubeShorts),"Publikasi otomatis: NONAKTIF. Persetujuan manusia tetap wajib."].join("\n");
+   status.style.whiteSpace="pre-wrap";
+  }catch(error){status.textContent="Pemeriksaan gagal: "+(error.message||"Kesalahan koneksi")+". Pastikan backend sudah diperbarui dan token valid."}
+  finally{button.disabled=false}
+ });
+})();
+</script>
 <script id="SHOPEE_AFFILIATE_STATUS_SCRIPT">
 (()=> {
  const button=document.getElementById("shopeeApiCheck");

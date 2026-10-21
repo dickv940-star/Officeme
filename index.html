@@ -723,6 +723,7 @@ function openRoom(id){
  document.getElementById("roomDescription").textContent=activeRoom.desc;
  document.getElementById("roomToast").textContent="";
  renderRoomNotes();
+ window.dispatchEvent(new CustomEvent("appdigi:room-open",{detail:{id}}));
  document.getElementById("roomView").scrollIntoView({behavior:"smooth",block:"start"});
 }
 function renderRoomNotes(){

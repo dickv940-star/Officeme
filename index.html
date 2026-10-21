@@ -445,6 +445,146 @@
 /* Persistent-feeling agent chat UI (conversation history is tab-local, not a claim of server memory) */
 .agent-chat-panel{margin-top:16px;padding:18px;border:1px solid #344b67;border-radius:18px;background:linear-gradient(155deg,#17243a,#0d1525)}
 .agent-chat-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.agent-chat-head h3{margin:3px 0;font-size:19px}.agent-chat-controls{display:grid;grid-template-columns:minmax(180px,1fr) auto auto;gap:9px;align-items:end;margin:14px 0}.agent-chat-controls label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:12px}.agent-chat-controls select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:#0a1120;color:var(--text);font:inherit}.agent-chat-messages{height:300px;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:13px;background:#080f1d}.agent-chat-message{max-width:min(88%,780px);padding:11px 13px;border-radius:13px;border:1px solid #2d4059;background:#15233a;white-space:pre-wrap;overflow-wrap:anywhere}.agent-chat-message.user{align-self:flex-end;background:#20365a;border-color:#3e5d88}.agent-chat-message.assistant{align-self:flex-start}.agent-chat-message .message-author{display:block;font-size:10px;letter-spacing:.04em;color:#9fc0f7;font-weight:800;margin-bottom:4px}.agent-chat-compose{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:end;margin-top:10px}.agent-chat-compose textarea{min-height:68px;max-height:180px;resize:vertical}.agent-chat-status{min-height:20px;margin-top:8px;color:var(--green);font-size:12px}.agent-chat-status.error{color:#ffb4b4}.agent-chat-notice{font-size:11px;color:var(--muted);margin-top:9px}@media(max-width:650px){.agent-chat-controls{grid-template-columns:1fr 1fr}.agent-chat-controls label{grid-column:1/-1}.agent-chat-controls button{font-size:12px;padding:9px}.agent-chat-messages{height:340px}.agent-chat-compose{grid-template-columns:1fr}.agent-chat-compose button{width:100%}}
+
+/* AppDIGI visual refresh — modern, consistent, responsive */
+:root{
+  color-scheme:dark;
+  --bg:#080d18;--panel:#101827;--line:#25334a;--text:#edf3ff;--muted:#9aabc2;
+  --accent:#9aaeff;--green:#6ee7bd;--radius-xl:22px;--radius-lg:17px;--radius-md:12px;
+  --shadow-card:0 16px 44px rgba(0,0,0,.18);
+}
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+body{
+  background:
+    radial-gradient(ellipse at 12% -10%,rgba(77,105,190,.20),transparent 36%),
+    radial-gradient(ellipse at 100% 16%,rgba(48,124,133,.09),transparent 28%),
+    var(--bg);
+  color:var(--text);letter-spacing:.005em;
+}
+::selection{background:#6879df66;color:#fff}
+.wrap{max-width:1450px;padding:clamp(16px,2.5vw,34px)}
+.top{padding:3px 0 20px;margin-bottom:22px;border-bottom:1px solid rgba(145,166,205,.13)}
+.logo{box-shadow:0 8px 24px rgba(130,145,255,.24);border:1px solid rgba(255,255,255,.25)}
+.brand h1{font-size:clamp(22px,2.2vw,28px);letter-spacing:-.045em}
+.eyebrow{font-size:10px;letter-spacing:.16em}
+.private,.pill{display:inline-flex;align-items:center;gap:7px;background:rgba(110,231,189,.07);border-color:rgba(110,231,189,.25);font-size:11px;font-weight:700}
+.hero{gap:18px;align-items:stretch;margin-bottom:24px}
+.panel,.gemini-csv-panel,.agent-chat-panel,.vo3d-panel{
+  border:1px solid rgba(139,163,204,.17);
+  border-radius:var(--radius-xl);
+  background:linear-gradient(145deg,rgba(20,31,51,.96),rgba(12,19,32,.97));
+  box-shadow:var(--shadow-card);
+}
+.hero>.panel{padding:clamp(18px,2.2vw,28px)}
+.panel h2,.section h2,.gemini-csv-panel h2{letter-spacing:-.035em}
+.stats{gap:10px;margin-top:22px}
+.stat{padding:14px 15px;border:1px solid rgba(139,163,204,.14);border-radius:14px;background:rgba(6,12,23,.45)}
+.stat strong{font-size:26px;letter-spacing:-.05em}
+.stat span{font-size:11px;letter-spacing:.03em}
+textarea,input,select{
+  border:1px solid #31415b!important;border-radius:11px!important;
+  background:#0a1220!important;color:var(--text)!important;
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+textarea:focus,input:focus,select:focus{
+  outline:none!important;border-color:#8d9fff!important;
+  box-shadow:0 0 0 3px rgba(141,159,255,.14)!important;
+}
+textarea{line-height:1.65}
+button{
+  border:1px solid #34445e!important;border-radius:11px!important;
+  background:linear-gradient(180deg,#1a263a,#141f31)!important;color:#eaf0ff!important;
+  font-weight:700!important;letter-spacing:.005em;
+  transition:transform .16s ease,border-color .16s ease,filter .16s ease,box-shadow .16s ease!important;
+}
+button:hover:not(:disabled){transform:translateY(-1px);border-color:#6e82ac!important;filter:brightness(1.08);box-shadow:0 7px 18px rgba(0,0,0,.18)}
+button:active:not(:disabled){transform:translateY(0)}
+button:disabled{opacity:.48;cursor:not-allowed}
+button.primary,.primary{
+  border-color:#8e9dff!important;
+  background:linear-gradient(135deg,#8598ff,#9d8aff)!important;color:#0a1020!important;
+  box-shadow:0 7px 20px rgba(126,139,255,.16);
+}
+.actions{gap:9px;flex-wrap:wrap}
+.notice,.toast{border-radius:11px}
+.notice{background:rgba(9,15,26,.45);border:1px solid rgba(139,163,204,.12);padding:11px 13px}
+.section{margin-top:34px}
+.section>.eyebrow{margin-bottom:5px}
+.director-room{display:flex;align-items:center;gap:16px;padding:18px 20px;margin-bottom:16px}
+.director-room>div:nth-child(2){flex:1;min-width:0}
+.avatar{box-shadow:0 0 0 3px rgba(148,163,255,.12)}
+.staff-panel{padding:20px;margin:16px 0}
+.staff-toolbar,.staff-manager-head{gap:14px;flex-wrap:wrap}
+.staff-list,.rooms-layout{gap:15px}
+.rooms-layout{margin-top:16px}
+.rooms-layout>*{min-width:0}
+.room-view{padding:clamp(14px,2vw,24px);margin-top:18px}
+.room-toolbar{gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.gemini-csv-panel{padding:clamp(18px,2.4vw,30px);margin:22px 0}
+.gemini-csv-panel>p{max-width:850px;line-height:1.75}
+.gemini-csv-grid{gap:14px}
+.gemini-csv-grid>div,.gemini-csv-stats,.gemini-csv-actions{min-width:0}
+.gemini-csv-stats{gap:12px;margin:18px 0}
+.gemini-csv-stat{padding:16px 17px;border:1px solid rgba(139,163,204,.15);border-radius:15px;background:rgba(7,13,23,.5)}
+.gemini-csv-stat strong{font-size:clamp(20px,2.5vw,29px);letter-spacing:-.045em}
+.gemini-csv-stat span{margin-top:4px;letter-spacing:.025em}
+.gemini-csv-actions{gap:9px;flex-wrap:wrap;margin-top:15px}
+.gemini-csv-status,.gemini-csv-help{line-height:1.7}
+.gemini-csv-status{padding:11px 13px;border:1px solid rgba(139,163,204,.13);border-radius:12px;background:rgba(7,13,23,.38)}
+.gemini-csv-result{margin-top:16px;padding:16px;border-radius:14px;background:rgba(7,13,23,.5);border:1px solid rgba(139,163,204,.16)}
+.vo3d-panel{padding:16px;margin:16px 0 20px;background:linear-gradient(145deg,#101b2b,#0b1421)}
+.vo3d-toolbar{gap:12px;margin-bottom:13px}
+.vo3d-title{font-size:15px;letter-spacing:-.01em}
+.vo3d-canvas-wrap{height:clamp(320px,42vw,560px);border:1px solid rgba(139,163,204,.18);border-radius:15px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.025)}
+.vo3d-cctv-panel{border-radius:13px}
+.agent-chat-panel{padding:clamp(16px,2.1vw,24px);margin-top:18px}
+.agent-chat-messages{background:#080e19;border-color:rgba(139,163,204,.17);padding:15px}
+.agent-chat-message{line-height:1.65;border-radius:15px}
+.agent-chat-message.user{background:linear-gradient(145deg,#25385a,#1b2a45)}
+.agent-chat-message.assistant{background:linear-gradient(145deg,#162235,#111b2b)}
+.agent-chat-compose textarea{min-height:76px}
+.connector-grid,.connector-form-grid,.charter-grid{gap:13px}
+.connector-empty,.connector-status{border-radius:12px}
+.task,.empty{border-radius:14px}
+footer,.bottom{color:var(--muted)}
+a{color:#a9b7ff}
+:focus-visible{outline:2px solid #9aaeff;outline-offset:3px}
+@media(max-width:850px){
+  .wrap{padding:18px}
+  .hero{grid-template-columns:1fr}
+  .director-room{align-items:flex-start;flex-wrap:wrap}
+  .director-room>button{width:100%}
+  .vo3d-canvas-wrap{height:420px}
+}
+@media(max-width:600px){
+  .wrap{padding:13px}
+  .top{align-items:flex-start;gap:12px}
+  .brand{align-items:center;gap:10px}
+  .logo{width:40px;height:40px;flex:0 0 40px}
+  .brand h1{font-size:21px}
+  .private{padding:6px 8px;font-size:10px}
+  .hero>.panel{padding:17px}
+  .stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .stat{padding:11px 9px}
+  .stat strong{font-size:22px}
+  .stat span{font-size:10px}
+  .actions button,.gemini-csv-actions button{flex:1 1 auto}
+  .gemini-csv-stats{gap:8px}
+  .gemini-csv-stat{padding:12px}
+  .gemini-csv-stat strong{font-size:21px}
+  .gemini-csv-stat span{font-size:10px}
+  .vo3d-panel{padding:10px;border-radius:16px}
+  .vo3d-canvas-wrap{height:350px;min-height:270px}
+  .vo3d-toolbar{align-items:flex-start}
+  .vo3d-actions{width:100%}
+  .vo3d-actions button{flex:1 1 auto}
+  .agent-chat-panel{padding:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
+
 </style>
 </head>
 <body><main class="wrap">
@@ -456,8 +596,8 @@
 
 
 <section class="gemini-csv-panel" id="geminiCsvAnalyzer">
-  <div class="eyebrow">Analisis AI · CSV Shopee Affiliate</div>
-  <h2>Analisis produk dengan Gemini</h2>
+  <div class="eyebrow">Analisis AI · Cloudflare Workers AI · CSV Shopee Affiliate</div>
+  <h2>Analisis produk dengan Cloudflare Workers AI</h2>
   <p class="muted">Pilih CSV dari akun Anda. File dihitung di browser; hanya setelah Anda menekan “Jalankan analisis AI”, ringkasan dan maksimal 30 produk dikirim ke backend AppDIGI. Tidak ada posting atau publikasi otomatis.</p>
   <label for="geminiCsvFile">1. Pilih file CSV</label>
   <input id="geminiCsvFile" type="file" accept=".csv,.txt,text/csv">

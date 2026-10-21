@@ -231,7 +231,15 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     } else {
       box(scene,[3.4,.15,1.1],materials.woodLight,[0,.82,-1.8]);roomObjects.push(scene.children[scene.children.length-1]);
       box(scene,[.65,.6,.08],materials.screen,[0,1.2,-2]);roomObjects.push(scene.children[scene.children.length-1]);
-      const director={name:"William Bigboss",role:"Director"};const a=makeActor(director,8);a.position.set(0,0,.15);a.userData.mode="sit";scene.add(a);actors.push(a);loadCustomCharacterModel(a);makeChair(0,.7,Math.PI);
+      const director={name:"William Bigboss",role:"Director"};
+      const a=makeActor(director,8);a.position.set(invite&&invite.name?-.82:0,0,.15);a.rotation.y=invite&&invite.name?-.18:0;a.userData.mode="sit";a.userData.base.position.copy(a.position);a.userData.base.rotation=a.rotation.y;scene.add(a);actors.push(a);loadCustomCharacterModel(a);makeChair(a.position.x,.7,Math.PI);
+      if(invite&&typeof invite.name==="string"&&invite.name.trim()){
+        const guest={name:invite.name.trim().slice(0,60),role:String(invite.role||"Spesialis AppDIGI").slice(0,100)};
+        const guestIndex=Math.max(0,workers.findIndex(w=>String(w.name).toLowerCase()===guest.name.toLowerCase()));
+        const guestActor=makeActor(guest,guestIndex);
+        guestActor.position.set(1.28,0,.25);guestActor.rotation.y=-Math.PI/2;guestActor.userData.mode="sit";guestActor.userData.base.position.copy(guestActor.position);guestActor.userData.base.rotation=guestActor.rotation.y;
+        scene.add(guestActor);actors.push(guestActor);loadCustomCharacterModel(guestActor);makeChair(1.58,.7,.2);
+      }
     }
     // ceiling lights represented by emissive pendants
     for(const x of [-3,0,3]){cylinder(scene,.09,.09,.22,materials.metal,[x,3.3,-.8],12);roomObjects.push(scene.children[scene.children.length-1]);sphere(scene,mat("#ffe4a2",.4),[x,3.12,-.8],[.18,.07,.18]);roomObjects.push(scene.children[scene.children.length-1]);}

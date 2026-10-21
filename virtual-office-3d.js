@@ -358,20 +358,29 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   function showRoom(roomId) {
     currentRoom=roomId||"workers";
     const requestedCctvTarget=cctvTarget;
-    init();
-    active=true;motionPaused=reducedMotion.matches;lastTime=0;elapsed=0;
-    const motionButton=document.getElementById("vo3dMotion");if(motionButton)motionButton.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
-    buildRoom(currentRoom,loadWorkers());
-    resetCamera();
-    if(cctvEnabled){
-      if(requestedCctvTarget==="room:"+currentRoom)cctvTarget=requestedCctvTarget;
-      populateCctvTargets();
-      if(cctvTarget!=="room")focusCctvTarget(cctvTarget);
+    try {
+      init();
+      active=true;motionPaused=reducedMotion.matches;lastTime=0;elapsed=0;
+      const motionButton=document.getElementById("vo3dMotion");if(motionButton)motionButton.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
+      buildRoom(currentRoom,loadWorkers());
+      resetCamera();
+      if(cctvEnabled){
+        if(requestedCctvTarget==="room:"+currentRoom)cctvTarget=requestedCctvTarget;
+        populateCctvTargets();
+        if(cctvTarget!=="room")focusCctvTarget(cctvTarget);
+      }
+      if(!raf)raf=requestAnimationFrame(frame);
+      setStatus("Simulasi visual · karakter 3D berartikulasi · bukan status kerja AI nyata.");
+      if(host.hidden)host.hidden=false;
+      resize();
+    } catch (error) {
+      active=false;
+      const message=error&&error.message?error.message:String(error||"kesalahan tidak diketahui");
+      setStatus("Ruangan 3D gagal dibuat: "+message+". Periksa dukungan WebGL browser dan muat ulang halaman.");
+      const placeholder=canvasWrap?.querySelector(".vo3d-placeholder");
+      if(placeholder)placeholder.textContent="Ruangan 3D gagal dibuat: "+message+". Coba browser Chrome/Edge terbaru dengan akselerasi grafis aktif.";
+      console.error("[Virtual Office 3D] Gagal membuka ruangan:",error);
     }
-    if(!raf)raf=requestAnimationFrame(frame);
-    setStatus("Simulasi visual · karakter 3D berartikulasi · bukan status kerja AI nyata.");
-    if(host.hidden)host.hidden=false;
-    resize();
   }
   function hideRoom(){active=false;}
   window.addEventListener("appdigi:room-open",e=>showRoom(e.detail?.id||"workers"));

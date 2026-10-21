@@ -982,7 +982,24 @@ renderConnectors();
     status("Mengirim ringkasan dan maksimal 30 produk ke backend Gemini…", false);
     try {
       const products = state.parsed.products.slice().sort((a,b) => b.commission - a.commission).slice(0,30);
-      const result = await call("/api/analyze", "POST", {metrics: state.parsed.metrics, products});
+      const sourceMetrics = state.parsed.metrics;
+      // Backend accepts a bounded, numeric payload. Order/commission exports do not contain clicks,
+      // so represent unavailable click values as 0 for transport while the UI still shows "Tidak tersedia".
+      const payloadMetrics = {
+        ...sourceMetrics,
+        productCount: products.length,
+        clicks: sourceMetrics.clicks == null ? 0 : sourceMetrics.clicks,
+        orders: sourceMetrics.orders == null ? 0 : sourceMetrics.orders,
+        commission: sourceMetrics.commission == null ? 0 : sourceMetrics.commission,
+        conversionRate: sourceMetrics.conversionRate == null ? 0 : sourceMetrics.conversionRate
+      };
+      const payloadProducts = products.map(product => ({
+        ...product,
+        clicks: product.clicks == null ? 0 : product.clicks,
+        orders: product.orders == null ? 0 : product.orders,
+        commission: product.commission == null ? 0 : product.commission
+      }));
+      const result = await call("/api/analyze", "POST", {metrics: payloadMetrics, products: payloadProducts});
       byId("geminiCsvResult").textContent = result.analysis || "Backend merespons tanpa isi analisis.";
       byId("geminiCsvResult").hidden = false;
       status("Analisis Gemini berhasil. Model: " + result.model + ". Produk dianalisis: " + result.productsAnalyzed + ". Tidak ada publikasi yang dilakukan.", false);

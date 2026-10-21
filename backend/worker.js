@@ -325,7 +325,7 @@ export default {
     }
     if (request.method === "GET" && path === "/health") {
       return json({ ok: true, service: "appdigi-w001-worker", model: env.OPENAI_MODEL || DEFAULT_MODEL,
-        openAIConfigured: Boolean(env.OPENAI_API_KEY), sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
+        openAIConfigured: Boolean(env.OPENAI_API_KEY), claudeConfigured: Boolean(env.CLAUDE_API_KEY), geminiConfigured: Boolean(env.GEMINI_API_KEY), llmProvidersConfigured: configuredProviders(env), sharedTokenConfigured: Boolean(env.APP_SHARED_TOKEN),
         approvalStoreConfigured: Boolean(env.APPROVAL_DB), ownerDecisionConfigured: Boolean(env.APP_OWNER_TOKEN),
         publishingEnabled: false }, 200, origin);
     }
@@ -362,6 +362,11 @@ export default {
       const code = error instanceof Error ? error.message : "";
       const messages = {
         INVALID_INPUT: [400, "Data CSV tidak valid atau melebihi batas 30 produk."],
+        LLM_NOT_CONFIGURED: [503, "Belum ada API key LLM yang dikonfigurasi. Pasang OPENAI_API_KEY, CLAUDE_API_KEY, atau GEMINI_API_KEY di backend."],
+        LLM_PROVIDER_NOT_CONFIGURED: [503, "Provider AI belum dikonfigurasi."],
+        LLM_RATE_LIMIT: [429, "Batas permintaan provider AI tercapai. Coba lagi nanti."],
+        LLM_REQUEST_FAILED: [502, "Permintaan ke provider AI gagal. Periksa secret, model, kuota, atau akses provider."],
+        EMPTY_LLM_RESPONSE: [502, "Provider AI tidak menghasilkan jawaban."],
         OPENAI_NOT_CONFIGURED: [503, "Kunci OpenAI belum dipasang di secret backend."],
         OPENAI_RATE_LIMIT: [429, "Batas permintaan OpenAI tercapai. Coba lagi nanti."],
         OPENAI_REQUEST_FAILED: [502, "Permintaan ke OpenAI gagal. Periksa konfigurasi atau kuota."],

@@ -51,3 +51,23 @@ Open `index.html` in a modern browser. The task queue is in memory and resets wh
 3. Add persistent tasks, approvals, audit logs, and budget limits.
 4. Connect one AI provider and orchestrate the eight roles.
 5. Test with mock data before reading real affiliate reports.
+
+
+## Shopee Affiliate Open API gateway
+
+The Cloudflare Worker now provides an authenticated Shopee Affiliate Open API gateway:
+
+- `GET /api/shopee/status` — reports whether the App ID and secret are configured without exposing their values.
+- `POST /api/shopee/graphql` — forwards allowlisted GraphQL operations to the official Indonesian Affiliate Open API endpoint with server-side SHA-256 signing.
+- Allowed root operations: `productOfferV2`, `shopOfferV2`, `shopeeOfferV2`, `conversionReport`, `validatedReport`, and `generateShortLink`. Only `generateShortLink` is allowed as a mutation.
+- Requests require `Authorization: Bearer APP_SHARED_TOKEN`. The API secret stays in Cloudflare Worker secrets and is never exposed to the browser.
+
+### Enable account access
+
+In Cloudflare Dashboard → Workers & Pages → `appdigi-w001-backend` → Settings → Variables and Secrets, configure:
+
+- `SHOPEE_AFFILIATE_APP_ID` — the official App ID issued for the Shopee Affiliate Open API.
+- `SHOPEE_AFFILIATE_SECRET` — the matching secret, stored as a secret.
+- Optional `SHOPEE_AFFILIATE_ENDPOINT` — if needed, the official HTTPS endpoint for the Indonesian account. The Worker only accepts `open-api.affiliate.shopee.co.id`.
+
+Do not put credentials in GitHub, frontend code, screenshots, or chat. The API is usable only if Shopee has granted Open API access to the account. If access has not been approved, request it through the official Affiliate Open API portal first. Human approval remains required before publication; this gateway does not publish social posts.

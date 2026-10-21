@@ -569,6 +569,14 @@ export default {
         publishingEnabled: false, affiliateOpsSupported: true, dailyTargetVideos: 10, humanApprovalRequired: true }, 200, origin);
     }
     if (!env.APP_SHARED_TOKEN) return json({ ok: false, error: "Backend belum dikonfigurasi." }, 503, origin);
+    const ownerRoute = (request.method === "GET" && path === "/api/approvals") ||
+      (request.method === "POST" && /^\/api\/approvals\/[a-zA-Z0-9_-]{1,80}\/decision$/.test(path));
+    if (ownerRoute) {
+      if (!env.APP_OWNER_TOKEN) return json({ ok: false, error: "Token pemilik belum dikonfigurasi." }, 503, origin);
+    } else if (!authorized(request, env)) {
+      return json({ ok: false, error: "Token tidak valid." }, 401, origin);
+    }
+
     if (request.method === "GET" && path === "/api/ops/dashboard") {
       try { return json(await getAffiliateOpsDashboard(env), 200, origin); }
       catch (e) { return json({ok:false,error:e && e.message==="OPS_DB_UNAVAILABLE"?"D1 belum tersedia.":"Dashboard operasional belum dapat dibaca."},503,origin); }
@@ -583,13 +591,6 @@ export default {
     const opsTaskMatch = path.match(/^\/api\/ops\/tasks\/([a-zA-Z0-9_-]{1,80})$/);
     if (request.method === "POST" && opsTaskMatch) return updateAffiliateOpsTask(request,env,origin,opsTaskMatch[1]);
 
-    const ownerRoute = (request.method === "GET" && path === "/api/approvals") ||
-      (request.method === "POST" && /^\/api\/approvals\/[a-zA-Z0-9_-]{1,80}\/decision$/.test(path));
-    if (ownerRoute) {
-      if (!env.APP_OWNER_TOKEN) return json({ ok: false, error: "Token pemilik belum dikonfigurasi." }, 503, origin);
-    } else if (!authorized(request, env)) {
-      return json({ ok: false, error: "Token tidak valid." }, 401, origin);
-    }
 
     if (request.method === "GET" && path === "/api/session") return json({ ok: true, authenticated: true }, 200, origin);
     if (request.method === "GET" && path === "/api/approvals") return listApprovals(request, env, origin);

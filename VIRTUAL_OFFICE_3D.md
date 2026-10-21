@@ -28,3 +28,12 @@ Possible later upgrade: Quaternius Universal Base Characters and Universal Anima
 7. Test desktop Chrome and a mobile browser with WebGL enabled.
 
 The repository connector cannot execute a real browser/WebGL session, so those visual smoke tests must be run in a browser after the branch is published. CI validates JavaScript syntax and key integration hooks only.
+
+
+## Virtual CCTV controls
+- The **CCTV Sensor** button opens a virtual camera control panel; it is a UI camera, not a real CCTV feed or sensor.
+- The target selector can switch between the collaboration room, director room, and cafe, focus on a simulated pose (typing/walking/standing/sitting), or select a specific worker.
+- Selecting a different room opens that room in the existing room navigator; selecting a worker aims the 3D camera at that character.
+- The zoom slider adjusts camera distance, and the standard orbit controls still let the user rotate and pan manually.
+- Clicking a visible character in the 3D canvas focuses that character. Activity targets only work when a character with that simulated pose exists in the current room.
+- Automated CI checks the control markup and integration hooks. Visual interaction still needs a browser/WebGL smoke test.

@@ -758,6 +758,7 @@ function openRoom(id){
  window.dispatchEvent(new CustomEvent("appdigi:room-open",{detail:{id}}));
  document.getElementById("roomView").scrollIntoView({behavior:"smooth",block:"start"});
 }
+window.addEventListener("appdigi:cctv-room-select",e=>{if(e.detail?.id)openRoom(e.detail.id);});
 function renderRoomNotes(){
  const holder=document.getElementById("roomMessages");holder.replaceChildren();
  const notes=loadRoomNotes()[activeRoom.id]||[];

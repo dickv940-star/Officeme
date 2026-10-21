@@ -1427,7 +1427,7 @@ window.addEventListener("unhandledrejection",function(e){
  function ensureOverlay(){
   if(overlay)return overlay;
   overlay=document.createElement("div");overlay.className="agent-monitor-overlay";overlay.hidden=true;
-  overlay.innerHTML='<section class="agent-monitor-window" role="dialog" aria-modal="true" aria-labelledby="agentMonitorTitle"><div class="agent-monitor-header"><div><div class="eyebrow">MONITOR PEKERJAAN AI</div><h2 class="agent-monitor-title" id="agentMonitorTitle">Monitor Agen</h2><div class="agent-monitor-subtitle" id="agentMonitorSubtitle"></div></div><button type="button" class="agent-monitor-close" id="agentMonitorClose" aria-label="Tutup monitor">×</button></div><div class="agent-monitor-grid"><div class="agent-monitor-section"><h4>Profil & tanggung jawab</h4><p id="agentMonitorProfile"></p></div><div class="agent-monitor-section"><h4>Status pekerjaan terakhir</h4><p id="agentMonitorStatus"></p></div><div class="agent-monitor-section" style="grid-column:1/-1"><h4>Hasil analisis agen</h4><p class="agent-monitor-output" id="agentMonitorOutput"></p></div><div class="agent-monitor-section" style="grid-column:1/-1"><h4>Ringkasan tugas tim</h4><p id="agentMonitorTask"></p></div></div><div class="agent-monitor-actions"><button type="button" class="primary" id="agentMonitorChat">Bicara dengan agen ini</button><button type="button" id="agentMonitorGoTasks">Ke antrean pekerjaan</button></div><div class="agent-monitor-status">Monitor menampilkan hasil terakhir yang dikembalikan backend pada sesi halaman ini. Animasi karakter bukan bukti bahwa agen sedang bekerja.</div></section>';
+  overlay.innerHTML='<section class="agent-monitor-window" role="dialog" aria-modal="true" aria-labelledby="agentMonitorTitle"><div class="agent-monitor-header"><div><div class="eyebrow">MONITOR PEKERJAAN AI</div><h2 class="agent-monitor-title" id="agentMonitorTitle">Monitor Agen</h2><div class="agent-monitor-subtitle" id="agentMonitorSubtitle"></div></div><button type="button" class="agent-monitor-close" id="agentMonitorClose" aria-label="Tutup monitor">×</button></div><div class="agent-monitor-grid"><div class="agent-monitor-section"><h4>Profil & tanggung jawab</h4><p id="agentMonitorProfile"></p></div><div class="agent-monitor-section"><h4>Status pekerjaan terakhir</h4><p id="agentMonitorStatus"></p></div><div class="agent-monitor-section" style="grid-column:1/-1"><h4>Hasil analisis agen</h4><p class="agent-monitor-output" id="agentMonitorOutput"></p></div><div class="agent-monitor-section" style="grid-column:1/-1"><h4>Ringkasan tugas tim</h4><p id="agentMonitorTask"></p></div></div><div class="agent-monitor-section" style="margin-top:13px"><h4>Tugaskan pekerjaan langsung</h4><textarea id="agentMonitorTaskInput" rows="3" maxlength="8000" style="width:100%;box-sizing:border-box;background:#111c30;color:#edf3ff;border:1px solid #344865;border-radius:10px;padding:11px;font:inherit" placeholder="Tuliskan pekerjaan khusus untuk agen ini..."></textarea><div class="agent-monitor-actions"><button type="button" class="primary" id="agentMonitorRun">▶ Jalankan agen ini</button><button type="button" id="agentMonitorChat">Bicara dengan agen ini</button><button type="button" id="agentMonitorGoTasks">Ke antrean pekerjaan</button></div><div class="agent-monitor-status" id="agentMonitorRunStatus" role="status" aria-live="polite">Jalankan tugas untuk meminta hasil langsung dari backend.</div></div><div class="agent-monitor-status">Monitor menampilkan hasil backend pada sesi halaman ini. Animasi karakter bukan bukti bahwa agen sedang bekerja.</div></section>';
   document.body.append(overlay);
   overlay.addEventListener("click",e=>{if(e.target===overlay)close()});
   byId("agentMonitorClose").addEventListener("click",close);
@@ -1437,6 +1437,28 @@ window.addEventListener("unhandledrejection",function(e){
    close();byId("agentChatPanel")?.scrollIntoView({behavior:"smooth",block:"center"});byId("agentChatInput")?.focus({preventScroll:true});
   });
   byId("agentMonitorGoTasks").addEventListener("click",()=>{close();byId("tasks")?.scrollIntoView({behavior:"smooth",block:"center"})});
+  byId("agentMonitorRun").addEventListener("click",async()=>{
+   const id=overlay?.dataset.agentId;const task=byId("agentMonitorTaskInput").value.trim();const statusEl=byId("agentMonitorRunStatus");const output=byId("agentMonitorOutput");const statusBox=byId("agentMonitorStatus");const button=byId("agentMonitorRun");
+   if(!id||!roleNames[id]){statusEl.textContent="ID agen tidak dikenali.";return}
+   if(!task){statusEl.textContent="Tuliskan tugas untuk agen ini terlebih dahulu.";byId("agentMonitorTaskInput").focus();return}
+   const urlInput=byId("geminiCsvWorkerUrl"),tokenInput=byId("geminiCsvToken");
+   let base;try{const url=new URL(urlInput?.value.trim()||"");if(url.protocol!=="https:"||!url.hostname.endsWith(".workers.dev")||url.pathname!=="/"||url.search||url.hash||url.username||url.password)throw new Error();base=url.origin}catch(_){statusEl.textContent="URL backend Cloudflare Workers tidak valid. Periksa panel analisis AI.";return}
+   const token=tokenInput?.value.trim();if(!token){statusEl.textContent="Token backend belum diisi. Masukkan token pada panel analisis AI; jangan kirim token melalui chat.";return}
+   button.disabled=true;statusEl.textContent="Menghubungi backend dan menjalankan "+id+"…";output.textContent="Pekerjaan sedang diproses…";
+   try{
+    const response=await fetch(base+"/api/agents/run",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({task,mode:"single",agentId:id})});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
+    const result=(data.results||[])[0]||{};
+    window.__appdigiAgentMonitor=window.__appdigiAgentMonitor||{};
+    window.__appdigiAgentMonitor.lastRun={time:new Date().toLocaleString("id-ID"),task,ok:true,results:data.results||[],finalReview:"",qualityStatus:"Tugas agen tunggal",qualityGate:null};
+    output.textContent=result.result||result.output||"Backend tidak mengembalikan isi analisis.";
+    statusBox.textContent="Berhasil menerima hasil dari "+(result.name||id)+" · "+(result.model||"model backend")+".";
+    statusEl.textContent="Selesai. Hasil di bawah berasal dari backend. Periksa isinya sebelum digunakan.";
+    byId("agentMonitorTask").textContent=task+"\\n\\nMode: agen tunggal ("+id+").\\nWaktu: "+window.__appdigiAgentMonitor.lastRun.time;
+   }catch(error){output.textContent="";statusEl.textContent="Tugas gagal: "+(error.message||"Kesalahan tidak diketahui");statusBox.textContent="Tidak ada hasil yang diterima. Periksa URL backend, token, dan konfigurasi OpenAI."}
+   finally{button.disabled=false}
+  });
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&overlay&&!overlay.hidden)close()});
   return overlay;
  }

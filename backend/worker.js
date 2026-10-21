@@ -124,6 +124,42 @@ function shopeeConfigStatus(env) {
   };
 }
 
+function integrationReadiness(env) {
+  const shopee = Boolean(env.SHOPEE_AFFILIATE_APP_ID && env.SHOPEE_AFFILIATE_SECRET);
+  const metaApp = Boolean(env.META_APP_ID && env.META_APP_SECRET);
+  const instagramAccount = Boolean(env.INSTAGRAM_BUSINESS_ACCOUNT_ID);
+  const instagramToken = Boolean(env.INSTAGRAM_ACCESS_TOKEN);
+  const googleClient = Boolean(env.YOUTUBE_OAUTH_CLIENT_ID && env.YOUTUBE_OAUTH_CLIENT_SECRET);
+  const youtubeRefresh = Boolean(env.YOUTUBE_REFRESH_TOKEN);
+  return {
+    ok: true,
+    publishingEnabled: false,
+    humanApprovalRequired: true,
+    platforms: {
+      shopeeAffiliate: { configured: shopee, canCallAffiliateApi: shopee,
+        blockers: shopee ? [] : ["SHOPEE_AFFILIATE_APP_ID", "SHOPEE_AFFILIATE_SECRET"],
+        supportedOperations: [...SHOPEE_ALLOWED_OPERATIONS] },
+      instagram: { configured: metaApp && instagramAccount && instagramToken,
+        oauthAppConfigured: metaApp, businessAccountConfigured: instagramAccount, accessTokenConfigured: instagramToken,
+        canPublish: false, blockers: [
+          ...(!metaApp ? ["META_APP_ID", "META_APP_SECRET"] : []),
+          ...(!instagramAccount ? ["INSTAGRAM_BUSINESS_ACCOUNT_ID"] : []),
+          ...(!instagramToken ? ["INSTAGRAM_ACCESS_TOKEN"] : []),
+          "OAuth/permissions verification and publishing workflow not yet implemented"
+        ] },
+      youtubeShorts: { configured: googleClient && youtubeRefresh,
+        oauthClientConfigured: googleClient, refreshTokenConfigured: youtubeRefresh,
+        canPublish: false, blockers: [
+          ...(!googleClient ? ["YOUTUBE_OAUTH_CLIENT_ID", "YOUTUBE_OAUTH_CLIENT_SECRET"] : []),
+          ...(!youtubeRefresh ? ["YOUTUBE_REFRESH_TOKEN"] : []),
+          "OAuth token exchange and video upload workflow not yet implemented"
+        ] }
+    },
+    credentialValuesExposed: false,
+    note: "Status ini memeriksa keberadaan konfigurasi saja, bukan validitas token. Tidak ada publikasi yang dijalankan."
+  };
+}
+
 async function sha256Hex(value) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -149,7 +185,7 @@ async function callShopeeAffiliate(input, env) {
   }
   const operation = extractShopeeOperation(input.query);
   if (!SHOPEE_ALLOWED_OPERATIONS.has(operation)) throw new Error("SHOPEE_OPERATION_NOT_ALLOWED");
-  const isMutation = /\\bmutation\\b/i.test(input.query);
+  const isMutation = /\bmutation\b/i.test(input.query);
   if (isMutation && operation !== "generateShortLink") throw new Error("SHOPEE_OPERATION_NOT_ALLOWED");
 
   const endpoint = env.SHOPEE_AFFILIATE_ENDPOINT || SHOPEE_AFFILIATE_DEFAULT_ENDPOINT;
@@ -557,6 +593,7 @@ export default {
     if (request.method === "GET" && path === "/api/shopee/status") {
       return json({ ok: true, service: "shopee-affiliate-open-api", ...shopeeConfigStatus(env) }, 200, origin);
     }
+    if (request.method === "GET" && path === "/api/integrations/status") { return json(integrationReadiness(env), 200, origin); }
     if (request.method === "POST" && path === "/api/shopee/graphql") {
       const declaredLength = Number(request.headers.get("Content-Length") || 0);
       if (declaredLength > MAX_BODY_BYTES) return json({ ok: false, error: "Ukuran permintaan terlalu besar." }, 413, origin);

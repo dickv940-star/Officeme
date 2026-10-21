@@ -805,7 +805,7 @@ team.forEach((a,i)=>{
 });
 let queue=[];const form=document.getElementById("form"),input=document.getElementById("command"),list=document.getElementById("tasks"),toast=document.getElementById("toast");
 function render(){document.getElementById("taskCount").textContent=queue.length;list.replaceChildren();if(!queue.length){list.className="empty";list.textContent="Belum ada tugas.";return}list.className="";queue.slice().reverse().forEach(t=>{const row=document.createElement("div");row.className="task";const dot=document.createElement("span");dot.className="dot";const body=document.createElement("div");body.style.flex="1";const b=document.createElement("b");b.textContent=t.command;const sm=document.createElement("small");sm.textContent="Dibuat "+t.time+" · "+(t.status||"Menunggu backend");body.append(b,sm);if(t.result){const output=document.createElement("p");output.style.whiteSpace="pre-wrap";output.style.margin="8px 0 0";output.textContent=t.result;body.append(output)}const pill=document.createElement("span");pill.className="pill";pill.textContent=t.status==="Selesai"?"Selesai":t.status==="Perlu tinjauan"?"Perlu tinjauan":t.status==="Gagal"?"Gagal":t.status==="Berjalan"?"Berjalan":"Rancangan";row.append(dot,body,pill);list.append(row)})}
-form.addEventListener("submit",async e=>{e.preventDefault();const value=input.value.trim();if(!value)return;const task={command:value,time:new Date().toLocaleString("id-ID"),status:"Berjalan",result:"Meminta analisis dari 8 AI agent…"};queue.push(task);render();input.value="";toast.textContent="Tugas dikirim ke backend AI. Tidak ada publikasi atau aksi eksternal yang dijalankan.";try{const data=await call("/api/agents/run","POST",{task:value,mode:"team"});task.status=data.ok===false?"Gagal":"Perlu tinjauan";task.result=(data.results||[]).map(r=>r.name+" ("+r.role+")"+(r.ok===false?" [GAGAL]":"")+":\\n"+(r.result||r.error||"Tidak ada hasil")).join("\\n\\n")+(data.finalReview?"\\n\\nREVIEW CHARLOTTE:\\n"+data.finalReview:"")+(data.qualityStatus?"\\n\\nSTATUS KUALITAS: "+data.qualityStatus:"")+(data.qualityGate?"\\nSpesialis berhasil: "+data.qualityGate.specialistsSucceeded+"/"+data.qualityGate.specialistsTotal+"; reviewer berhasil: "+data.qualityGate.reviewerSucceeded+"; tinjauan manusia wajib: "+data.qualityGate.humanReviewRequired:"");render();toast.textContent=data.ok===false?"Sebagian agen atau pemeriksaan kualitas gagal. Periksa hasil dan coba lagi.":"Analisis selesai; hasil tetap wajib ditinjau manusia sebelum digunakan."}catch(error){task.status="Gagal";task.result=error.message||"Analisis gagal.";render();toast.textContent="Agent belum berjalan: "+task.result}});
+form.addEventListener("submit",async e=>{e.preventDefault();const value=input.value.trim();if(!value)return;const task={command:value,time:new Date().toLocaleString("id-ID"),status:"Berjalan",result:"Meminta analisis dari 8 AI agent…"};queue.push(task);render();input.value="";toast.textContent="Tugas dikirim ke backend AI. Tidak ada publikasi atau aksi eksternal yang dijalankan.";try{const data=await call("/api/agents/run","POST",{task:value,mode:"team"});window.__appdigiAgentMonitor=window.__appdigiAgentMonitor||{};window.__appdigiAgentMonitor.lastRun={time:new Date().toLocaleString("id-ID"),task:value,ok:data.ok!==false,results:Array.isArray(data.results)?data.results:[],finalReview:data.finalReview||"",qualityStatus:data.qualityStatus||"",qualityGate:data.qualityGate||null};task.status=data.ok===false?"Gagal":"Perlu tinjauan";task.result=(data.results||[]).map(r=>r.name+" ("+r.role+")"+(r.ok===false?" [GAGAL]":"")+":\\n"+(r.result||r.error||"Tidak ada hasil")).join("\\n\\n")+(data.finalReview?"\\n\\nREVIEW CHARLOTTE:\\n"+data.finalReview:"")+(data.qualityStatus?"\\n\\nSTATUS KUALITAS: "+data.qualityStatus:"")+(data.qualityGate?"\\nSpesialis berhasil: "+data.qualityGate.specialistsSucceeded+"/"+data.qualityGate.specialistsTotal+"; reviewer berhasil: "+data.qualityGate.reviewerSucceeded+"; tinjauan manusia wajib: "+data.qualityGate.humanReviewRequired:"");render();toast.textContent=data.ok===false?"Sebagian agen atau pemeriksaan kualitas gagal. Periksa hasil dan coba lagi.":"Analisis selesai; hasil tetap wajib ditinjau manusia sebelum digunakan."}catch(error){task.status="Gagal";task.result=error.message||"Analisis gagal.";render();toast.textContent="Agent belum berjalan: "+task.result}});
 document.getElementById("example").addEventListener("click",()=>{input.value="Analisis produk melalui integrasi resmi yang tersedia, rangking 10 produk berdasarkan data valid, lalu buat 3 konsep konten untuk saya tinjau. Jangan publikasikan apa pun tanpa persetujuan saya.";input.focus()});
 document.getElementById("clear").addEventListener("click",()=>{queue=[];render();toast.textContent="Antrean lokal dibersihkan."});
 
@@ -1391,4 +1391,86 @@ window.addEventListener("unhandledrejection",function(e){
 })();
 </script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
-<script type="module" src="./virtual-office-3d.js?v=20261021-3"></script></body></html>
+<script type="module" src="./virtual-office-3d.js?v=20261021-3"></script>
+<style>
+/* Individual AI agent monitor */
+.specialist-card{cursor:pointer;position:relative;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.specialist-card:hover,.specialist-card:focus-visible{transform:translateY(-3px);border-color:#86aaff;box-shadow:0 12px 26px #0004;outline:none}
+.agent-monitor-cta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+.agent-monitor-cta button{font-size:12px;padding:8px 10px}
+.agent-monitor-tag{font-size:10px;color:#9aabc5}
+.agent-monitor-overlay{position:fixed;inset:0;z-index:9999;background:#050a14d9;backdrop-filter:blur(7px);display:grid;place-items:center;padding:18px}
+.agent-monitor-window{width:min(900px,100%);max-height:min(86vh,900px);overflow:auto;background:linear-gradient(155deg,#17243c,#0d1424);border:1px solid #344865;border-radius:20px;box-shadow:0 24px 80px #0009;padding:22px;color:#edf3ff}
+.agent-monitor-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid #263650;padding-bottom:15px;margin-bottom:16px}
+.agent-monitor-title{font-size:23px;font-weight:800;letter-spacing:-.03em;margin:0}
+.agent-monitor-subtitle{color:#9aabc5;font-size:13px;margin-top:4px}
+.agent-monitor-close{font-size:20px;line-height:1;padding:7px 11px}
+.agent-monitor-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:13px}
+.agent-monitor-section{background:#0a1221;border:1px solid #263650;border-radius:13px;padding:15px;min-width:0}
+.agent-monitor-section h4{font-size:13px;margin:0 0 9px;color:#9fc0ff;text-transform:uppercase;letter-spacing:.06em}
+.agent-monitor-section p{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0;color:#e5edfb}
+.agent-monitor-output{max-height:38vh;overflow:auto;line-height:1.65}
+.agent-monitor-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}
+.agent-monitor-status{font-size:11px;color:#9aabc5;margin-top:10px}
+@media(max-width:650px){.agent-monitor-window{padding:15px}.agent-monitor-grid{grid-template-columns:1fr}.agent-monitor-title{font-size:20px}.agent-monitor-overlay{padding:8px}}
+</style>
+<script>
+(() => {
+ const byId=id=>document.getElementById(id);
+ const roleNames={
+  alexander:"Lead Data Analyst",olivia:"Senior Product Researcher",ethan:"Growth & Affiliate Strategist",
+  sophia:"Senior Content Producer",daniel:"SEO & Discovery Specialist",isabella:"Lead Visual Designer",
+  lucas:"Automation & Integration Engineer",charlotte:"Quality & Compliance Lead"
+ };
+ const idForName=value=>String(value||"").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z]/g,"");
+ let overlay=null;
+ function ensureOverlay(){
+  if(overlay)return overlay;
+  overlay=document.createElement("div");overlay.className="agent-monitor-overlay";overlay.hidden=true;
+  overlay.innerHTML='<section class="agent-monitor-window" role="dialog" aria-modal="true" aria-labelledby="agentMonitorTitle"><div class="agent-monitor-header"><div><div class="eyebrow">MONITOR PEKERJAAN AI</div><h2 class="agent-monitor-title" id="agentMonitorTitle">Monitor Agen</h2><div class="agent-monitor-subtitle" id="agentMonitorSubtitle"></div></div><button type="button" class="agent-monitor-close" id="agentMonitorClose" aria-label="Tutup monitor">×</button></div><div class="agent-monitor-grid"><div class="agent-monitor-section"><h4>Profil & tanggung jawab</h4><p id="agentMonitorProfile"></p></div><div class="agent-monitor-section"><h4>Status pekerjaan terakhir</h4><p id="agentMonitorStatus"></p></div><div class="agent-monitor-section" style="grid-column:1/-1"><h4>Hasil analisis agen</h4><p class="agent-monitor-output" id="agentMonitorOutput"></p></div><div class="agent-monitor-section" style="grid-column:1/-1"><h4>Ringkasan tugas tim</h4><p id="agentMonitorTask"></p></div></div><div class="agent-monitor-actions"><button type="button" class="primary" id="agentMonitorChat">Bicara dengan agen ini</button><button type="button" id="agentMonitorGoTasks">Ke antrean pekerjaan</button></div><div class="agent-monitor-status">Monitor menampilkan hasil terakhir yang dikembalikan backend pada sesi halaman ini. Animasi karakter bukan bukti bahwa agen sedang bekerja.</div></section>';
+  document.body.append(overlay);
+  overlay.addEventListener("click",e=>{if(e.target===overlay)close()});
+  byId("agentMonitorClose").addEventListener("click",close);
+  byId("agentMonitorChat").addEventListener("click",()=>{
+   const id=overlay.dataset.agentId;const select=byId("agentChatSelect");
+   if(select){select.value=id;select.dispatchEvent(new Event("change",{bubbles:true}));}
+   close();byId("agentChatPanel")?.scrollIntoView({behavior:"smooth",block:"center"});byId("agentChatInput")?.focus({preventScroll:true});
+  });
+  byId("agentMonitorGoTasks").addEventListener("click",()=>{close();byId("tasks")?.scrollIntoView({behavior:"smooth",block:"center"})});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&overlay&&!overlay.hidden)close()});
+  return overlay;
+ }
+ function close(){if(overlay){overlay.hidden=true;document.body.style.overflow=""}}
+ function open(card){
+  const cards=[...document.querySelectorAll("#agents .specialist-card")];
+  const index=cards.indexOf(card);if(index<0)return;
+  const title=card.querySelector("h3")?.textContent||"Agen AI";
+  const name=title.replace(/^\\d+\\s*[·.-]\\s*/,"").trim();
+  const id=idForName(name);
+  const run=window.__appdigiAgentMonitor?.lastRun;
+  const results=run?.results||[];
+  const result=results.find(r=>idForName(r.name)===id || idForName(r.agent)===id || idForName(r.id)===id);
+  const role=card.querySelector(".specialist-role")?.textContent||roleNames[id]||"Spesialis AI";
+  const description=card.querySelector(".agent-head")?.parentElement?.querySelector("p")?.textContent||"";
+  const expertise=[...card.querySelectorAll(".specialist-detail p,.specialist-metrics p")].map(p=>p.textContent).join("\\n\\n");
+  const modal=ensureOverlay();modal.dataset.agentId=id;modal.hidden=false;document.body.style.overflow="hidden";
+  byId("agentMonitorTitle").textContent=name+" · Monitor pekerjaan";
+  byId("agentMonitorSubtitle").textContent=role+" · Detail pekerjaan per agen";
+  byId("agentMonitorProfile").textContent=description+"\\n\\n"+expertise;
+  byId("agentMonitorStatus").textContent=!run?"Belum ada pekerjaan tim yang dijalankan pada sesi halaman ini.":(result?(result.ok===false?"Gagal / perlu diperiksa":"Hasil diterima backend"):"Agen ini belum mengembalikan hasil terpisah pada tugas tim terakhir.")+"\\nWaktu tugas: "+(run?.time||"—");
+  byId("agentMonitorOutput").textContent=result?(result.result||result.output||result.error||"Backend tidak mengirim isi hasil untuk agen ini."):"Belum ada hasil analisis khusus untuk "+name+". Jalankan tugas dari panel tugas AI, atau mulai percakapan langsung dengan agen ini.";
+  byId("agentMonitorTask").textContent=run?run.task+"\\n\\nStatus keseluruhan: "+(run.ok?"hasil diterima; wajib ditinjau manusia":"backend melaporkan kegagalan")+(run.qualityStatus?"\\nStatus QA: "+run.qualityStatus:"")+(run.finalReview?"\\nReview Charlotte: "+run.finalReview:""):"Belum ada tugas yang tercatat pada sesi ini.";
+  byId("agentMonitorChat").textContent="Bicara dengan "+name;
+ }
+ document.querySelectorAll("#agents .specialist-card").forEach(card=>{
+  card.tabIndex=0;card.setAttribute("aria-label","Buka monitor pekerjaan "+(card.querySelector("h3")?.textContent||"agen"));
+  const cta=document.createElement("div");cta.className="agent-monitor-cta";
+  const hint=document.createElement("span");hint.className="agent-monitor-tag";hint.textContent="Klik untuk melihat monitor";
+  const button=document.createElement("button");button.type="button";button.className="primary";button.textContent="▣ Monitor pekerjaan";button.addEventListener("click",e=>{e.stopPropagation();open(card)});
+  cta.append(hint,button);card.append(cta);
+  card.addEventListener("click",()=>open(card));
+  card.addEventListener("keydown",e=>{if(e.target===card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();open(card)}});
+ });
+})();
+</script>
+</body></html>

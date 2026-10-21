@@ -412,6 +412,19 @@
 .gemini-csv-stat span{display:block;font-size:11px;color:var(--muted)}
 @media(max-width:600px){.gemini-csv-grid{grid-template-columns:1fr}.gemini-csv-panel{padding:15px}.gemini-csv-stats{grid-template-columns:1fr 1fr}.gemini-csv-stat:last-child{grid-column:1/-1}}
 
+
+/* Real interactive 3D office */
+.vo3d-panel{margin:14px 0 18px;padding:12px;border:1px solid #3a526b;border-radius:15px;background:linear-gradient(145deg,#101e31,#0b1422)}
+.vo3d-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.vo3d-title{font-weight:800;font-size:14px}.vo3d-help{font-size:11px;color:#a9bfd5}
+.vo3d-canvas-wrap{height:440px;min-height:300px;overflow:hidden;border-radius:11px;background:#c8dbe4;position:relative;isolation:isolate}
+.vo3d-canvas-wrap canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+.vo3d-status{font-size:11px;color:#9fc8b7;margin-top:9px;min-height:17px}
+.vo3d-actions{display:flex;gap:7px;flex-wrap:wrap}.vo3d-actions button{font-size:11px;padding:7px 10px}
+.vo3d-placeholder{height:100%;display:grid;place-items:center;text-align:center;padding:20px;color:#203a4b;background:linear-gradient(145deg,#dcebf0,#b9d1dc)}
+@media(max-width:650px){.vo3d-canvas-wrap{height:380px;min-height:280px}.vo3d-panel{padding:9px}.vo3d-help{max-width:100%}}
+@media(prefers-reduced-motion:reduce){.vo3d-canvas-wrap *{animation:none!important;scroll-behavior:auto!important}}
+
 </style>
 </head>
 <body><main class="wrap">
@@ -482,6 +495,14 @@
   <div class="rooms-layout" id="workerRooms"></div>
   <div class="panel room-view" id="roomView" hidden>
     <div class="room-toolbar"><div><div class="eyebrow">Ruang kerja aktif</div><h2 id="roomTitle" style="margin:3px 0">Ruangan</h2><div class="muted" id="roomDescription"></div></div><button type="button" id="backRooms">← Kembali ke semua ruangan</button></div>
+    <div class="vo3d-panel" id="virtualOffice3d" aria-label="Kantor virtual 3D">
+      <div class="vo3d-toolbar">
+        <div><div class="vo3d-title">Virtual Office 3D</div><div class="vo3d-help">Seret untuk memutar · scroll/pinch untuk zoom · geser dua jari atau klik kanan untuk pan</div></div>
+        <div class="vo3d-actions"><button type="button" id="vo3dReset">Reset kamera</button><button type="button" id="vo3dMotion">Jeda gerakan</button></div>
+      </div>
+      <div class="vo3d-canvas-wrap"><div class="vo3d-placeholder">Memuat ruang 3D… Jika tidak muncul, periksa koneksi internet atau dukungan WebGL browser.</div></div>
+      <div class="vo3d-status" id="virtualOfficeStatus" role="status" aria-live="polite">Gerakan karakter adalah simulasi visual, bukan aktivitas AI nyata.</div>
+    </div>
     <div class="notice">Catatan disimpan hanya di penyimpanan browser perangkat ini. Ruangan ini belum memiliki login, sinkronisasi antarperangkat, atau pekerja AI aktif.</div>
     <div class="room-messages" id="roomMessages"></div>
     <form id="roomForm" class="room-compose"><textarea id="roomInput" maxlength="2000" required placeholder="Tulis arahan, catatan, atau hasil yang ingin disimpan di ruangan ini..."></textarea><button class="primary" type="submit">Simpan catatan</button></form>
@@ -712,7 +733,7 @@ function renderRoomNotes(){
  holder.scrollTop=holder.scrollHeight;
 }
 document.getElementById("openDirectorRoom").addEventListener("click",()=>openRoom("director"));
-document.getElementById("backRooms").addEventListener("click",()=>{document.getElementById("roomView").hidden=true;activeRoom=null;});
+document.getElementById("backRooms").addEventListener("click",()=>{window.dispatchEvent(new CustomEvent("appdigi:room-close"));document.getElementById("roomView").hidden=true;activeRoom=null;});
 document.getElementById("roomForm").addEventListener("submit",e=>{
  e.preventDefault();if(!activeRoom)return;
  const input=document.getElementById("roomInput"),value=input.value.trim();if(!value)return;
@@ -1009,4 +1030,4 @@ renderConnectors();
   });
 })();
 
-</script></body></html>
+</script><script type="module" src="./virtual-office-3d.js"></script></body></html>

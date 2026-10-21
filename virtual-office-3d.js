@@ -4,6 +4,7 @@
  */
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js";
 import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js";
 
 (() => {
   const host = document.getElementById("virtualOffice3d");
@@ -16,6 +17,71 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
   let actors = [], roomObjects = [], resizeObserver, currentRoom = "workers", motionPaused = false, cctvEnabled = false, cctvDistance = 12, cctvTarget = "room";
   const status = document.getElementById("virtualOfficeStatus");
   const canvasWrap = host.querySelector(".vo3d-canvas-wrap");
+  const modelManifestUrl = new URL("./assets/models/manifest.json", import.meta.url).href;
+  const gltfLoader = new GLTFLoader();
+  let modelManifestPromise = null;
+
+  function characterModelKey(worker) {
+    const name = String(worker?.name || "").toLowerCase().trim();
+    const keys = {
+      "alexander":"alexander-data-analyst", "olivia":"olivia-product-researcher",
+      "ethan":"ethan-marketing-strategist", "sophia":"sophia-content-creator",
+      "daniel":"daniel-seo-specialist", "isabella":"isabella-graphic-designer",
+      "lucas":"lucas-automation-engineer", "charlotte":"charlotte-quality-controller",
+      "william":"william-bigboss", "william bigboss":"william-bigboss"
+    };
+    return keys[name] || name.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  }
+
+  function getModelManifest() {
+    if (!modelManifestPromise) {
+      modelManifestPromise = fetch(modelManifestUrl, { cache: "no-cache" })
+        .then(response => {
+          if (!response.ok) throw new Error("manifest model karakter tidak tersedia");
+          return response.json();
+        })
+        .catch(error => {
+          console.info("[Virtual Office 3D] Model GLB kustom belum dikonfigurasi; memakai karakter fallback.", error.message);
+          return { version: 1, models: {} };
+        });
+    }
+    return modelManifestPromise;
+  }
+
+  async function loadCustomCharacterModel(actor) {
+    const worker = actor.userData.worker || {};
+    const key = characterModelKey(worker);
+    const manifest = await getModelManifest();
+    const entry = manifest.models?.[key];
+    if (!entry || typeof entry.file !== "string" || !entry.file.toLowerCase().endsWith(".glb")) return;
+    const url = new URL(entry.file.replace(/^\\/+/, ""), import.meta.url).href;
+    gltfLoader.load(url, gltf => {
+      const model = gltf.scene;
+      model.position.set(Number(entry.x) || 0, Number(entry.y) || 0, Number(entry.z) || 0);
+      model.rotation.y = Number(entry.rotationY) || 0;
+      const scale = Number(entry.scale);
+      model.scale.setScalar(Number.isFinite(scale) && scale > 0 ? scale : 1);
+      model.traverse(node => {
+        if (node.isMesh) { node.castShadow = true; node.receiveShadow = true; }
+      });
+      actor.add(model);
+      actor.userData.customModel = model;
+      if (actor.userData.rig) actor.userData.rig.visible = false;
+      if (gltf.animations?.length) {
+        const mixer = new THREE.AnimationMixer(model);
+        const requested = entry.animation ? gltf.animations.find(clip => clip.name === entry.animation) : null;
+        mixer.clipAction(requested || gltf.animations[0]).play();
+        actor.userData.modelMixer = mixer;
+      }
+      if (entry.labelHeight != null) {
+        const label = actor.children.find(child => child.isSprite);
+        if (label) label.position.y = Number(entry.labelHeight) || label.position.y;
+      }
+      console.info("[Virtual Office 3D] Model 3D kustom dimuat:", key);
+    }, undefined, error => {
+      console.warn("[Virtual Office 3D] Model GLB gagal dimuat; memakai karakter fallback:", key, error);
+    });
+  }
 
   const mat = (color, roughness = 0.78, metalness = 0) =>
     new THREE.MeshStandardMaterial({ color, roughness, metalness });
@@ -155,17 +221,17 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
         const x=Math.cos(angle)*3.05,z=Math.sin(angle)*2.55;
         const actor=makeActor(workers[i],i);actor.position.set(x,0,z);actor.rotation.y=-angle-Math.PI/2;actor.userData.mode="sit";
         actor.userData.base.position.set(x,0,z);actor.userData.base.rotation=actor.rotation.y;
-        scene.add(actor);actors.push(actor);makeChair(x+Math.cos(angle)*.35,z+Math.sin(angle)*.35,actor.rotation.y);
+        scene.add(actor);actors.push(actor);loadCustomCharacterModel(actor);makeChair(x+Math.cos(angle)*.35,z+Math.sin(angle)*.35,actor.rotation.y);
       }
     } else if(roomId==="cafe"){
       box(scene,[3.8,.16,1.2],materials.woodLight,[1,.8,-1.6]);roomObjects.push(scene.children[scene.children.length-1]);
       for(let i=0;i<2;i++){cylinder(scene,.42,.42,.12,materials.wood,[i*1.5,.92,-1.5],24);roomObjects.push(scene.children[scene.children.length-1]);}
       box(scene,[4,.65,.35],materials.wood,[3,.4,-3.8]);roomObjects.push(scene.children[scene.children.length-1]);
-      workers.slice(0,2).forEach((w,i)=>{const a=makeActor(w,i);a.position.set(i?2:0,0,.3);a.userData.mode="sit";scene.add(a);actors.push(a);makeChair(i?2:0,.6,Math.PI);});
+      workers.slice(0,2).forEach((w,i)=>{const a=makeActor(w,i);a.position.set(i?2:0,0,.3);a.userData.mode="sit";scene.add(a);actors.push(a);loadCustomCharacterModel(a);makeChair(i?2:0,.6,Math.PI);});
     } else {
       box(scene,[3.4,.15,1.1],materials.woodLight,[0,.82,-1.8]);roomObjects.push(scene.children[scene.children.length-1]);
       box(scene,[.65,.6,.08],materials.screen,[0,1.2,-2]);roomObjects.push(scene.children[scene.children.length-1]);
-      if(workers[0]){const a=makeActor(workers[0],0);a.position.set(0,0,.15);a.userData.mode="type";scene.add(a);actors.push(a);makeChair(0,.7,Math.PI);}
+      const director={name:"William Bigboss",role:"Director"};const a=makeActor(director,8);a.position.set(0,0,.15);a.userData.mode="sit";scene.add(a);actors.push(a);loadCustomCharacterModel(a);makeChair(0,.7,Math.PI);
     }
     // ceiling lights represented by emissive pendants
     for(const x of [-3,0,3]){cylinder(scene,.09,.09,.22,materials.metal,[x,3.3,-.8],12);roomObjects.push(scene.children[scene.children.length-1]);sphere(scene,mat("#ffe4a2",.4),[x,3.12,-.8],[.18,.07,.18]);roomObjects.push(scene.children[scene.children.length-1]);}
@@ -219,7 +285,7 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
     if(!active||!renderer||!scene)return;
     const dt=Math.min((now-lastTime)/1000||0,.05);lastTime=now;
     if(!reducedMotion.matches) elapsed+=dt;
-    actors.forEach(a=>animateActor(a,elapsed));
+    actors.forEach(a=>{animateActor(a,elapsed);if(a.userData.modelMixer)a.userData.modelMixer.update(dt);});
     controls.update();renderer.render(scene,camera);
   }
   function init() {
@@ -372,7 +438,7 @@ import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.180.0/exampl
         if(cctvTarget!=="room")focusCctvTarget(cctvTarget);
       }
       if(!raf)raf=requestAnimationFrame(frame);
-      setStatus("Simulasi visual · karakter 3D berartikulasi · bukan status kerja AI nyata.");
+      setStatus("Simulasi visual · model GLB kustom opsional dengan fallback karakter berartikulasi · bukan status kerja AI nyata.");
       if(host.hidden)host.hidden=false;
       resize();
     } catch (error) {

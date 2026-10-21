@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "index.html"
+      - "backend/worker.js"
       - "virtual-office-3d.js"
       - "VIRTUAL_OFFICE_3D.md"
       - ".github/workflows/virtual-office-3d-check.yml"
@@ -26,6 +27,9 @@ jobs:
           node --check backend/worker.js
           grep -q 'async function callProvider' backend/worker.js
           grep -q 'AGENT_PROVIDER_PREFERENCES' backend/worker.js
+          grep -q 'async function delegateAgent' backend/worker.js
+          grep -q 'path === "/api/agents/delegate"' backend/worker.js
+          grep -q 'INVALID_DELEGATION_INPUT' backend/worker.js
           grep -q 'claudeConfigured' backend/worker.js
           grep -q 'geminiConfigured' backend/worker.js
           grep -q 'result.provider' index.html

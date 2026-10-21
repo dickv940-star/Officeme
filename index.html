@@ -562,6 +562,13 @@
         <button type="button" id="agentCallBtn">📣 Panggil ke ruang direktur</button>
         <button type="button" id="agentNewChat">Percakapan baru</button>
       </div>
+      <div class="agent-chat-controls">
+        <label for="agentPoseSelect">Pose / animasi karakter
+          <select id="agentPoseSelect"><option value="sit">Duduk</option><option value="type">Mengetik</option><option value="stand">Berdiri</option><option value="walk">Berjalan</option></select>
+        </label>
+        <button type="button" id="agentPoseApply">Terapkan pose visual</button>
+        <span class="pill">Animasi simulasi</span>
+      </div>
       <div class="agent-chat-messages" id="agentChatMessages" role="log" aria-live="polite" aria-relevant="additions text">
         <div class="agent-chat-message assistant"><span class="message-author">WILLIAM BIGBOSS</span>Selamat datang. Pilih saya atau salah satu spesialis, lalu mulai diskusi. Saya akan menjelaskan batas data yang tersedia dan tidak mengaku menjalankan tindakan yang belum dilakukan.</div>
       </div>
@@ -1171,12 +1178,18 @@ window.addEventListener("unhandledrejection",function(e){
     window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director",invite:{id,name:person[0],role:person[1]}}}));
     status(person[0]+" dipanggil ke ruangan direktur. Animasi kedatangan bersifat visual; percakapan AI berlangsung melalui panel ini.");
   });
+  byId("agentPoseApply").addEventListener("click",()=>{
+    const id=select.value,mode=byId("agentPoseSelect").value;
+    window.dispatchEvent(new CustomEvent("appdigi:agent-pose",{detail:{agentId:id,mode}}));
+    status("Perintah pose "+mode+" dikirim. Pastikan karakter berada di ruangan 3D yang sedang terbuka.");
+  });
   form.addEventListener("submit",async event=>{
     event.preventDefault();
     const text=byId("agentChatInput").value.trim();if(!text)return;
     const id=select.value, history=loadConversation(id);
     history.push({role:"user",content:text});saveConversation(id);renderConversation();byId("agentChatInput").value="";
     byId("agentChatSend").disabled=true;status("Menghubungkan ke agen "+(names[id]||names.william)[0]+" melalui backend OpenAI…");
+    window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"thinking"}}));
     try {
       let url;
       try { url=new URL(byId("geminiCsvWorkerUrl").value.trim()); } catch (_) { throw new Error("URL backend tidak valid."); }
@@ -1186,8 +1199,11 @@ window.addEventListener("unhandledrejection",function(e){
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
       history.push({role:"assistant",content:data.reply});saveConversation(id);renderConversation();
+      window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"speaking"}}));
+      window.setTimeout(()=>window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"idle"}})),4200);
       status((data.name||names[id][0])+" menjawab menggunakan "+(data.model||"model AI")+" · Riwayat percakapan dilanjutkan.");
     } catch(error) {
+      window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"idle"}}));
       status("Pesan belum terjawab: "+(error.message||"koneksi gagal")+". Periksa koneksi backend dan token; jangan bagikan token di chat.",true);
     } finally { byId("agentChatSend").disabled=false;byId("agentChatInput").focus(); }
   });

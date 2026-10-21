@@ -136,9 +136,23 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
   }
   function makeActor(worker, index) {
     const root = new THREE.Group(); root.userData.worker = worker;
-    const shirt = mat(colorSet[index % colorSet.length]), skin = mat(skinSet[index % skinSet.length]);
-    const hair = mat(hairSet[index % hairSet.length]), trousers = mat(index%2 ? "#34465b" : "#3d4c60");
-    const shoe = mat("#263342"), face = mat("#efc8ac");
+    // Visual profiles are based on the existing transparent PNG references, not random index colors.
+    const characterId = String(worker?.name || "").toLowerCase().trim();
+    const profiles = {
+      "alexander": {shirt:"#292c32",skin:"#e3b29a",hair:"#201d20",trousers:"#303137",shoe:"#e7e5df",hairStyle:"short",jacket:true,tie:"#243b60",sneakers:true},
+      "olivia": {shirt:"#f2f2ed",skin:"#e8b69e",hair:"#211d20",trousers:"#202b43",shoe:"#22242a",hairStyle:"long",tablet:true},
+      "ethan": {shirt:"#c9dff1",skin:"#efc6ad",hair:"#9993a4",trousers:"#292a2e",shoe:"#25262a",hairStyle:"short",glasses:true},
+      "sophia": {shirt:"#e6d7c7",skin:"#e7b59c",hair:"#211d20",trousers:"#242326",shoe:"#28252a",hairStyle:"shoulder",jacket:true},
+      "daniel": {shirt:"#202124",skin:"#d8a17f",hair:"#201d1d",trousers:"#343239",shoe:"#202126",hairStyle:"short",shortSleeves:true},
+      "isabella": {shirt:"#30343b",skin:"#e8b69b",hair:"#211d20",trousers:"#30343b",shoe:"#202126",hairStyle:"long",jacket:true},
+      "lucas": {shirt:"#e9f0f4",skin:"#dca681",hair:"#201c1d",trousers:"#3b4148",shoe:"#25282b",hairStyle:"short",tablet:true},
+      "charlotte": {shirt:"#202022",skin:"#e8b69b",hair:"#211c1e",trousers:"#202022",shoe:"#202126",hairStyle:"long",skirt:true,lipstick:"#a84245"},
+      "william bigboss": {shirt:"#25262a",skin:"#dfae92",hair:"#211e1f",trousers:"#25262a",shoe:"#17181b",hairStyle:"short",jacket:true,tie:"#17191c"}
+    };
+    const profile = profiles[characterId] || {shirt:colorSet[index % colorSet.length],skin:skinSet[index % skinSet.length],hair:hairSet[index % hairSet.length],trousers:index%2 ? "#34465b" : "#3d4c60",shoe:"#263342",hairStyle:"short"};
+    const shirt = mat(profile.shirt), skin = mat(profile.skin);
+    const hair = mat(profile.hair), trousers = mat(profile.trousers);
+    const shoe = mat(profile.shoe), face = skin;
     // articulated hierarchy: torso, head, shoulders, elbows, hips, knees and feet
     const rig = new THREE.Group(); root.add(rig);
     const hips = new THREE.Group(); hips.position.y = .91; rig.add(hips);
@@ -146,12 +160,30 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     const torso = new THREE.Group(); torso.position.y = .12; hips.add(torso);
     capsulePart(torso,shirt,[0,.28,0],[1.65,1.48,.95]);
     sphere(torso,shirt,[0,.64,0],[.23,.15,.17]);
+    if(profile.jacket){
+      const shirtFront=mat("#f1f0eb");
+      box(torso,[.16,.45,.035],shirtFront,[0,.40,.125]);
+      const lapelL=box(torso,[.075,.35,.035],shirt,[-.095,.43,.15]);lapelL.rotation.z=-.19;
+      const lapelR=box(torso,[.075,.35,.035],shirt,[.095,.43,.15]);lapelR.rotation.z=.19;
+      if(profile.tie){
+        box(torso,[.038,.23,.025],mat(profile.tie),[0,.40,.17]);
+        addMesh(torso,new THREE.ConeGeometry(.035,.075,4),mat(profile.tie),[0,.265,.17]);
+      }
+    }
     const neck = cylinder(torso,.075,.085,.15,skin,[0,.78,0],12);
     const head = new THREE.Group(); head.position.set(0,.93,0); torso.add(head);
     sphere(head,face,[0,.05,.015],[.22,.27,.205]);
     sphere(head,hair,[0,.22,-.015],[.23,.14,.21]);
     sphere(head,hair,[-.18,.08,0],[.065,.18,.17]);
     sphere(head,hair,[.18,.08,0],[.065,.18,.17]);
+    if(profile.hairStyle==="long"||profile.hairStyle==="shoulder"){
+      sphere(head,hair,[0,-.12,-.105],[.235,.28,.14]);
+      const length=profile.hairStyle==="long"?1.05:.76;
+      capsulePart(head,hair,[-.185,-.18,-.035],[.64,length,.62]);
+      capsulePart(head,hair,[.185,-.18,-.035],[.64,length,.62]);
+      sphere(head,hair,[-.17,-.46,-.025],[.075,.09,.075]);
+      sphere(head,hair,[.17,-.46,-.025],[.075,.09,.075]);
+    }
     // tiny eyes face the front (+Z)
     const eyeMat = mat("#292d33", .38);
     const eyeL = sphere(head,eyeMat,[-.075,.075,.199],[.022,.022,.012]);
@@ -160,8 +192,14 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     sphere(head,skin,[-.222,.025,.015],[.035,.07,.045]);
     sphere(head,skin,[.222,.025,.015],[.035,.07,.045]);
     sphere(head,skin,[0,.015,.208],[.032,.047,.035]); // nose
-    const mouth = sphere(head,mat("#8c514b"),[0,-.075,.195],[.047,.009,.009]);
-    const browMat = mat(hairSet[index % hairSet.length], .88);
+    const mouth = sphere(head,mat(profile.lipstick||"#8c514b"),[0,-.075,.195],[.047,.009,.009]);
+    const browMat = mat(profile.hair||hairSet[index % hairSet.length], .88);
+    if(profile.glasses){
+      const glassesMat=mat("#333b45",.35,.25);
+      addMesh(head,new THREE.TorusGeometry(.055,.007,6,16),glassesMat,[-.075,.075,.214]);
+      addMesh(head,new THREE.TorusGeometry(.055,.007,6,16),glassesMat,[.075,.075,.214]);
+      box(head,[.045,.009,.009],glassesMat,[0,.075,.214]);
+    }
     sphere(head,browMat,[-.075,.119,.193],[.046,.012,.012]);
     sphere(head,browMat,[.075,.119,.193],[.046,.012,.012]);
     // Neckline, jacket seams and buttons are separate 3D geometry.
@@ -184,6 +222,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
       return {hand,fingers,thumb};
     };
     const handL = makeHand(armL), handR = makeHand(armR);
+    if(profile.skirt) cylinder(hips,.25,.31,.42,trousers,[0,-.18,0],20);
     const legL = makeLimb(hips,trousers,-.13,-.1,0,.36,.34);
     const legR = makeLimb(hips,trousers,.13,-.1,0,.36,.34);
     const footL = box(legL.elbow,[.16,.09,.28],shoe,[0,-.34,.07],"shoe");
@@ -194,6 +233,12 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     const desk = new THREE.Group(); root.add(desk); desk.position.set(0,.72,.43);
     box(desk,[.92,.09,.54],materials.woodLight,[0,0,0],"desk-top");
     box(desk,[.07,.7,.07],materials.metal,[-.37,-.38,0]); box(desk,[.07,.7,.07],materials.metal,[.37,-.38,0]);
+    if(profile.tablet){
+      const tablet=new THREE.Group();desk.add(tablet);tablet.position.set(-.27,.075,.04);tablet.rotation.x=-.12;tablet.rotation.y=-.18;
+      box(tablet,[.22,.29,.025],materials.metal,[0,.02,0]);
+      box(tablet,[.19,.25,.008],materials.screen,[0,.02,.017]);
+      box(tablet,[.13,.008,.006],mat("#7ed5d2"),[0,.07,.022]);
+    }
     const laptop = new THREE.Group(); desk.add(laptop); laptop.position.set(0,.06,-.08);
     box(laptop,[.38,.025,.27],materials.metal,[0,0,0]);
     // Keyboard rows and trackpad give the workstation a tangible, readable silhouette.
@@ -331,7 +376,19 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
         actor.userData.hands.handL.thumb.rotation.x=reducedMotion.matches?0:Math.sin(t*5.4)*.08;
         actor.userData.hands.handR.thumb.rotation.x=reducedMotion.matches?0:Math.cos(t*5.7)*.08;
       }
-      r.head.rotation.x=reducedMotion.matches?-.04:-.04+Math.sin(t*.85)*.018;
+      if(actor.userData.conversationMode==="speaking"){
+        r.head.rotation.x=reducedMotion.matches?-.025:-.025+Math.sin(t*3.2)*.035;
+        r.head.rotation.y=reducedMotion.matches?0:Math.sin(t*2.1)*.09;
+        r.armL.pivot.rotation.x=-.82+(reducedMotion.matches?0:Math.sin(t*3.4)*.12);
+        r.armR.pivot.rotation.x=-.72+(reducedMotion.matches?0:Math.cos(t*3.1)*.12);
+        r.armL.elbow.rotation.x=-.38+(reducedMotion.matches?0:Math.sin(t*3.8)*.1);
+        r.armR.elbow.rotation.x=-.32+(reducedMotion.matches?0:Math.cos(t*3.6)*.1);
+      } else if(actor.userData.conversationMode==="thinking"){
+        r.head.rotation.x=reducedMotion.matches?-.08:-.08+Math.sin(t*.8)*.025;
+        r.head.rotation.y=reducedMotion.matches?0:-.12+Math.sin(t*.55)*.035;
+      } else {
+        r.head.rotation.x=reducedMotion.matches?-.04:-.04+Math.sin(t*.85)*.018;
+      }
       r.desk.visible=true;
     } else {
       r.hips.position.y=.91;r.legL.pivot.rotation.x=0;r.legR.pivot.rotation.x=0;
@@ -514,6 +571,30 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
   }
   function hideRoom(){active=false;}
   window.addEventListener("appdigi:room-open",e=>showRoom(e.detail?.id||"workers",e.detail?.invite||null));
+  window.addEventListener("appdigi:agent-activity",e=>{
+    const id=String(e.detail?.agentId||"").toLowerCase();
+    const state=e.detail?.state;
+    actors.forEach(actor=>{
+      const name=String(actor.userData.worker?.name||"").toLowerCase();
+      const match=(id==="william"&&name.includes("william"))||name===id;
+      if(match)actor.userData.conversationMode=["thinking","speaking"].includes(state)?state:null;
+    });
+  });
+  window.addEventListener("appdigi:agent-pose",e=>{
+    const id=String(e.detail?.agentId||"").toLowerCase();
+    const mode=String(e.detail?.mode||"");
+    if(!["sit","type","stand","walk"].includes(mode))return;
+    let found=false;
+    actors.forEach(actor=>{
+      const name=String(actor.userData.worker?.name||"").toLowerCase();
+      if((id==="william"&&name.includes("william"))||name===id){
+        actor.userData.mode=mode;actor.userData.conversationMode=null;
+        actor.userData.base.position.copy(actor.position);actor.userData.base.rotation=actor.rotation.y;
+        found=true;
+      }
+    });
+    if(found)setStatus("Pose visual "+mode+" diterapkan pada "+id+". Ini simulasi animasi, bukan status kerja AI nyata.");
+  });
   window.addEventListener("appdigi:room-close",hideRoom);
   window.addEventListener("storage",e=>{if(e.key===storageKey&&active)showRoom(currentRoom);});
   document.addEventListener("visibilitychange",()=>{if(document.hidden)active=false;else if(!host.hidden){active=true;lastTime=0;}});

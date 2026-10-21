@@ -343,6 +343,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
       {name:"Lucas",role:"Automation Engineer"},{name:"Charlotte",role:"Quality Controller"}
     ];
   }
+  function canonicalAgentKey(id){return String(id||"").toLowerCase()==="william"?"william bigboss":String(id||"").toLowerCase();}
   function setStatus(text){if(status)status.textContent=text;}
   function ensureStatusHud(){
     if(statusHud||!host)return;
@@ -614,7 +615,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
   window.addEventListener("appdigi:agent-activity",e=>{
     const id=String(e.detail?.agentId||"").toLowerCase();
     const state=e.detail?.state;
-    activityStates.set(id,state==="thinking"?"thinking":state==="speaking"?"speaking":state==="working"?"working":"idle");
+    activityStates.set(canonicalAgentKey(id),state==="thinking"?"thinking":state==="speaking"?"speaking":state==="working"?"working":"idle");
     if(state==="thinking"&&id){
       const person=loadWorkers().find(w=>String(w.name||"").toLowerCase()===id);
       const alreadyPresent=person&&currentRoom==="director"&&actors.some(a=>String(a.userData.worker?.name||"").toLowerCase()===id);
@@ -639,7 +640,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
         found=true;
       }
     });
-    if(found){activityStates.set(id,mode==="type"?"working":mode);renderStatusHud();setStatus("Pose visual "+mode+" diterapkan pada "+id+". Gerakan karakter adalah visualisasi; status kerja mengikuti event aplikasi.");}
+    if(found){activityStates.set(canonicalAgentKey(id),mode==="type"?"working":mode);renderStatusHud();setStatus("Pose visual "+mode+" diterapkan pada "+id+". Gerakan karakter adalah visualisasi; status kerja mengikuti event aplikasi.");}
   });
   window.addEventListener("appdigi:room-close",hideRoom);
   window.addEventListener("storage",e=>{if(e.key===storageKey&&active)showRoom(currentRoom);});

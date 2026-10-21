@@ -21,6 +21,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Check backend syntax and multi-LLM routing
+        run: |
+          node --check backend/worker.js
+          grep -q 'async function callProvider' backend/worker.js
+          grep -q 'AGENT_PROVIDER_PREFERENCES' backend/worker.js
+          grep -q 'claudeConfigured' backend/worker.js
+          grep -q 'geminiConfigured' backend/worker.js
+          grep -q 'result.provider' index.html
       - name: Check module syntax
         run: node --input-type=module --check < virtual-office-3d.js
       - name: Check integration hooks

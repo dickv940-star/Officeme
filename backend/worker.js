@@ -136,7 +136,7 @@ function extractShopeeOperation(query) {
   const bodyStart = text.indexOf("{");
   if (bodyStart < 0) return "";
   const body = text.slice(bodyStart + 1);
-  const match = body.match(/^\\s*(?:#[^\\n]*\\n\\s*)*([A-Za-z_][A-Za-z0-9_]*)/);
+  const match = body.match(/^\s*(?:#[^\n]*\n\s*)*([A-Za-z_][A-Za-z0-9_]*)/);
   return match ? match[1] : "";
 }
 

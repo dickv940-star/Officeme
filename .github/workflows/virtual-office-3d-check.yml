@@ -41,7 +41,7 @@ jobs:
           assert.match(html, /id="appLoginGate"/);
           assert.match(html, /id="appLoginToken"/);
           assert.match(html, /id="appLoginForm"/);
-          assert.match(html, /api\\/session/);
+          assert.ok(html.includes("/api/session"));
           assert.match(html, /sessionStorage\.setItem\(KEY,token\)/);
           assert.match(html, /id="agentMonitorRun"/);
           assert.match(html, /id="agentMonitorTaskInput"/);

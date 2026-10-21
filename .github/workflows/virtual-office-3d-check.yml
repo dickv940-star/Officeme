@@ -40,6 +40,17 @@ jobs:
           grep -q 'async function generateAffiliateOpsContent' backend/worker.js
           grep -q 'async scheduled(controller, env, ctx)' backend/worker.js
           grep -q 'humanApprovalRequired: true' backend/worker.js
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import assert from 'node:assert/strict';
+          const source = readFileSync('backend/worker.js', 'utf8');
+          const auth = source.indexOf('else if (!authorized(request, env))');
+          const ops = source.indexOf('path === "/api/ops/dashboard"');
+          const session = source.indexOf('path === "/api/session"');
+          assert.ok(auth >= 0 && ops > auth && session > auth, 'Operations and session routes must be behind shared-token authentication');
+          assert.match(source, /status='IDEA',decision_note=NULL/);
+          console.log('Operations routes are authenticated and stale drafts are invalidated on edits.');
+          NODE
           grep -q 'path === "/api/agents/delegate"' backend/worker.js
           grep -q 'INVALID_DELEGATION_INPUT' backend/worker.js
           grep -q 'claudeConfigured' backend/worker.js

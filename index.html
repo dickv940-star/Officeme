@@ -612,8 +612,8 @@ team.forEach((a,i)=>{
  card.append(head,p,expertise,outputs,metrics,foot);root.append(card)
 });
 let queue=[];const form=document.getElementById("form"),input=document.getElementById("command"),list=document.getElementById("tasks"),toast=document.getElementById("toast");
-function render(){document.getElementById("taskCount").textContent=queue.length;list.replaceChildren();if(!queue.length){list.className="empty";list.textContent="Belum ada tugas.";return}list.className="";queue.slice().reverse().forEach(t=>{const row=document.createElement("div");row.className="task";const dot=document.createElement("span");dot.className="dot";const body=document.createElement("div");body.style.flex="1";const b=document.createElement("b");b.textContent=t.command;const sm=document.createElement("small");sm.textContent="Dibuat "+t.time+" · Menunggu backend";body.append(b,sm);const pill=document.createElement("span");pill.className="pill";pill.textContent="Rancangan";row.append(dot,body,pill);list.append(row)})}
-form.addEventListener("submit",e=>{e.preventDefault();const value=input.value.trim();if(!value)return;queue.push({command:value,time:new Date().toLocaleString("id-ID")});render();input.value="";toast.textContent="Rencana tugas ditambahkan. Tidak ada aksi eksternal yang dijalankan."});
+function render(){document.getElementById("taskCount").textContent=queue.length;list.replaceChildren();if(!queue.length){list.className="empty";list.textContent="Belum ada tugas.";return}list.className="";queue.slice().reverse().forEach(t=>{const row=document.createElement("div");row.className="task";const dot=document.createElement("span");dot.className="dot";const body=document.createElement("div");body.style.flex="1";const b=document.createElement("b");b.textContent=t.command;const sm=document.createElement("small");sm.textContent="Dibuat "+t.time+" · "+(t.status||"Menunggu backend");body.append(b,sm);if(t.result){const output=document.createElement("p");output.style.whiteSpace="pre-wrap";output.style.margin="8px 0 0";output.textContent=t.result;body.append(output)}const pill=document.createElement("span");pill.className="pill";pill.textContent=t.status==="Selesai"?"8 agent selesai":t.status==="Gagal"?"Gagal":t.status==="Berjalan"?"Berjalan":"Rancangan";row.append(dot,body,pill);list.append(row)})}
+form.addEventListener("submit",async e=>{e.preventDefault();const value=input.value.trim();if(!value)return;const task={command:value,time:new Date().toLocaleString("id-ID"),status:"Berjalan",result:"Meminta analisis dari 8 AI agent…"};queue.push(task);render();input.value="";toast.textContent="Tugas dikirim ke backend AI. Tidak ada publikasi atau aksi eksternal yang dijalankan.";try{const data=await call("/api/agents/run","POST",{task:value,mode:"team"});task.status="Selesai";task.result=(data.results||[]).map(r=>r.name+" ("+r.role+"):\\n"+r.result).join("\\n\\n");render();toast.textContent="Delapan agent telah menyelesaikan analisis. Periksa hasil sebelum mengambil tindakan."}catch(error){task.status="Gagal";task.result=error.message||"Analisis gagal.";render();toast.textContent="Agent belum berjalan: "+task.result}});
 document.getElementById("example").addEventListener("click",()=>{input.value="Analisis produk melalui integrasi resmi yang tersedia, rangking 10 produk berdasarkan data valid, lalu buat 3 konsep konten untuk saya tinjau. Jangan publikasikan apa pun tanpa persetujuan saya.";input.focus()});
 document.getElementById("clear").addEventListener("click",()=>{queue=[];render();toast.textContent="Antrean lokal dibersihkan."});
 
@@ -1025,7 +1025,7 @@ renderConnectors();
     status("Sedang memeriksa koneksi backend…", false);
     try {
       const result = await call("/health", "GET");
-      status("Backend merespons. Model: " + result.model + ". Gemini terkonfigurasi: " + (result.geminiConfigured ? "ya" : "belum") + ". Ini belum membuktikan analisis berhasil; lanjutkan dengan tombol analisis setelah token dan CSV tersedia.", false);
+      status("Backend merespons. Model: " + result.model + ". OpenAI terkonfigurasi: " + (result.openAIConfigured ? "ya" : "belum") + ".", false);
     } catch (error) { status("Tes koneksi gagal: " + error.message, true); }
     finally { button.disabled = false; }
   });
@@ -1034,7 +1034,7 @@ renderConnectors();
     const button = byId("geminiCsvAnalyze");
     button.disabled = true;
     byId("geminiCsvResult").hidden = true;
-    status("Mengirim ringkasan dan maksimal 30 produk ke backend Gemini…", false);
+    status("Mengirim ringkasan dan maksimal 30 produk ke backend OpenAI…", false);
     try {
       const products = state.parsed.products.slice().sort((a,b) => b.commission - a.commission).slice(0,30);
       const sourceMetrics = state.parsed.metrics;
@@ -1057,7 +1057,7 @@ renderConnectors();
       const result = await call("/api/analyze", "POST", {metrics: payloadMetrics, products: payloadProducts});
       byId("geminiCsvResult").textContent = result.analysis || "Backend merespons tanpa isi analisis.";
       byId("geminiCsvResult").hidden = false;
-      status("Analisis Gemini berhasil. Model: " + result.model + ". Produk dianalisis: " + result.productsAnalyzed + ". Tidak ada publikasi yang dilakukan.", false);
+      status("Analisis OpenAI berhasil. Model: " + result.model + ". Produk dianalisis: " + result.productsAnalyzed + ". Tidak ada publikasi yang dilakukan.", false);
     } catch (error) {
       status("Analisis belum berhasil: " + (error.message || "Kesalahan tidak diketahui") + ". Periksa token, format CSV, dan konfigurasi backend.", true);
     } finally { button.disabled = false; }

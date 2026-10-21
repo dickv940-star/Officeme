@@ -587,6 +587,28 @@ a{color:#a9b7ff}
 
 </style>
 <style>#appLoginGate{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 50% 0%,#1b2b4b,#070b14 68%);color:#edf3ff}#appLoginGate[hidden]{display:none!important}#appLoginGate form{width:min(440px,100%);padding:30px;border:1px solid #344865;border-radius:22px;background:linear-gradient(155deg,#17243c,#0d1424);box-shadow:0 24px 90px #0009}#appLoginGate .app-login-mark{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(135deg,#8c7bff,#4c9dff);font-weight:900;font-size:24px;margin-bottom:20px;color:white}#appLoginGate h1{font-size:25px;letter-spacing:-.04em;margin:7px 0 10px}#appLoginGate p{font-size:13px;line-height:1.65;color:#aabbd5;margin:0 0 22px}#appLoginGate label{display:block;font-size:12px;font-weight:700;margin-bottom:7px}#appLoginGate .app-login-input{display:flex;gap:8px}#appLoginGate input{min-width:0;flex:1;width:100%;background:#080f1d;color:#edf3ff;border:1px solid #344865;border-radius:10px;padding:13px;font:inherit}#appLoginGate button{cursor:pointer;border:1px solid #344865;border-radius:10px;padding:11px 14px;color:#edf3ff;background:#1a2942;font:inherit}#appLoginGate button.primary{width:100%;margin-top:14px;background:linear-gradient(110deg,#7664f7,#4b8cf6);border:0;font-weight:800}#appLoginGate button:disabled{opacity:.6;cursor:wait}#appLoginStatus{font-size:12px;line-height:1.5;margin-top:12px;color:#ffb4b4;min-height:18px}#appLoginStatus[data-ok="true"]{color:#72e0b2}#appLoginGate .app-login-foot{font-size:11px;line-height:1.6;color:#8193ae;margin-top:12px}@media(max-width:480px){#appLoginGate form{padding:23px}}</style>
+
+<style id="officeCommandCenterStyles">
+/* Compact command center: keep existing IDs and handlers intact. */
+.office-nav{position:sticky;top:8px;z-index:40;display:flex;gap:7px;flex-wrap:wrap;padding:9px;margin:0 0 16px;background:#0c1425eF;border:1px solid #2a3a55;border-radius:14px;backdrop-filter:blur(12px)}
+.office-nav a{color:#dce7fb;text-decoration:none;font-size:12px;font-weight:700;padding:7px 10px;border:1px solid #2a3a55;border-radius:9px;background:#142139}
+.office-nav a:hover,.office-nav a:focus-visible{background:#253b5f;outline:2px solid #86aaff}
+.office-compact-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin:8px 0;padding:11px 13px;text-align:left}
+.office-compact-toggle span{font-size:12px;font-weight:500;color:#aebed6}
+#geminiCsvAnalyzer.office-collapsed{display:none}
+.office-intercom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin:14px 0;padding:13px;border:1px solid #405577;border-radius:13px;background:linear-gradient(120deg,#111e33,#182945)}
+.office-intercom-copy{grid-column:1/-1}.office-intercom h3{margin:0 0 3px;font-size:15px}.office-intercom p{margin:0;color:#aebed6;font-size:12px}
+.office-intercom input{min-width:0;width:100%;padding:11px;border:1px solid #344866;border-radius:9px;background:#091222;color:#edf3ff;font:inherit}
+.office-intercom button{white-space:nowrap}
+.office-broadcast{position:fixed;z-index:1000;left:50%;top:18%;transform:translate(-50%,-12px);width:min(520px,calc(100vw - 28px));padding:15px 18px;border:1px solid #91b5ff;border-radius:18px;background:#f4f7ff;color:#14223b;box-shadow:0 18px 55px #0008;opacity:0;pointer-events:none;transition:opacity .22s,transform .22s}
+.office-broadcast.show{opacity:1;transform:translate(-50%,0)}
+.office-broadcast strong{display:block;font-size:14px}.office-broadcast span{display:block;font-size:12px;margin-top:4px}
+.office-broadcast:after{content:"";position:absolute;left:34px;bottom:-9px;width:16px;height:16px;background:#f4f7ff;border-right:1px solid #91b5ff;border-bottom:1px solid #91b5ff;transform:rotate(45deg)}
+.office-command-note{grid-column:1/-1;min-height:18px;font-size:12px;color:#8ee3bc}
+.section,.gemini-csv-panel,#connectors,.bottom{scroll-margin-top:90px}
+@media(max-width:600px){.office-nav{top:3px;gap:5px;padding:7px}.office-nav a{font-size:11px;padding:6px 8px}.office-intercom{grid-template-columns:1fr}.office-intercom-copy,.office-command-note{grid-column:1}.office-intercom button{width:100%}}
+@media(prefers-reduced-motion:reduce){.office-broadcast{transition:none}}
+</style>
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>
@@ -596,7 +618,8 @@ a{color:#a9b7ff}
 </section>
 
 
-<section class="gemini-csv-panel" id="geminiCsvAnalyzer">
+<button type="button" class="office-compact-toggle" id="toggleCsvPanel" aria-expanded="false">Analisis CSV lanjutan <span>Opsional · buka hanya saat mengimpor laporan</span></button>
+<section class="gemini-csv-panel office-collapsed" id="geminiCsvAnalyzer" hidden>
   <div class="eyebrow">Analisis AI · Cloudflare Workers AI · CSV Shopee Affiliate</div>
   <h2>Analisis produk dengan Cloudflare Workers AI</h2>
   <p class="muted">Pilih CSV dari akun Anda. File dihitung di browser; hanya setelah Anda menekan “Jalankan analisis AI”, ringkasan dan maksimal 30 produk dikirim ke backend AppDIGI. Tidak ada posting atau publikasi otomatis.</p>
@@ -656,6 +679,13 @@ a{color:#a9b7ff}
   <div class="rooms-layout" id="workerRooms"></div>
   <div class="panel room-view" id="roomView" hidden>
     <div class="room-toolbar"><div><div class="eyebrow">Ruang kerja aktif</div><h2 id="roomTitle" style="margin:3px 0">Ruangan</h2><div class="muted" id="roomDescription"></div></div><button type="button" id="backRooms">← Kembali ke semua ruangan</button></div>
+    
+    <form class="office-intercom" id="officeIntercomForm">
+      <div class="office-intercom-copy"><h3>📣 Toa Direktur · Panggil agen</h3><p>Contoh: “Lucas masuk ke ruangan saya”. Perintah ini memicu simulasi panggilan dan perjalanan karakter, bukan suara sungguhan atau bukti aktivitas AI.</p></div>
+      <input id="officeIntercomCommand" maxlength="240" required autocomplete="off" placeholder="Ketik perintah untuk agen…">
+      <button type="submit" class="primary">📣 Panggil agen</button>
+      <div id="officeIntercomStatus" class="office-command-note" role="status" aria-live="polite"></div>
+    </form>
     <div class="vo3d-panel" id="virtualOffice3d" aria-label="Kantor virtual 3D">
       <div class="vo3d-toolbar">
         <div><div class="vo3d-title">Virtual Office 3D</div><div class="vo3d-help">Seret untuk memutar · scroll/pinch untuk zoom · geser dua jari atau klik kanan untuk pan</div></div>
@@ -1529,5 +1559,45 @@ window.addEventListener("unhandledrejection",function(e){
  if(!gate.hidden) setTimeout(()=>input.focus(),80);
 })();
 </script>
-<script type="module" src="./affiliate-ops.js?v=20261022-ops-1"></script>
+
+<script id="officeCommandCenterScript">
+(() => {
+ const $=id=>document.getElementById(id);
+ const csvButton=$("toggleCsvPanel"),csvPanel=$("geminiCsvAnalyzer");
+ if(csvButton&&csvPanel){
+  csvButton.addEventListener("click",()=>{
+   const opening=csvPanel.hidden;
+   csvPanel.hidden=!opening;csvPanel.classList.toggle("office-collapsed",!opening);
+   csvButton.setAttribute("aria-expanded",String(opening));
+   csvButton.querySelector("span").textContent=opening?"Opsional · panel terbuka":"Opsional · buka hanya saat mengimpor laporan";
+   if(opening)csvPanel.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+  });
+ }
+ const form=$("officeIntercomForm"),input=$("officeIntercomCommand"),status=$("officeIntercomStatus");
+ if(!form||!input||!status)return;
+ const known=[["william","William Bigboss","director"],["alexander","Alexander","Data Analyst"],["olivia","Olivia","Product Researcher"],["ethan","Ethan","Affiliate Strategist"],["sophia","Sophia","Content Producer"],["daniel","Daniel","SEO Specialist"],["isabella","Isabella","Visual Designer"],["lucas","Lucas","Automation Engineer"],["charlotte","Charlotte","Quality & Compliance"]];
+ const balloon=document.createElement("div");balloon.className="office-broadcast";balloon.setAttribute("role","status");balloon.setAttribute("aria-live","polite");document.body.append(balloon);
+ function announce(title,detail){balloon.replaceChildren();const strong=document.createElement("strong");strong.textContent=title;const span=document.createElement("span");span.textContent=detail;balloon.append(strong,span);balloon.classList.add("show");}
+ form.addEventListener("submit",e=>{
+  e.preventDefault();const command=input.value.trim();if(!command)return;
+  const normalized=command.toLowerCase();
+  const found=known.find(([id,name])=>normalized.includes(id)||normalized.includes(name.toLowerCase()));
+  if(!found){status.textContent="Nama agen tidak dikenali. Gunakan William, Alexander, Olivia, Ethan, Sophia, Daniel, Isabella, Lucas, atau Charlotte.";return;}
+  const [id,name,role]=found;
+  if(!/(masuk|datang|panggil|temui|ke ruangan|ke ruangan saya|menghadap|hadap)/i.test(command)){
+   status.textContent="Perintah dikenali, tetapi untuk saat ini toa hanya mendukung pemanggilan agen ke ruangan direktur.";return;
+  }
+  status.textContent="Panggilan visual dikirim ke "+name+". Menyiapkan perjalanan karakter…";
+  announce("📣 PANGGILAN DIREKTUR",name+", dimohon menuju ruang direktur.");
+  window.dispatchEvent(new CustomEvent("appdigi:intercom-broadcast",{detail:{agentId:id,name,role,command}}));
+  window.setTimeout(()=>window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director",invite:{id,name,role}}})),450);
+  window.setTimeout(()=>{balloon.classList.remove("show");status.textContent="Simulasi perjalanan "+name+" dimulai. Gerakan visual bukan aktivitas AI nyata.";},3600);
+ });
+ document.querySelectorAll(".office-nav a").forEach(a=>a.addEventListener("click",e=>{
+  const target=document.querySelector(a.getAttribute("href"));if(!target)return;
+  if(target.id==="affiliateOpsPanel"&&!target.isConnected)return;
+ }));
+})();
+</script>
+<script type="module" src="./affiliate-ops.js?v=20261022-ops-2"></script>
 </body></html>

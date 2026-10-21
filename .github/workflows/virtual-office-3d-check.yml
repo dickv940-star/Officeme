@@ -38,6 +38,11 @@ jobs:
           assert.match(html, /id="vo3dCctvTarget"/);
           assert.match(html, /id="vo3dCctvZoom"/);
           assert.match(html, /appdigi:cctv-room-select/);
+          assert.match(html, /id="agentMonitorRun"/);
+          assert.match(html, /id="agentMonitorTaskInput"/);
+          assert.match(html, /mode:"single",agentId:id/);
+          assert.match(html, /window\\.__appdigiAgentMonitor\\.lastRun/);
+          assert.match(html, /agent-monitor-overlay\\[hidden\\]/);
           assert.match(js, /OrbitControls/);
           assert.match(js, /function toggleCctv/);
           assert.match(js, /function focusCctvTarget/);

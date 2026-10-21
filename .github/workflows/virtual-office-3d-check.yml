@@ -33,7 +33,14 @@ jobs:
           assert.match(html, /src="\.\/virtual-office-3d\.js"/);
           assert.match(html, /appdigi:room-open/);
           assert.match(html, /appdigi:room-close/);
+          assert.match(html, /id="vo3dCctvToggle"/);
+          assert.match(html, /id="vo3dCctvTarget"/);
+          assert.match(html, /id="vo3dCctvZoom"/);
+          assert.match(html, /appdigi:cctv-room-select/);
           assert.match(js, /OrbitControls/);
+          assert.match(js, /function toggleCctv/);
+          assert.match(js, /function focusCctvTarget/);
+          assert.match(js, /attachActorFocus/);
           assert.match(js, /prefers-reduced-motion:\s*reduce/);
           assert.match(js, /appdigi_officeme_workers_v1/);
           assert.match(js, /bukan aktivitas AI nyata/);

@@ -431,14 +431,14 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     if(button)button.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
     setStatus(motionPaused?"Gerakan karakter dijeda. Kamera 3D tetap bisa diputar dan digeser.":"Simulasi gerakan dilanjutkan; ini bukan aktivitas AI nyata.");
   }
-  function showRoom(roomId) {
+  function showRoom(roomId, invite = null) {
     currentRoom=roomId||"workers";
     const requestedCctvTarget=cctvTarget;
     try {
       init();
       active=true;motionPaused=reducedMotion.matches;lastTime=0;elapsed=0;
       const motionButton=document.getElementById("vo3dMotion");if(motionButton)motionButton.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
-      buildRoom(currentRoom,loadWorkers());
+      buildRoom(currentRoom,loadWorkers(),invite);
       resetCamera();
       if(cctvEnabled){
         if(requestedCctvTarget==="room:"+currentRoom)cctvTarget=requestedCctvTarget;
@@ -459,7 +459,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     }
   }
   function hideRoom(){active=false;}
-  window.addEventListener("appdigi:room-open",e=>showRoom(e.detail?.id||"workers"));
+  window.addEventListener("appdigi:room-open",e=>showRoom(e.detail?.id||"workers",e.detail?.invite||null));
   window.addEventListener("appdigi:room-close",hideRoom);
   window.addEventListener("storage",e=>{if(e.key===storageKey&&active)showRoom(currentRoom);});
   document.addEventListener("visibilitychange",()=>{if(document.hidden)active=false;else if(!host.hidden){active=true;lastTime=0;}});

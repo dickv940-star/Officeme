@@ -604,6 +604,26 @@ a{color:#a9b7ff}
 @media(max-width:600px){.affiliate-link-fields{grid-template-columns:1fr}.affiliate-link-wide{grid-column:auto}.affiliate-link-card-top{flex-direction:column}}
 </style>
 
+<style id="DIRECTOR_ACTION_CENTER_STYLE">
+/* Director Action Center: responsive, event-based and honest about local-only state */
+#williamHelpForm label{font-size:12px;color:var(--muted)}#williamHelpForm textarea,#williamHelpForm input,#williamHelpForm select{width:100%;box-sizing:border-box;padding:10px}#williamHelpQueue:empty{display:none}.director-action-item{min-width:0}#williamHelpQueue button{white-space:normal}
+#directorActionDock{position:fixed;right:18px;bottom:18px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:10px;font-family:inherit}
+#directorActionToggle{border-radius:999px;box-shadow:0 8px 28px #0007;display:flex;align-items:center;gap:9px;padding:12px 16px}
+#directorActionCount{min-width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;background:#ffce78;color:#182033;font-size:12px;font-weight:900}
+#directorActionPanel{width:min(390px,calc(100vw - 24px));max-height:min(70vh,620px);overflow:auto;background:#101a2c;border:1px solid #405472;border-radius:18px;box-shadow:0 20px 65px #0009;padding:15px;color:var(--text)}
+#directorActionPanel[hidden]{display:none}
+.director-action-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.director-action-item{border-top:1px solid var(--line);padding:10px 0;display:grid;grid-template-columns:10px minmax(0,1fr);gap:9px}
+.director-action-dot{width:8px;height:8px;margin-top:6px;border-radius:50%;background:#86aaff}
+.director-action-item[data-kind="error"] .director-action-dot{background:#ff8d8d}
+.director-action-item[data-kind="success"] .director-action-dot{background:#72e0b2}
+.director-action-item b{display:block;font-size:12px}
+.director-action-item small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+#directorActionList:empty:after{content:"Belum ada aktivitas yang tercatat di sesi ini.";display:block;color:var(--muted);font-size:12px;padding:14px 0}
+.director-action-note{font-size:10px;color:var(--muted);line-height:1.45;margin:8px 0}
+@media(max-width:540px){#directorActionDock{right:10px;bottom:10px}#directorActionPanel{max-height:65vh}.director-action-head h3{font-size:14px}}
+@media(prefers-reduced-motion:reduce){#directorActionDock *{scroll-behavior:auto!important;transition:none!important}}
+</style>
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>
@@ -839,6 +859,45 @@ a{color:#a9b7ff}
 <div class="panel"><div class="head"><h2 style="font-size:18px;margin:0">Antrean pekerjaan</h2><span class="pill">Lokal</span></div><div id="tasks" class="empty">Belum ada tugas.</div></div>
 <div class="panel"><div class="head"><h2 style="font-size:18px;margin:0">Persetujuan direktur</h2><span class="pill">Human-in-the-loop</span></div><div class="task"><span class="dot"></span><div><b>Integrasi Shopee API resmi</b><small>Menunggu konfirmasi akses dan kredensial resmi untuk akun Indonesia.</small></div></div><div class="task"><span class="dot"></span><div><b>Publikasi dan tindakan eksternal</b><small>Wajib ditinjau sebelum dijalankan.</small></div></div><div class="task"><span class="dot"></span><div><b>Rahasia dan data akun</b><small>Hanya disimpan di backend; jangan masukkan password, cookie, atau API key di sini.</small></div></div></div>
 </section><div class="footer">AI AFFILIATE by AppDIGI · Prototipe UI · Tidak terhubung ke akun Shopee.</div>
+
+<div id="directorActionDock" aria-live="polite">
+  <section id="directorActionPanel" hidden aria-label="Pusat tindakan direktur">
+    <div class="director-action-head"><h3 style="margin:0">Pusat Tindakan William</h3><button id="directorActionClose" type="button" aria-label="Tutup pusat tindakan">Tutup</button></div>
+    <p class="director-action-note">Pusat bantuan William · permintaan dan status dimuat dari Cloudflare D1 setelah backend diperbarui.</p>
+    <section class="director-video-review" aria-labelledby="williamHelpTitle">
+      <h4 id="williamHelpTitle" style="margin:14px 0 6px">Permintaan Bantuan Agen</h4>
+      <form id="williamHelpForm" style="display:grid;gap:8px">
+        <label for="williamHelpAgent">Agen yang meminta bantuan</label>
+        <select id="williamHelpAgent" required>
+          <option value="Alexander · Data Analyst">Alexander · Data Analyst</option><option value="Olivia · Product Researcher">Olivia · Product Researcher</option><option value="Ethan · Marketing Strategist">Ethan · Marketing Strategist</option><option value="Sophia · Content Creator">Sophia · Content Creator</option><option value="Daniel · SEO Specialist">Daniel · SEO Specialist</option><option value="Isabella · Graphic Designer">Isabella · Graphic Designer</option><option value="Lucas · Automation Engineer">Lucas · Automation Engineer</option><option value="Charlotte · Quality Controller">Charlotte · Quality Controller</option>
+        </select>
+        <label for="williamHelpTitleInput">Judul / data yang dibutuhkan</label>
+        <input id="williamHelpTitleInput" required maxlength="140" placeholder="Contoh: Laporan komisi 7 hari terakhir" />
+        <label for="williamHelpDetail">Rincian permintaan</label>
+        <textarea id="williamHelpDetail" required maxlength="2000" rows="3" placeholder="Jelaskan data, format, periode, atau kendala yang perlu dibantu William"></textarea>
+        <button class="primary" type="submit">＋ Catat permintaan bantuan</button>
+      </form>
+      <div class="director-action-note" id="williamHelpStatus" role="status" aria-live="polite" style="margin-top:8px">Permintaan disimpan lokal di browser ini. Integrasi backend diperlukan agar agen cloud bisa membuat dan menerima respons secara otomatis.</div>
+      <h4 style="margin:14px 0 6px">Kotak Permintaan</h4>
+      <div id="williamHelpQueue" role="log" aria-live="polite" aria-relevant="additions" style="display:grid;gap:8px"></div>
+    </section>
+    <div class="actions" style="margin:8px 0"><button id="directorActionClear" type="button">Bersihkan notifikasi</button></div>
+    <div id="directorActionList" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <section class="director-video-review" aria-labelledby="directorVideoTitle">
+      <h4 id="directorVideoTitle" style="margin:14px 0 6px">Pemeriksaan Video</h4>
+      <p class="director-action-note">Masukkan URL file video yang sudah tersedia untuk memeriksanya. Video belum otomatis diambil dari antrean konten.</p>
+      <label for="directorVideoUrl" style="display:block;font-size:11px;margin-bottom:5px">URL video HTTPS</label>
+      <input id="directorVideoUrl" type="url" inputmode="url" placeholder="https://…/video.mp4" autocomplete="url" style="width:100%;box-sizing:border-box;margin-bottom:8px" />
+      <div class="actions"><button id="directorVideoOpen" type="button">▶ Lihat Video</button><button id="directorVideoClear" type="button">Tutup Video</button></div>
+      <div id="directorVideoStatus" role="status" aria-live="polite" class="director-action-note">Belum ada video yang dipilih.</div>
+      <div id="directorVideoFrame" hidden style="margin-top:8px">
+        <video id="directorVideoPlayer" controls playsinline preload="metadata" style="display:block;width:100%;max-height:320px;background:#05070b;border-radius:10px"></video>
+        <p class="director-action-note">Periksa isi video, gambar, suara, dan durasi. Persetujuan publikasi tetap dilakukan melalui alur persetujuan yang terhubung dan bukan melalui pemutar ini.</p>
+      </div>
+    </section>
+  </section>
+  <button id="directorActionToggle" type="button" aria-expanded="false" aria-controls="directorActionPanel"><span aria-hidden="true">🔔</span><span>Notifikasi Direktur</span><span id="directorActionCount">0</span></button>
+</div>
 </main>
 <script>
 const team=[
@@ -876,7 +935,7 @@ team.forEach((a,i)=>{
 });
 let queue=[];const form=document.getElementById("form"),input=document.getElementById("command"),list=document.getElementById("tasks"),toast=document.getElementById("toast");
 function render(){document.getElementById("taskCount").textContent=queue.length;list.replaceChildren();if(!queue.length){list.className="empty";list.textContent="Belum ada tugas.";return}list.className="";queue.slice().reverse().forEach(t=>{const row=document.createElement("div");row.className="task";const dot=document.createElement("span");dot.className="dot";const body=document.createElement("div");body.style.flex="1";const b=document.createElement("b");b.textContent=t.command;const sm=document.createElement("small");sm.textContent="Dibuat "+t.time+" · "+(t.status||"Menunggu backend");body.append(b,sm);if(t.result){const output=document.createElement("p");output.style.whiteSpace="pre-wrap";output.style.margin="8px 0 0";output.textContent=t.result;body.append(output)}const pill=document.createElement("span");pill.className="pill";pill.textContent=t.status==="Selesai"?"Selesai":t.status==="Perlu tinjauan"?"Perlu tinjauan":t.status==="Gagal"?"Gagal":t.status==="Berjalan"?"Berjalan":"Rancangan";row.append(dot,body,pill);list.append(row)})}
-form.addEventListener("submit",async e=>{e.preventDefault();const value=input.value.trim();if(!value)return;const task={command:value,time:new Date().toLocaleString("id-ID"),status:"Berjalan",result:"Meminta analisis dari 8 AI agent…"};queue.push(task);render();input.value="";toast.textContent="Tugas dikirim ke backend AI. Tidak ada publikasi atau aksi eksternal yang dijalankan.";try{const data=await call("/api/agents/run","POST",{task:value,mode:"team"});window.__appdigiAgentMonitor=window.__appdigiAgentMonitor||{};window.__appdigiAgentMonitor.lastRun={time:new Date().toLocaleString("id-ID"),task:value,ok:data.ok!==false,results:Array.isArray(data.results)?data.results:[],finalReview:data.finalReview||"",qualityStatus:data.qualityStatus||"",qualityGate:data.qualityGate||null};task.status=data.ok===false?"Gagal":"Perlu tinjauan";task.result=(data.results||[]).map(r=>r.name+" ("+r.role+")"+(r.provider?" · "+r.provider+"/"+(r.model||""):"")+(r.ok===false?" [GAGAL]":"")+":\\n"+(r.result||r.error||"Tidak ada hasil")).join("\\n\\n")+(data.finalReview?"\\n\\nREVIEW CHARLOTTE:\\n"+data.finalReview:"")+(data.qualityStatus?"\\n\\nSTATUS KUALITAS: "+data.qualityStatus:"")+(data.qualityGate?"\\nSpesialis berhasil: "+data.qualityGate.specialistsSucceeded+"/"+data.qualityGate.specialistsTotal+"; reviewer berhasil: "+data.qualityGate.reviewerSucceeded+"; tinjauan manusia wajib: "+data.qualityGate.humanReviewRequired:"");render();toast.textContent=data.ok===false?"Sebagian agen atau pemeriksaan kualitas gagal. Periksa hasil dan coba lagi.":"Analisis selesai; hasil tetap wajib ditinjau manusia sebelum digunakan."}catch(error){task.status="Gagal";task.result=error.message||"Analisis gagal.";render();toast.textContent="Agent belum berjalan: "+task.result}});
+form.addEventListener("submit",async e=>{e.preventDefault();const value=input.value.trim();if(!value)return;const task={command:value,time:new Date().toLocaleString("id-ID"),status:"Berjalan",result:"Meminta analisis dari 8 AI agent…"};queue.push(task);render();input.value="";toast.textContent="Tugas dikirim ke backend AI. Tidak ada publikasi atau aksi eksternal yang dijalankan.";try{const data=await call("/api/agents/run","POST",{task:value,mode:"team"});window.__appdigiAgentMonitor=window.__appdigiAgentMonitor||{};window.__appdigiAgentMonitor.lastRun={time:new Date().toLocaleString("id-ID"),task:value,ok:data.ok!==false,results:Array.isArray(data.results)?data.results:[],finalReview:data.finalReview||"",qualityStatus:data.qualityStatus||"",qualityGate:data.qualityGate||null};task.status=data.ok===false?"Gagal":"Perlu tinjauan";task.result=(data.results||[]).map(r=>r.name+" ("+r.role+")"+(r.provider?" · "+r.provider+"/"+(r.model||""):"")+(r.ok===false?" [GAGAL]":"")+":\\n"+(r.result||r.error||"Tidak ada hasil")).join("\\n\\n")+(data.finalReview?"\\n\\nREVIEW CHARLOTTE:\\n"+data.finalReview:"")+(data.qualityStatus?"\\n\\nSTATUS KUALITAS: "+data.qualityStatus:"")+(data.qualityGate?"\\nSpesialis berhasil: "+data.qualityGate.specialistsSucceeded+"/"+data.qualityGate.specialistsTotal+"; reviewer berhasil: "+data.qualityGate.reviewerSucceeded+"; tinjauan manusia wajib: "+data.qualityGate.humanReviewRequired:"");render();toast.textContent=data.ok===false?"Sebagian agen atau pemeriksaan kualitas gagal. Periksa hasil dan coba lagi.":"Analisis selesai; hasil tetap wajib ditinjau manusia sebelum digunakan.";window.dispatchEvent(new CustomEvent("appdigi:task-complete",{detail:{ok:data.ok!==false,task:value,message:data.ok===false?"Analisis selesai dengan kegagalan pada sebagian agen. Periksa rincian tugas.":"Analisis selesai dan menunggu tinjauan manusia."}}));}catch(error){task.status="Gagal";task.result=error.message||"Analisis gagal.";render();toast.textContent="Agent belum berjalan: "+task.result;window.dispatchEvent(new CustomEvent("appdigi:task-complete",{detail:{ok:false,task:value,message:"Permintaan analisis gagal: "+task.result}}));}});
 document.getElementById("example").addEventListener("click",()=>{input.value="Analisis produk melalui integrasi resmi yang tersedia, rangking 10 produk berdasarkan data valid, lalu buat 3 konsep konten untuk saya tinjau. Jangan publikasikan apa pun tanpa persetujuan saya.";input.focus()});
 document.getElementById("clear").addEventListener("click",()=>{queue=[];render();toast.textContent="Antrean lokal dibersihkan."});
 
@@ -1727,4 +1786,136 @@ window.addEventListener("unhandledrejection",function(e){
 })();
 </script>
 <script src="./affiliate-links.js?v=20261022-link-workflow"></script>
+
+<script id="DIRECTOR_ACTION_CENTER">
+(()=> {
+ const dock=document.getElementById("directorActionDock");
+ const panel=document.getElementById("directorActionPanel");
+ const toggle=document.getElementById("directorActionToggle");
+ const close=document.getElementById("directorActionClose");
+ const clear=document.getElementById("directorActionClear");
+ const list=document.getElementById("directorActionList");
+ const count=document.getElementById("directorActionCount");
+ const videoUrl=document.getElementById("directorVideoUrl");
+ const videoOpen=document.getElementById("directorVideoOpen");
+ const videoClear=document.getElementById("directorVideoClear");
+ const videoStatus=document.getElementById("directorVideoStatus");
+ const videoFrame=document.getElementById("directorVideoFrame");
+ const videoPlayer=document.getElementById("directorVideoPlayer");
+ const helpForm=document.getElementById("williamHelpForm");
+ const helpAgent=document.getElementById("williamHelpAgent");
+ const helpTitle=document.getElementById("williamHelpTitleInput");
+ const helpDetail=document.getElementById("williamHelpDetail");
+ const helpQueue=document.getElementById("williamHelpQueue");
+ const helpStatus=document.getElementById("williamHelpStatus");
+ const backendInput=document.getElementById("geminiCsvWorkerUrl");
+ const tokenInput=document.getElementById("geminiCsvToken");
+ let unread=0,helpRequests=[],knownHelpIds=new Set(),helpPollBusy=false;
+ function helpApiBase(){
+  try{const u=new URL(backendInput?.value.trim()||"");if(u.protocol!=="https:"||!u.hostname.endsWith(".workers.dev")||u.pathname!=="/"||u.search||u.hash||u.username||u.password)throw new Error();return u.origin}catch(_){throw new Error("URL backend Cloudflare Workers tidak valid.")}
+ }
+ async function helpApi(path,options={}){
+  const token=tokenInput?.value.trim();if(!token)throw new Error("Masuk dahulu melalui panel login. Token tidak dikirim ke chat.");
+  const base=helpApiBase();const response=await fetch(base+path,{...options,headers:{Authorization:"Bearer "+token,"Content-Type":"application/json",...(options.headers||{})},cache:"no-store"});
+  const data=await response.json().catch(()=>({}));if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));return data;
+ }
+ async function readTextAttachment(input){
+  const file=input?.files?.[0];if(!file)return null;
+  if(file.size>400000)throw new Error("File maksimal 400 KB.");
+  const allowed=/\.(csv|txt|json)$/i.test(file.name);
+  if(!allowed)throw new Error("Untuk sementara unggah CSV, TXT, atau JSON. Ekspor laporan Excel ke CSV terlebih dahulu.");
+  return {name:file.name,type:file.type==="application/json"?"application/json":file.name.toLowerCase().endsWith(".csv")?"text/csv":"text/plain",text:await file.text()};
+ }
+ function statusLabel(status){return ({WAITING_FOR_WILLIAM:"Menunggu William",IN_PROGRESS:"Sedang ditangani",ANSWERED:"Jawaban diterima agen",NEEDS_MORE_INFO:"Agen membutuhkan informasi tambahan",COMPLETED:"Tugas dilanjutkan / selesai",FAILED:"Tugas gagal"})[status]||status||"Status belum diketahui";}
+ function renderHelp(){
+  if(!helpQueue)return;helpQueue.replaceChildren();
+  if(!helpRequests.length){const empty=document.createElement("div");empty.className="director-action-note";empty.textContent="Belum ada permintaan bantuan dari backend.";helpQueue.append(empty);return}
+  helpRequests.forEach(req=>{
+   const card=document.createElement("article");card.className="director-action-item";card.style.cssText="display:grid;gap:7px;padding:12px;border:1px solid rgba(139,163,204,.2);border-radius:12px";
+   const heading=document.createElement("b");heading.textContent=(req.agentName||req.agentId)+" · "+req.title;
+   const detail=document.createElement("div");detail.style.cssText="font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere";detail.textContent=req.detail;
+   const state=document.createElement("small");state.textContent="Status: "+statusLabel(req.status)+" · "+new Date(req.createdAt).toLocaleString("id-ID");
+   card.append(heading,detail,state);
+   if(req.reply){const answer=document.createElement("div");answer.style.cssText="font-size:12px;padding:8px;background:rgba(110,231,189,.07);border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere";answer.textContent="Respons William: "+req.reply;card.append(answer)}
+   if(req.agentResult){const result=document.createElement("div");result.style.cssText="font-size:12px;padding:8px;background:rgba(141,159,255,.08);border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere";result.textContent="Hasil lanjutan agen: "+req.agentResult;card.append(result)}
+   if(req.attachment?.name){const file=document.createElement("small");file.textContent="Lampiran: "+req.attachment.name+" ("+req.attachment.type+")";card.append(file)}
+   if(req.status==="WAITING_FOR_WILLIAM"||req.status==="IN_PROGRESS"||req.status==="NEEDS_MORE_INFO"){
+    const reply=document.createElement("textarea");reply.rows=2;reply.maxLength=8000;reply.placeholder="Balasan William, ringkasan data, atau informasi yang diminta agen…";reply.setAttribute("aria-label","Balasan William untuk "+req.title);reply.style.width="100%";
+    const file=document.createElement("input");file.type="file";file.accept=".csv,.txt,.json";file.setAttribute("aria-label","Lampiran data untuk "+req.title);
+    const moreLabel=document.createElement("label");moreLabel.style.cssText="display:flex;align-items:center;gap:8px;font-size:12px";const more=document.createElement("input");more.type="checkbox";moreLabel.append(more,document.createTextNode("Minta agen menjelaskan data tambahan yang masih diperlukan"));
+    const submit=document.createElement("button");submit.type="button";submit.textContent="Kirim jawaban ke agen";
+    submit.addEventListener("click",async()=>{const value=reply.value.trim();if(!value&&!file.files.length){reply.focus();return}submit.disabled=true;try{const attachment=await readTextAttachment(file);const data=await helpApi("/api/agent-help/"+encodeURIComponent(req.id)+"/reply",{method:"POST",body:JSON.stringify({reply:value||("William mengirim lampiran "+attachment.name),needsMoreInfo:more.checked,attachment})});mergeHelpItem(data.item);notify("Jawaban dikirim ke backend",req.agentName+" · "+req.title+" — "+statusLabel(data.item.status),"success");if(helpStatus)helpStatus.textContent="Respons tersimpan di Cloudflare D1. Jika permintaan dibuat dari tugas agen, backend mencoba melanjutkan tugas dan menyimpan hasilnya.";renderHelp();}catch(error){if(helpStatus)helpStatus.textContent="Gagal mengirim respons: "+error.message;notify("Respons belum terkirim",error.message,"error")}finally{submit.disabled=false}});
+    card.append(reply,file,moreLabel,submit);
+   }
+   helpQueue.append(card);
+  });
+ }
+ function mergeHelpItem(item){if(!item||!item.id)return;const i=helpRequests.findIndex(x=>x.id===item.id);if(i>=0)helpRequests[i]=item;else helpRequests.unshift(item);helpRequests.sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));helpRequests=helpRequests.slice(0,100)}
+ async function refreshHelp(silent=false){
+  if(helpPollBusy||!panel)return;helpPollBusy=true;
+  try{const data=await helpApi("/api/agent-help",{method:"GET",headers:{}});const next=Array.isArray(data.items)?data.items:[];for(const item of next){if(!knownHelpIds.has(item.id)&&item.status==="WAITING_FOR_WILLIAM")notify("AI agen meminta bantuan",item.agentName+" · "+item.title,"info");knownHelpIds.add(item.id)}helpRequests=next;renderHelp();if(helpStatus&& !silent)helpStatus.textContent="Terhubung ke backend. Permintaan dan status dimuat dari Cloudflare D1."; }
+  catch(error){if(helpStatus&&!silent)helpStatus.textContent="Backend belum tersambung: "+error.message+" Pastikan Worker sudah diperbarui dan D1 tersedia.";if(!silent)notify("Pusat bantuan belum terhubung",error.message,"error")}
+  finally{helpPollBusy=false}
+ }
+ helpForm?.addEventListener("submit",async event=>{
+  event.preventDefault();const agent=helpAgent?.value||"",title=helpTitle?.value.trim()||"",detail=helpDetail?.value.trim()||"";if(!agent||!title||!detail)return;
+  const map={"Alexander · Data Analyst":"alexander","Olivia · Product Researcher":"olivia","Ethan · Marketing Strategist":"ethan","Sophia · Content Creator":"sophia","Daniel · SEO Specialist":"daniel","Isabella · Graphic Designer":"isabella","Lucas · Automation Engineer":"lucas","Charlotte · Quality Controller":"charlotte"};
+  const submit=helpForm.querySelector('button[type="submit"]');if(submit)submit.disabled=true;
+  try{const data=await helpApi("/api/agent-help",{method:"POST",body:JSON.stringify({agentId:map[agent],title,detail})});mergeHelpItem(data.item);renderHelp();notify("Permintaan tersimpan di Cloudflare",agent+": "+title,"success");if(helpStatus)helpStatus.textContent="Permintaan tersimpan di backend Cloudflare D1. Catatan: formulir manual mencatat permintaan; tidak menciptakan tugas agen baru secara otomatis.";helpForm.reset()}
+  catch(error){if(helpStatus)helpStatus.textContent="Gagal menyimpan permintaan: "+error.message;notify("Permintaan gagal disimpan",error.message,"error")}
+  finally{if(submit)submit.disabled=false}
+ });
+ toggle.addEventListener("click",()=>{if(!panel.hidden)refreshHelp(true)});
+ refreshHelp(true);setInterval(()=>refreshHelp(true),15000);
+ function notify(title,detail,kind="info"){
+  const row=document.createElement("div");row.className="director-action-item";row.dataset.kind=kind;
+  const dot=document.createElement("span");dot.className="director-action-dot";
+  const body=document.createElement("div");const heading=document.createElement("b");heading.textContent=title;
+  const desc=document.createElement("div");desc.style.fontSize="11px";desc.style.marginTop="3px";desc.style.whiteSpace="pre-wrap";desc.style.overflowWrap="anywhere";desc.textContent=detail;
+  const time=document.createElement("small");time.textContent=new Date().toLocaleString("id-ID");
+  body.append(heading,desc,time);row.append(dot,body);list.prepend(row);
+  while(list.children.length>40)list.lastElementChild.remove();
+  if(panel.hidden)unread++;count.textContent=String(unread);toggle.setAttribute("aria-label",unread+" notifikasi belum dibaca");
+ }
+ function open(){panel.hidden=false;unread=0;count.textContent="0";toggle.setAttribute("aria-expanded","true");}
+ function shut(){panel.hidden=true;toggle.setAttribute("aria-expanded","false");}
+ toggle.addEventListener("click",()=>panel.hidden?open():shut());
+ close?.addEventListener("click",shut);
+ videoOpen?.addEventListener("click",()=>{
+  let parsed;
+  try{parsed=new URL(videoUrl?.value.trim()||"");if(parsed.protocol!=="https:"||parsed.username||parsed.password)throw new Error("URL harus berupa tautan HTTPS yang valid.");}
+  catch(e){videoStatus.textContent=e.message||"Masukkan URL video HTTPS yang valid.";notify("Video belum dapat dibuka",videoStatus.textContent,"error");return;}
+  if(!videoPlayer||!videoFrame)return;
+  videoPlayer.pause();videoPlayer.removeAttribute("src");videoPlayer.load();
+  videoPlayer.src=parsed.href;videoFrame.hidden=false;videoStatus.textContent="Memuat metadata video. Jika gagal, pastikan tautan dapat diakses dan server mengizinkan pemutaran lintas situs.";
+  videoPlayer.onloadedmetadata=()=>{videoStatus.textContent="Video tersedia untuk ditinjau · "+Math.round(videoPlayer.duration)+" detik.";notify("Video siap ditinjau","Pemutar berhasil membaca metadata video. Ini belum berarti video disetujui.","success");};
+  videoPlayer.onerror=()=>{videoStatus.textContent="Video tidak dapat dimuat. Periksa URL, format file, izin akses, atau dukungan CORS.";notify("Video gagal dimuat",videoStatus.textContent,"error");};
+  videoPlayer.load();
+ });
+ videoClear?.addEventListener("click",()=>{if(videoPlayer){videoPlayer.pause();videoPlayer.removeAttribute("src");videoPlayer.load();}if(videoFrame)videoFrame.hidden=true;if(videoStatus)videoStatus.textContent="Pemutar ditutup.";});
+ videoUrl?.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();videoOpen?.click();}});
+ clear?.addEventListener("click",()=>{list.replaceChildren();unread=0;count.textContent="0";notify("Daftar dibersihkan","Riwayat lokal pada halaman ini telah dibersihkan.","info");});
+ document.addEventListener("submit",event=>{
+  const form=event.target;if(!(form instanceof HTMLFormElement))return;
+  if(form.id==="form"){
+   const input=document.getElementById("command");const value=input?.value?.trim();
+   if(value)notify("Tugas dikirim","Perintah diterima UI dan sedang diproses. Hasil backend belum dikonfirmasi.","info");
+  }else if(form.id==="roomForm"){
+   notify("Pesan ruang dikirim","Pesan dikirim dari formulir ruang. Respons agen harus dikonfirmasi pada panel percakapan.","info");
+  }else if(form.id==="agentChatForm"){
+   notify("Pesan agen dikirim","Permintaan percakapan dikirim dari panel agen.","info");
+  }
+ },true);
+ window.addEventListener("error",event=>notify("Kesalahan antarmuka",event.message||"Terjadi kesalahan JavaScript.","error"));
+ window.addEventListener("unhandledrejection",event=>notify("Proses gagal",String(event.reason?.message||event.reason||"Promise ditolak tanpa penanganan."),"error"));
+ window.addEventListener("appdigi:director-notification",event=>{
+  const detail=event.detail||{};notify(String(detail.title||"Pembaruan aktivitas"),String(detail.message||"Ada pembaruan aktivitas."),detail.kind==="error"?"error":detail.kind==="success"?"success":"info");
+ });
+ window.addEventListener("appdigi:task-complete",event=>{
+  const d=event.detail||{};notify(d.ok===false?"Tugas gagal":"Tugas selesai",String(d.message||d.task||"Status tugas diperbarui."),d.ok===false?"error":"success");
+ });
+ window.addEventListener("online",()=>notify("Koneksi kembali","Browser mendeteksi koneksi jaringan kembali tersedia.","success"));
+ window.addEventListener("offline",()=>notify("Koneksi terputus","Browser mendeteksi offline. Permintaan backend mungkin gagal.","error"));
+})();
+</script>
 </body></html>

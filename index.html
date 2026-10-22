@@ -803,6 +803,80 @@ pre,code{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
 #tasks .task p{color:#edf3ff;line-height:1.7;overflow-wrap:anywhere;white-space:pre-wrap;max-height:none}
 @media(max-width:650px){.agent-chat-message{max-width:100%;width:100%}.agent-chat-messages{height:min(52vh,420px)}}
 </style>
+
+<style id="WILLIAM_HELP_FINAL_LAYOUT_FIX">
+/* Final override: keep William's panel scrollable without flex-layout distortion. */
+#directorActionDock{box-sizing:border-box}
+#directorActionPanel{
+  display:block!important;
+  width:min(420px,calc(100vw - 24px));
+  max-height:min(72dvh,680px);
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  padding:16px;
+  box-sizing:border-box;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  line-height:1.5;
+}
+#directorActionPanel[hidden]{display:none!important}
+#directorActionPanel>*{min-width:0;max-width:100%;box-sizing:border-box}
+#directorActionPanel>.director-action-head{
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  justify-content:space-between;
+  align-items:center!important;
+  gap:10px;
+  margin:0 0 12px!important;
+}
+#directorActionPanel>.director-action-head h3{
+  flex:1 1 auto!important;
+  min-width:0;
+  margin:0!important;
+  font-size:16px;
+  line-height:1.35;
+}
+#directorActionPanel>.director-action-head button{flex:0 0 auto!important;width:auto!important}
+#directorActionPanel .director-action-note{font-size:12px;line-height:1.55;margin:8px 0}
+#directorActionPanel .director-video-review{
+  display:block!important;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  overflow:visible!important;
+  margin:14px 0!important;
+}
+#directorActionPanel .director-video-review h4{font-size:14px;line-height:1.4;margin:14px 0 8px!important}
+#williamHelpForm{display:grid!important;grid-template-columns:minmax(0,1fr);gap:8px;align-items:stretch}
+#williamHelpForm label{display:block;width:100%;font-size:12px;line-height:1.4;margin:2px 0 0}
+#williamHelpForm input,#williamHelpForm select,#williamHelpForm textarea{
+  display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;
+  margin-top:5px;padding:10px 11px;border-radius:9px;line-height:1.45;
+}
+#williamHelpForm textarea{min-height:88px;resize:vertical}
+#williamHelpForm>button{display:block;width:100%;margin-top:4px}
+#williamHelpStatus{padding:10px 11px;border:1px solid var(--line);border-radius:10px;line-height:1.5}
+#williamHelpQueue{display:grid!important;grid-template-columns:minmax(0,1fr);gap:10px;margin-top:8px;overflow:visible!important}
+#williamHelpQueue article,#williamHelpQueue .director-action-item{
+  display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box;
+  padding:12px;border:1px solid var(--line);border-radius:10px;
+}
+#williamHelpQueue textarea{display:block;width:100%;box-sizing:border-box;min-height:84px}
+#directorActionList{display:block;width:100%;min-width:0;margin-top:8px}
+#directorActionPanel .actions{display:flex!important;flex-direction:row;flex-wrap:wrap;gap:8px;margin:12px 0!important}
+#directorActionPanel .actions button{flex:1 1 145px!important;width:auto!important}
+#directorActionPanel video{display:block;width:100%;height:auto;max-width:100%;object-fit:contain}
+@media(max-width:600px){
+  #directorActionDock{left:auto;right:8px;bottom:8px;max-width:calc(100vw - 16px)}
+  #directorActionPanel{width:calc(100vw - 16px);max-height:72dvh;padding:13px}
+  #directorActionPanel>.director-action-head{align-items:flex-start!important}
+  #directorActionPanel>.director-action-head h3{font-size:15px}
+  #directorActionPanel .actions{flex-direction:column}
+  #directorActionPanel .actions button{flex:1 1 auto!important;width:100%!important}
+}
+</style>
+
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>

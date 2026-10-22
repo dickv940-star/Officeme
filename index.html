@@ -657,6 +657,31 @@ a{color:#a9b7ff}
  #directorActionPanel .actions button{flex:1 1 100%}
 }
 @media(prefers-reduced-motion:reduce){#directorActionDock *{scroll-behavior:auto!important;transition:none!important}}
+
+/* Fix scrolling in William Help Center: the panel owns vertical scrolling,
+   while inner sections must not clip their content. */
+#directorActionPanel{
+  overflow-x:hidden;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  min-height:0;
+  touch-action:pan-y;
+}
+#directorActionPanel .director-video-review{
+  min-height:0;
+  overflow:visible;
+}
+#williamHelpQueue{
+  overflow:visible;
+}
+@media(max-width:600px){
+  #directorActionPanel{
+    max-height:72dvh;
+    overflow-x:hidden;
+    overflow-y:auto;
+  }
+}
 </style>
 
 <style id="GLOBAL_LAYOUT_OVERLAP_FIX">

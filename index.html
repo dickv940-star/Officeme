@@ -1244,7 +1244,7 @@ renderConnectors();
     status("Sedang memeriksa koneksi backend…", false);
     try {
       const result = await call("/health", "GET");
-      status("Backend merespons. Model: " + result.model + ". Cloudflare Workers AI terkonfigurasi: " + (result.openAIConfigured ? "ya" : "belum") + ".", false);
+      status("Backend merespons. Provider AI gratis aktif: " + ((result.llmProvidersConfigured || []).join(", ") || "belum ada (tambahkan API key gratis di Cloudflare)") + ".", false);
     } catch (error) { status("Tes koneksi gagal: " + error.message, true); }
     finally { button.disabled = false; }
   });

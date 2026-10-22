@@ -1525,6 +1525,11 @@ window.addEventListener("unhandledrejection",function(e){
   byId("agentMonitorTask").textContent=run?run.task+"\n\nStatus keseluruhan: "+(run.ok?"hasil diterima; wajib ditinjau manusia":"backend melaporkan kegagalan")+(run.qualityStatus?"\nStatus QA: "+run.qualityStatus:"")+(run.finalReview?"\nReview Charlotte: "+run.finalReview:""):"Belum ada tugas yang tercatat pada sesi ini.";
   byId("agentMonitorChat").textContent="Bicara dengan "+name;
  }
+ window.addEventListener("appdigi:agent-monitor-open",e=>{
+  const id=idForName(e.detail?.agentId);
+  const card=[...document.querySelectorAll("#agents .specialist-card")].find(c=>idForName((c.querySelector("h3")?.textContent||"").replace(/^\d+\s*[·.-]\s*/,""))===id);
+  if(card)open(card);
+ });
  document.querySelectorAll("#agents .specialist-card").forEach(card=>{
   card.tabIndex=0;card.setAttribute("aria-label","Buka monitor pekerjaan "+(card.querySelector("h3")?.textContent||"agen"));
   const cta=document.createElement("div");cta.className="agent-monitor-cta";

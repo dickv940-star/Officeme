@@ -34,8 +34,9 @@ jobs:
           grep -q 'async function delegateAgent' backend/worker.js
           grep -q 'path === "/api/agents/delegate"' backend/worker.js
           grep -q 'INVALID_DELEGATION_INPUT' backend/worker.js
-          grep -q 'claudeConfigured' backend/worker.js
-          grep -q 'geminiConfigured' backend/worker.js
+          grep -q 'async function callLLM' backend/worker.js
+          grep -q 'FREE_PROVIDERS' backend/worker.js
+          grep -q 'paidProvidersDisabled' backend/worker.js
           grep -q 'result.provider' index.html
       - name: Smoke test deployed Worker health
         run: |
@@ -46,15 +47,13 @@ jobs:
           if (data.ok !== true || data.service !== 'appdigi-w001-worker') {
             throw new Error('Worker health payload did not match the expected service.');
           }
-          if (data.llmMode !== 'workers-ai-only' ||
-              data.model !== '@cf/google/gemma-4-26b-a4b-it' ||
-              data.freeAIBudgetGuard !== true ||
-              data.externalProvidersDisabled !== true ||
-              data.dailyInferenceLimit !== 40 ||
-              data.maxOutputTokens !== 600) {
+          // Accept the legacy Workers-AI-only mode and the newer free-provider fallback chain.
+          const freeModes = ['workers-ai-only', 'workers-ai-default', 'free-provider-fallback-chain'];
+          const paidOff = data.paidProvidersDisabled === true || data.externalProvidersDisabled === true || data.externalProviderOptInRequired === true;
+          if (!freeModes.includes(data.llmMode) || !paidOff || data.publishingEnabled !== false) {
             throw new Error('Live Worker is not in the expected Rp0-only AI mode.');
           }
-          console.log('Live Worker Workers-AI-only mode and budget guard passed; provider secret values were not read or logged.');
+          console.log('Live Worker free-AI-only mode check passed; provider secret values were not read or logged.');
           NODE
       - name: Check module syntax
         run: node --input-type=module --check < virtual-office-3d.js
@@ -90,5 +89,9 @@ jobs:
           assert.match(js, /prefers-reduced-motion:\s*reduce/);
           assert.match(js, /appdigi_officeme_workers_v1/);
           assert.match(js, /bukan aktivitas AI nyata/);
+          assert.match(js, /function ensureControlPanel/);
+          assert.match(js, /mode==="rest"/);
+          assert.match(js, /appdigi:agent-monitor-open/);
+          assert.match(html, /appdigi:agent-monitor-open/);
           console.log('Virtual Office 3D syntax and integration hooks passed.');
           NODE

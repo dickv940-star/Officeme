@@ -639,8 +639,8 @@ a{color:#a9b7ff}
 
 <section class="gemini-csv-panel" id="platformIntegrationPanel">
   <div class="eyebrow">Kesiapan integrasi multi-platform</div>
-  <h2>Status akses Instagram, Shopee, dan YouTube</h2>
-  <p class="muted">Status ini memeriksa konfigurasi backend tanpa menampilkan nilai rahasia. Publikasi tetap terkunci sampai alur OAuth, izin platform, dan persetujuan manusia terverifikasi.</p>
+  <h2>Status Instagram, Facebook, Shopee, dan YouTube</h2>
+  <p class="muted">Status ini hanya memeriksa keberadaan konfigurasi backend, bukan koneksi akun. OAuth Instagram/Facebook/YouTube belum aktif; tombol koneksi akun belum dapat bekerja sampai alur OAuth aman dibangun dan aplikasi developer disiapkan. Publikasi tetap terkunci dan persetujuan manusia wajib.</p>
   <div class="gemini-csv-actions"><button type="button" class="primary" id="platformIntegrationCheck">Periksa semua platform</button></div>
   <div id="platformIntegrationStatus" class="gemini-csv-status" role="status" aria-live="polite">Belum diperiksa.</div>
 </section>
@@ -1651,7 +1651,7 @@ window.addEventListener("unhandledrejection",function(e){
    if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
    const p=data.platforms||{};
    const line=(label,x)=>label+": "+(x?.configured?"konfigurasi tersedia":"belum siap")+(x?.blockers?.length?"; perlu: "+x.blockers.join(", "):"");
-   status.textContent=[line("Shopee Affiliate",p.shopeeAffiliate),line("Instagram/Reels",p.instagram),line("YouTube Shorts",p.youtubeShorts),"Publikasi otomatis: NONAKTIF. Persetujuan manusia tetap wajib."].join("\n");
+   status.textContent=[line("Shopee Affiliate",p.shopeeAffiliate),line("Instagram/Reels",p.instagram),line("Facebook Pages/Reels",p.facebook),line("YouTube Shorts",p.youtubeShorts),"Publikasi otomatis: NONAKTIF. Persetujuan manusia tetap wajib."].join("\n");
    status.style.whiteSpace="pre-wrap";
   }catch(error){status.textContent="Pemeriksaan gagal: "+(error.message||"Kesalahan koneksi")+". Pastikan backend sudah diperbarui dan token valid."}
   finally{button.disabled=false}

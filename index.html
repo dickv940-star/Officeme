@@ -705,6 +705,16 @@ pre,code{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
 }
 </style>
 
+<style id="VISIBLE_AGENT_ANSWERS_FIX">
+.agent-chat-messages{min-height:220px;scroll-behavior:smooth;overflow-wrap:anywhere}
+.agent-chat-message{display:block;min-width:0;width:fit-content;max-width:min(96%,900px);color:#edf3ff!important;font-size:14px;line-height:1.7;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal}
+.agent-chat-message.assistant{align-self:flex-start;background:#15233a!important;border-color:#3c5475!important}
+.agent-chat-message.user{align-self:flex-end;color:#fff!important}
+.agent-chat-message .message-author{display:block;margin-bottom:7px;color:#a9c4ff!important;font-size:10px;line-height:1.5;overflow-wrap:anywhere}
+.agent-chat-status{display:block;min-height:24px;padding:8px 10px;border-radius:9px;line-height:1.6;overflow-wrap:anywhere;background:rgba(7,13,23,.5)}
+#tasks .task p{color:#edf3ff;line-height:1.7;overflow-wrap:anywhere;white-space:pre-wrap;max-height:none}
+@media(max-width:650px){.agent-chat-message{max-width:100%;width:100%}.agent-chat-messages{height:min(52vh,420px)}}
+</style>
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>
@@ -1603,7 +1613,7 @@ window.addEventListener("unhandledrejection",function(e){
       const response=await fetch(url.origin+"/api/agents/chat",{method:"POST",headers:{"Authorization":"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({agentId:id,messages:history.slice(-16)})});
       const data=await response.json().catch(()=>({}));
       if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
-      history.push({role:"assistant",content:data.reply});saveConversation(id);renderConversation();
+      const replyValue=[data.reply,data.response,data.message,data.result?.reply,data.result?.result,data.output].find(value=>typeof value==="string"&&value.trim());if(!replyValue)throw new Error("Backend merespons tanpa teks jawaban. Field diterima: "+Object.keys(data).join(", "));history.push({role:"assistant",content:replyValue.trim()});saveConversation(id);renderConversation();
       window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"speaking"}}));
       window.setTimeout(()=>window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId:id,state:"idle"}})),4200);
       status((data.name||names[id][0])+" menjawab menggunakan "+(data.model||"model AI")+" · Riwayat percakapan dilanjutkan.");

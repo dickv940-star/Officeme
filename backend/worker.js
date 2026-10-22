@@ -673,7 +673,7 @@ async function updateAgentHelp(id,payload,env,origin){
 }
 async function persistModelHelpRequest(agentId,answer,env){
   if(typeof answer!=="string"||!env.APPROVAL_DB)return answer;
-  const match=answer.match(/<WILLIAM_HELP_REQUEST>([\\s\\S]*?)<\\/WILLIAM_HELP_REQUEST>/i);
+  const match=answer.match(/<WILLIAM_HELP_REQUEST>([\s\\S]*?)<\/WILLIAM_HELP_REQUEST>/i);
   if(!match)return answer;
   let request;
   try{request=JSON.parse(match[1])}catch(_){return answer.replace(match[0],"").trim();}
@@ -855,13 +855,13 @@ export default {
       let body;try{const raw=await request.text();if(raw.length>450000)return json({ok:false,error:"Ukuran permintaan terlalu besar (maksimal 450 KB)."},413,origin);body=JSON.parse(raw)}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
       return createAgentHelp(body,env,origin);
     }
-    const helpReplyMatch=path.match(/^\\/api\\/agent-help\\/([a-f0-9-]{36})\\/reply$/i);
+    const helpReplyMatch=path.match(/^\/api\/agent-help\/([a-f0-9-]{36})\/reply$/i);
     if(request.method==="POST"&&helpReplyMatch){
       const declared=Number(request.headers.get("Content-Length")||0);if(declared>450000)return json({ok:false,error:"Ukuran permintaan terlalu besar (maksimal 450 KB)."},413,origin);
       let body;try{const raw=await request.text();if(raw.length>450000)return json({ok:false,error:"Ukuran permintaan terlalu besar (maksimal 450 KB)."},413,origin);body=JSON.parse(raw)}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
       body.action="reply";return updateAgentHelp(helpReplyMatch[1],body,env,origin);
     }
-    const helpStatusMatch=path.match(/^\\/api\\/agent-help\\/([a-f0-9-]{36})\\/status$/i);
+    const helpStatusMatch=path.match(/^\/api\/agent-help\/([a-f0-9-]{36})\/status$/i);
     if(request.method==="POST"&&helpStatusMatch){
       let body;try{body=await request.json()}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
       body.action="status";return updateAgentHelp(helpStatusMatch[1],body,env,origin);

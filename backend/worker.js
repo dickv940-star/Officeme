@@ -673,7 +673,7 @@ async function updateAgentHelp(id,payload,env,origin){
 }
 async function persistModelHelpRequest(agentId,answer,env){
   if(typeof answer!=="string"||!env.APPROVAL_DB)return answer;
-  const match=answer.match(/<WILLIAM_HELP_REQUEST>([\s\\S]*?)<\/WILLIAM_HELP_REQUEST>/i);
+  const match=answer.match(/<WILLIAM_HELP_REQUEST>([\s\S]*?)<\/WILLIAM_HELP_REQUEST>/i);
   if(!match)return answer;
   let request;
   try{request=JSON.parse(match[1])}catch(_){return answer.replace(match[0],"").trim();}

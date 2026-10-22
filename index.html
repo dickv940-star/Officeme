@@ -1852,8 +1852,8 @@ window.addEventListener("unhandledrejection",function(e){
  }
  function mergeHelpItem(item){if(!item||!item.id)return;const i=helpRequests.findIndex(x=>x.id===item.id);if(i>=0)helpRequests[i]=item;else helpRequests.unshift(item);helpRequests.sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt));helpRequests=helpRequests.slice(0,100)}
  async function refreshHelp(silent=false){
-  if(helpPollBusy||!panel||panel.hidden)return;helpPollBusy=true;
-  try{const data=await helpApi("/api/agent-help",{method:"GET",headers:{}});const next=Array.isArray(data.items)?data.items:[];for(const item of next){if(!knownHelpIds.has(item.id)&&knownHelpIds.size>0&&item.status==="WAITING_FOR_WILLIAM")notify("AI agen meminta bantuan",item.agentName+" · "+item.title,"info");knownHelpIds.add(item.id)}helpRequests=next;renderHelp();if(helpStatus&& !silent)helpStatus.textContent="Terhubung ke backend. Permintaan dan status dimuat dari Cloudflare D1."; }
+  if(helpPollBusy||!panel)return;helpPollBusy=true;
+  try{const data=await helpApi("/api/agent-help",{method:"GET",headers:{}});const next=Array.isArray(data.items)?data.items:[];for(const item of next){if(!knownHelpIds.has(item.id)&&item.status==="WAITING_FOR_WILLIAM")notify("AI agen meminta bantuan",item.agentName+" · "+item.title,"info");knownHelpIds.add(item.id)}helpRequests=next;renderHelp();if(helpStatus&& !silent)helpStatus.textContent="Terhubung ke backend. Permintaan dan status dimuat dari Cloudflare D1."; }
   catch(error){if(helpStatus&&!silent)helpStatus.textContent="Backend belum tersambung: "+error.message+" Pastikan Worker sudah diperbarui dan D1 tersedia.";if(!silent)notify("Pusat bantuan belum terhubung",error.message,"error")}
   finally{helpPollBusy=false}
  }

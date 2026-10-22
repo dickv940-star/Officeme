@@ -604,6 +604,25 @@ a{color:#a9b7ff}
 @media(max-width:600px){.affiliate-link-fields{grid-template-columns:1fr}.affiliate-link-wide{grid-column:auto}.affiliate-link-card-top{flex-direction:column}}
 </style>
 
+<style id="DIRECTOR_ACTION_CENTER_STYLE">
+/* Director Action Center: responsive, event-based and honest about local-only state */
+#directorActionDock{position:fixed;right:18px;bottom:18px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:10px;font-family:inherit}
+#directorActionToggle{border-radius:999px;box-shadow:0 8px 28px #0007;display:flex;align-items:center;gap:9px;padding:12px 16px}
+#directorActionCount{min-width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;background:#ffce78;color:#182033;font-size:12px;font-weight:900}
+#directorActionPanel{width:min(390px,calc(100vw - 24px));max-height:min(70vh,620px);overflow:auto;background:#101a2c;border:1px solid #405472;border-radius:18px;box-shadow:0 20px 65px #0009;padding:15px;color:var(--text)}
+#directorActionPanel[hidden]{display:none}
+.director-action-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.director-action-item{border-top:1px solid var(--line);padding:10px 0;display:grid;grid-template-columns:10px minmax(0,1fr);gap:9px}
+.director-action-dot{width:8px;height:8px;margin-top:6px;border-radius:50%;background:#86aaff}
+.director-action-item[data-kind="error"] .director-action-dot{background:#ff8d8d}
+.director-action-item[data-kind="success"] .director-action-dot{background:#72e0b2}
+.director-action-item b{display:block;font-size:12px}
+.director-action-item small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+#directorActionList:empty:after{content:"Belum ada aktivitas yang tercatat di sesi ini.";display:block;color:var(--muted);font-size:12px;padding:14px 0}
+.director-action-note{font-size:10px;color:var(--muted);line-height:1.45;margin:8px 0}
+@media(max-width:540px){#directorActionDock{right:10px;bottom:10px}#directorActionPanel{max-height:65vh}.director-action-head h3{font-size:14px}}
+@media(prefers-reduced-motion:reduce){#directorActionDock *{scroll-behavior:auto!important;transition:none!important}}
+</style>
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>
@@ -839,6 +858,16 @@ a{color:#a9b7ff}
 <div class="panel"><div class="head"><h2 style="font-size:18px;margin:0">Antrean pekerjaan</h2><span class="pill">Lokal</span></div><div id="tasks" class="empty">Belum ada tugas.</div></div>
 <div class="panel"><div class="head"><h2 style="font-size:18px;margin:0">Persetujuan direktur</h2><span class="pill">Human-in-the-loop</span></div><div class="task"><span class="dot"></span><div><b>Integrasi Shopee API resmi</b><small>Menunggu konfirmasi akses dan kredensial resmi untuk akun Indonesia.</small></div></div><div class="task"><span class="dot"></span><div><b>Publikasi dan tindakan eksternal</b><small>Wajib ditinjau sebelum dijalankan.</small></div></div><div class="task"><span class="dot"></span><div><b>Rahasia dan data akun</b><small>Hanya disimpan di backend; jangan masukkan password, cookie, atau API key di sini.</small></div></div></div>
 </section><div class="footer">AI AFFILIATE by AppDIGI · Prototipe UI · Tidak terhubung ke akun Shopee.</div>
+
+<div id="directorActionDock" aria-live="polite">
+  <section id="directorActionPanel" hidden aria-label="Pusat tindakan direktur">
+    <div class="director-action-head"><h3 style="margin:0">Pusat Tindakan William</h3><button id="directorActionClose" type="button" aria-label="Tutup pusat tindakan">Tutup</button></div>
+    <p class="director-action-note">Notifikasi ini mencatat peristiwa yang teramati pada halaman ini. Ini belum merupakan notifikasi server atau lintas perangkat.</p>
+    <div class="actions" style="margin:8px 0"><button id="directorActionClear" type="button">Bersihkan daftar</button></div>
+    <div id="directorActionList" role="log" aria-live="polite" aria-relevant="additions"></div>
+  </section>
+  <button id="directorActionToggle" type="button" aria-expanded="false" aria-controls="directorActionPanel"><span aria-hidden="true">🔔</span><span>Notifikasi Direktur</span><span id="directorActionCount">0</span></button>
+</div>
 </main>
 <script>
 const team=[
@@ -1727,4 +1756,54 @@ window.addEventListener("unhandledrejection",function(e){
 })();
 </script>
 <script src="./affiliate-links.js?v=20261022-link-workflow"></script>
+
+<script id="DIRECTOR_ACTION_CENTER">
+(()=> {
+ const dock=document.getElementById("directorActionDock");
+ const panel=document.getElementById("directorActionPanel");
+ const toggle=document.getElementById("directorActionToggle");
+ const close=document.getElementById("directorActionClose");
+ const clear=document.getElementById("directorActionClear");
+ const list=document.getElementById("directorActionList");
+ const count=document.getElementById("directorActionCount");
+ if(!dock||!panel||!toggle||!list)return;
+ let unread=0;
+ function notify(title,detail,kind="info"){
+  const row=document.createElement("div");row.className="director-action-item";row.dataset.kind=kind;
+  const dot=document.createElement("span");dot.className="director-action-dot";
+  const body=document.createElement("div");const heading=document.createElement("b");heading.textContent=title;
+  const desc=document.createElement("div");desc.style.fontSize="11px";desc.style.marginTop="3px";desc.style.whiteSpace="pre-wrap";desc.style.overflowWrap="anywhere";desc.textContent=detail;
+  const time=document.createElement("small");time.textContent=new Date().toLocaleString("id-ID");
+  body.append(heading,desc,time);row.append(dot,body);list.prepend(row);
+  while(list.children.length>40)list.lastElementChild.remove();
+  if(panel.hidden)unread++;count.textContent=String(unread);toggle.setAttribute("aria-label",unread+" notifikasi belum dibaca");
+ }
+ function open(){panel.hidden=false;unread=0;count.textContent="0";toggle.setAttribute("aria-expanded","true");}
+ function shut(){panel.hidden=true;toggle.setAttribute("aria-expanded","false");}
+ toggle.addEventListener("click",()=>panel.hidden?open():shut());
+ close?.addEventListener("click",shut);
+ clear?.addEventListener("click",()=>{list.replaceChildren();unread=0;count.textContent="0";notify("Daftar dibersihkan","Riwayat lokal pada halaman ini telah dibersihkan.","info");});
+ document.addEventListener("submit",event=>{
+  const form=event.target;if(!(form instanceof HTMLFormElement))return;
+  if(form.id==="form"){
+   const input=document.getElementById("command");const value=input?.value?.trim();
+   if(value)notify("Tugas dikirim","Perintah diterima UI dan sedang diproses. Hasil backend belum dikonfirmasi.","info");
+  }else if(form.id==="roomForm"){
+   notify("Pesan ruang dikirim","Pesan dikirim dari formulir ruang. Respons agen harus dikonfirmasi pada panel percakapan.","info");
+  }else if(form.id==="agentChatForm"){
+   notify("Pesan agen dikirim","Permintaan percakapan dikirim dari panel agen.","info");
+  }
+ },true);
+ window.addEventListener("error",event=>notify("Kesalahan antarmuka",event.message||"Terjadi kesalahan JavaScript.","error"));
+ window.addEventListener("unhandledrejection",event=>notify("Proses gagal",String(event.reason?.message||event.reason||"Promise ditolak tanpa penanganan."),"error"));
+ window.addEventListener("appdigi:director-notification",event=>{
+  const detail=event.detail||{};notify(String(detail.title||"Pembaruan aktivitas"),String(detail.message||"Ada pembaruan aktivitas."),detail.kind==="error"?"error":detail.kind==="success"?"success":"info");
+ });
+ window.addEventListener("appdigi:task-complete",event=>{
+  const d=event.detail||{};notify(d.ok===false?"Tugas gagal":"Tugas selesai",String(d.message||d.task||"Status tugas diperbarui."),d.ok===false?"error":"success");
+ });
+ window.addEventListener("online",()=>notify("Koneksi kembali","Browser mendeteksi koneksi jaringan kembali tersedia.","success"));
+ window.addEventListener("offline",()=>notify("Koneksi terputus","Browser mendeteksi offline. Permintaan backend mungkin gagal.","error"));
+})();
+</script>
 </body></html>

@@ -9,16 +9,18 @@ Private workspace for managing one Shopee Affiliate account with eight logical A
 - No AI model, database, Shopee API, affiliate account, or external publishing action is connected yet.
 - Never enter passwords, API keys, cookies, personal identifiers, or payout details into this prototype.
 
-## Eight worker roles
+## The team
 
-1. Operations Manager
-2. Product Researcher
-3. Data Analyst
-4. Trend Analyst
-5. Content Creator
-6. Video Planner
-7. Campaign Strategist
-8. Performance Auditor
+William Bigboss is the owner/director (you): sets targets, gives orders, receives reports. Eight AI specialists work for him:
+
+1. Alexander - Lead Data Analyst
+2. Olivia - Senior Product Researcher
+3. Ethan - Growth & Affiliate Strategist
+4. Sophia - Senior Content Producer
+5. Daniel - SEO & Discovery Specialist
+6. Isabella - Lead Visual Designer
+7. Lucas - Automation & Integration Engineer
+8. Charlotte - Quality & Compliance Lead (reviews everyone's work)
 
 ## Planned architecture
 
@@ -71,3 +73,16 @@ In Cloudflare Dashboard → Workers & Pages → `appdigi-w001-backend` → Setti
 - Optional `SHOPEE_AFFILIATE_ENDPOINT` — if needed, the official HTTPS endpoint for the Indonesian account. The Worker only accepts `open-api.affiliate.shopee.co.id`.
 
 Do not put credentials in GitHub, frontend code, screenshots, or chat. The API is usable only if Shopee has granted Open API access to the account. If access has not been approved, request it through the official Affiliate Open API portal first. Human approval remains required before publication; this gateway does not publish social posts.
+
+
+## Free AI providers (0 rupiah) with automatic fallback
+
+The Worker never calls paid-only APIs. Each agent has an ordered list of free providers; if one is rate-limited, out of daily budget, or failing, the next one answers automatically. Set any of these as Cloudflare Worker **secrets** (all have free tiers, no credit card; limits change, check each site):
+
+- `GEMINI_API_KEY` - Google AI Studio. Note: free-tier prompts may be used by Google for training; avoid sensitive data.
+- `GROQ_API_KEY` - Groq (Llama 3.3 70B).
+- `CEREBRAS_API_KEY` - Cerebras (Llama 3.3 70B).
+- `OPENROUTER_API_KEY` - OpenRouter free models.
+- Cloudflare Workers AI works through the `AI` binding with no key.
+
+Optional variables: `<PROVIDER>_DAILY_LIMIT` and `<PROVIDER>_MODEL`. See `backend/wrangler.toml.example`. The approvals table already exists in your `appdigi-approvals` D1 database; `backend/schema.sql` documents it. Run tests with `node --test backend/test/*.test.mjs`.

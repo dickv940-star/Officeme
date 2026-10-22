@@ -1,0 +1,24 @@
+# Example Cloudflare config. Copy to backend/wrangler.toml ONLY if you deploy with
+# the Wrangler CLI. If you already deploy from the Cloudflare dashboard, keep using
+# the dashboard and ignore this file.
+name = "appdigi-w001-backend"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "APPROVAL_DB"
+database_name = "appdigi-approvals"
+database_id = "a4f2594e-954d-4375-a7b5-da9a12e00554"
+
+[vars]
+ALLOWED_ORIGINS = "https://dickv940-star.github.io"
+
+# Secrets (never put these in this file). Set with: wrangler secret put NAME
+#   APP_SHARED_TOKEN, APP_OWNER_TOKEN
+#   GEMINI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY   (free-tier keys; set any you have)
+#   SHOPEE_AFFILIATE_APP_ID, SHOPEE_AFFILIATE_SECRET
+# Optional per-provider daily limits (vars): GEMINI_DAILY_LIMIT, GROQ_DAILY_LIMIT, ...
+# Optional model overrides (vars): GEMINI_MODEL, GROQ_MODEL, CEREBRAS_MODEL, OPENROUTER_MODEL

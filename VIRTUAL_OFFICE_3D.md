@@ -37,3 +37,9 @@ The repository connector cannot execute a real browser/WebGL session, so those v
 - The zoom slider adjusts camera distance, and the standard orbit controls still let the user rotate and pan manually.
 - Clicking a visible character in the 3D canvas focuses that character. Activity targets only work when a character with that simulated pose exists in the current room.
 - Automated CI checks the control markup and integration hooks. Visual interaction still needs a browser/WebGL smoke test.
+
+## Agent controls (Mulai kerja / Rest / Berbincang / Monitor)
+- A control bar at the bottom-left of the 3D room lets you pick an agent (or click a character) and apply a pose: **Mulai kerja** (seated, typing), **Rest** (relaxed, leaning back, sipping coffee), **Berbincang** (standing, gesturing and talking), or open that agent's **Monitor** (the same monitor window as the agent cards). **Semua kerja** and **Semua rest** apply to everyone in the room.
+- Poses are visual simulation only; real work is run through the AI task panels and shown in the monitor.
+- Custom GLB characters: put a rigged `.glb` in `assets/models/` and register it in `assets/models/manifest.json` (key = e.g. `sophia-content-creator`, value `{ "file": "sophia-content-creator.glb", "scale": 1 }`). Until then the procedural characters, colored after the uploaded PNGs, are used.
+- Not yet verified in a real browser/WebGL session from the build environment; run the smoke-test checklist above after merging.

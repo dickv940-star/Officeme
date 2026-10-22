@@ -291,34 +291,46 @@ function integrationReadiness(env) {
   const metaApp = Boolean(env.META_APP_ID && env.META_APP_SECRET);
   const instagramAccount = Boolean(env.INSTAGRAM_BUSINESS_ACCOUNT_ID);
   const instagramToken = Boolean(env.INSTAGRAM_ACCESS_TOKEN);
+  const facebookPage = Boolean(env.FACEBOOK_PAGE_ID);
+  const facebookToken = Boolean(env.FACEBOOK_PAGE_ACCESS_TOKEN);
   const googleClient = Boolean(env.YOUTUBE_OAUTH_CLIENT_ID && env.YOUTUBE_OAUTH_CLIENT_SECRET);
   const youtubeRefresh = Boolean(env.YOUTUBE_REFRESH_TOKEN);
+  const metaOAuthBlocker = "Alur OAuth, validasi izin, penyimpanan token aman, dan publikasi belum diimplementasikan";
+  const youtubeOAuthBlocker = "Alur OAuth, penyimpanan refresh token aman, validasi kanal, dan unggah video belum diimplementasikan";
   return {
     ok: true,
     publishingEnabled: false,
     humanApprovalRequired: true,
     platforms: {
-      shopeeAffiliate: { configured: shopee, canCallAffiliateApi: shopee,
+      shopeeAffiliate: { configured: shopee, connected: false, canCallAffiliateApi: shopee,
         blockers: shopee ? [] : ["SHOPEE_AFFILIATE_APP_ID", "SHOPEE_AFFILIATE_SECRET"],
         supportedOperations: [...SHOPEE_ALLOWED_OPERATIONS] },
-      instagram: { configured: metaApp && instagramAccount && instagramToken,
+      instagram: { configured: metaApp && instagramAccount && instagramToken, connected: false,
         oauthAppConfigured: metaApp, businessAccountConfigured: instagramAccount, accessTokenConfigured: instagramToken,
         canPublish: false, blockers: [
           ...(!metaApp ? ["META_APP_ID", "META_APP_SECRET"] : []),
           ...(!instagramAccount ? ["INSTAGRAM_BUSINESS_ACCOUNT_ID"] : []),
           ...(!instagramToken ? ["INSTAGRAM_ACCESS_TOKEN"] : []),
-          "OAuth/permissions verification and publishing workflow not yet implemented"
+          metaOAuthBlocker
         ] },
-      youtubeShorts: { configured: googleClient && youtubeRefresh,
+      facebook: { configured: metaApp && facebookPage && facebookToken, connected: false,
+        oauthAppConfigured: metaApp, pageConfigured: facebookPage, pageAccessTokenConfigured: facebookToken,
+        canPublish: false, blockers: [
+          ...(!metaApp ? ["META_APP_ID", "META_APP_SECRET"] : []),
+          ...(!facebookPage ? ["FACEBOOK_PAGE_ID"] : []),
+          ...(!facebookToken ? ["FACEBOOK_PAGE_ACCESS_TOKEN"] : []),
+          metaOAuthBlocker
+        ] },
+      youtubeShorts: { configured: googleClient && youtubeRefresh, connected: false,
         oauthClientConfigured: googleClient, refreshTokenConfigured: youtubeRefresh,
         canPublish: false, blockers: [
           ...(!googleClient ? ["YOUTUBE_OAUTH_CLIENT_ID", "YOUTUBE_OAUTH_CLIENT_SECRET"] : []),
           ...(!youtubeRefresh ? ["YOUTUBE_REFRESH_TOKEN"] : []),
-          "OAuth token exchange and video upload workflow not yet implemented"
+          youtubeOAuthBlocker
         ] }
     },
     credentialValuesExposed: false,
-    note: "Status ini memeriksa keberadaan konfigurasi saja, bukan validitas token. Tidak ada publikasi yang dijalankan."
+    note: "Status memeriksa keberadaan variabel saja, bukan validitas token atau koneksi akun. OAuth belum aktif; tidak ada akses akun maupun publikasi yang dijalankan."
   };
 }
 

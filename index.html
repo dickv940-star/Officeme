@@ -587,6 +587,23 @@ a{color:#a9b7ff}
 
 </style>
 <style>#appLoginGate{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 50% 0%,#1b2b4b,#070b14 68%);color:#edf3ff}#appLoginGate[hidden]{display:none!important}#appLoginGate form{width:min(440px,100%);padding:30px;border:1px solid #344865;border-radius:22px;background:linear-gradient(155deg,#17243c,#0d1424);box-shadow:0 24px 90px #0009}#appLoginGate .app-login-mark{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(135deg,#8c7bff,#4c9dff);font-weight:900;font-size:24px;margin-bottom:20px;color:white}#appLoginGate h1{font-size:25px;letter-spacing:-.04em;margin:7px 0 10px}#appLoginGate p{font-size:13px;line-height:1.65;color:#aabbd5;margin:0 0 22px}#appLoginGate label{display:block;font-size:12px;font-weight:700;margin-bottom:7px}#appLoginGate .app-login-input{display:flex;gap:8px}#appLoginGate input{min-width:0;flex:1;width:100%;background:#080f1d;color:#edf3ff;border:1px solid #344865;border-radius:10px;padding:13px;font:inherit}#appLoginGate button{cursor:pointer;border:1px solid #344865;border-radius:10px;padding:11px 14px;color:#edf3ff;background:#1a2942;font:inherit}#appLoginGate button.primary{width:100%;margin-top:14px;background:linear-gradient(110deg,#7664f7,#4b8cf6);border:0;font-weight:800}#appLoginGate button:disabled{opacity:.6;cursor:wait}#appLoginStatus{font-size:12px;line-height:1.5;margin-top:12px;color:#ffb4b4;min-height:18px}#appLoginStatus[data-ok="true"]{color:#72e0b2}#appLoginGate .app-login-foot{font-size:11px;line-height:1.6;color:#8193ae;margin-top:12px}@media(max-width:480px){#appLoginGate form{padding:23px}}</style>
+
+<style>
+.affiliate-link-howto{background:#0c1425;border:1px solid var(--line);border-radius:12px;padding:12px 15px;margin:14px 0}
+.affiliate-link-howto ol{margin:8px 0;padding-left:22px}.affiliate-link-howto li{margin:5px 0}
+.affiliate-link-form{margin-top:14px}.affiliate-link-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.affiliate-link-fields label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}
+.affiliate-link-fields input,.affiliate-link-fields select{width:100%;min-width:0;background:#0a1120;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px;font:inherit}
+.affiliate-link-wide{grid-column:1/-1}.affiliate-link-list{display:grid;gap:10px;margin-top:14px}
+.affiliate-link-card{padding:13px;background:#0c1425;border:1px solid var(--line);border-radius:12px;min-width:0}
+.affiliate-link-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.affiliate-link-info{min-width:0;overflow-wrap:anywhere}.affiliate-link-info strong{display:block;margin-bottom:4px}
+.affiliate-link-url{display:block;font-size:12px;color:var(--accent);overflow-wrap:anywhere;margin-top:6px}
+.affiliate-link-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+#affiliateLinkStatus[data-state="error"]{color:#ff9b9b}
+@media(max-width:600px){.affiliate-link-fields{grid-template-columns:1fr}.affiliate-link-wide{grid-column:auto}.affiliate-link-card-top{flex-direction:column}}
+</style>
+
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>
@@ -644,6 +661,33 @@ a{color:#a9b7ff}
   <textarea id="shopeeApiVariables" rows="2" maxlength="8000" placeholder='{"input": {}}'></textarea>
   <div class="gemini-csv-actions"><button type="button" class="primary" id="shopeeApiRun">Jalankan query resmi</button></div>
   <div id="shopeeApiResult" class="gemini-csv-result" aria-live="polite" hidden></div>
+</section>
+
+<section class="gemini-csv-panel" id="affiliateLinkManager">
+  <div class="eyebrow">Alur kerja manual · Shopee Affiliate</div>
+  <h2>Kelola tautan Affiliate untuk konten OfficeMe</h2>
+  <p class="muted">Buat tautan melalui Shopee terlebih dahulu, lalu simpan di sini untuk dipakai pada caption, bio, deskripsi video, dan kampanye AI Team. OfficeMe tidak meminta login Shopee dan tidak membuat tautan palsu.</p>
+  <div class="affiliate-link-howto">
+    <strong>Cara mendapatkan link resmi:</strong>
+    <ol>
+      <li>Buka <a href="https://affiliate.shopee.co.id/" target="_blank" rel="noopener noreferrer">Shopee Affiliate Indonesia</a> dan masuk sendiri.</li>
+      <li>Pilih produk → gunakan fitur buat/salin link Affiliate atau <em>Custom Link</em> jika tersedia.</li>
+      <li>Tempelkan link yang sudah dihasilkan Shopee ke formulir di bawah.</li>
+    </ol>
+    <p class="muted">Panduan resmi: <a href="https://help.shopee.co.id/portal/10/article/184879-%5BShopee-Affiliate-Program%5D-Pedoman-Pembuatan-Link-Pendek-Affiliate" target="_blank" rel="noopener noreferrer">Pedoman pembuatan link pendek Affiliate</a>.</p>
+  </div>
+  <form id="affiliateLinkForm" class="affiliate-link-form">
+    <div class="affiliate-link-fields">
+      <div><label for="affiliateLinkName">Nama produk/kampanye</label><input id="affiliateLinkName" type="text" maxlength="140" required placeholder="Contoh: Botol minum 1 liter"></div>
+      <div><label for="affiliateLinkPlatform">Tujuan konten</label><select id="affiliateLinkPlatform"><option value="TikTok">TikTok</option><option value="Instagram Reels">Instagram Reels</option><option value="YouTube Shorts">YouTube Shorts</option><option value="Facebook">Facebook</option><option value="Shopee Video">Shopee Video</option><option value="Lainnya">Lainnya</option></select></div>
+      <div class="affiliate-link-wide"><label for="affiliateLinkUrl">Link Affiliate yang dibuat di Shopee</label><input id="affiliateLinkUrl" type="url" inputmode="url" autocomplete="url" required placeholder="https://s.shopee.co.id/..."></div>
+      <div class="affiliate-link-wide"><label for="affiliateLinkCampaign">SubID / nama kampanye (opsional)</label><input id="affiliateLinkCampaign" type="text" maxlength="100" placeholder="Contoh: tiktok-video-01"></div>
+    </div>
+    <div class="gemini-csv-actions"><button class="primary" type="submit">Simpan tautan</button><button type="button" id="affiliateLinkExport">Ekspor CSV</button><button type="button" id="affiliateLinkClear">Hapus semua</button><span class="pill"><span id="affiliateLinkCount">0</span> tautan</span></div>
+  </form>
+  <div id="affiliateLinkStatus" class="gemini-csv-status" role="status" aria-live="polite">Tautan disimpan hanya di penyimpanan browser ini; belum disinkronkan ke server.</div>
+  <div id="affiliateLinkList" class="affiliate-link-list" aria-live="polite"></div>
+  <div class="gemini-csv-help">Privasi dan batasan: tautan disimpan di browser perangkat ini (localStorage), bukan di Cloudflare. Ekspor CSV dapat dipakai sebagai cadangan. OfficeMe memeriksa format URL secara dasar saja—ia tidak dapat memastikan bahwa tautan tercatat atas akun affiliate Anda atau menjamin komisi.</div>
 </section>
 
 <section class="section">
@@ -1682,4 +1726,5 @@ window.addEventListener("unhandledrejection",function(e){
  });
 })();
 </script>
+<script src="./affiliate-links.js?v=20261022-link-workflow"></script>
 </body></html>

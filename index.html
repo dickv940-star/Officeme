@@ -865,6 +865,18 @@ a{color:#a9b7ff}
     <p class="director-action-note">Notifikasi ini mencatat peristiwa yang teramati pada halaman ini. Ini belum merupakan notifikasi server atau lintas perangkat.</p>
     <div class="actions" style="margin:8px 0"><button id="directorActionClear" type="button">Bersihkan daftar</button></div>
     <div id="directorActionList" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <section class="director-video-review" aria-labelledby="directorVideoTitle">
+      <h4 id="directorVideoTitle" style="margin:14px 0 6px">Pemeriksaan Video</h4>
+      <p class="director-action-note">Masukkan URL file video yang sudah tersedia untuk memeriksanya. Video belum otomatis diambil dari antrean konten.</p>
+      <label for="directorVideoUrl" style="display:block;font-size:11px;margin-bottom:5px">URL video HTTPS</label>
+      <input id="directorVideoUrl" type="url" inputmode="url" placeholder="https://…/video.mp4" autocomplete="url" style="width:100%;box-sizing:border-box;margin-bottom:8px" />
+      <div class="actions"><button id="directorVideoOpen" type="button">▶ Lihat Video</button><button id="directorVideoClear" type="button">Tutup Video</button></div>
+      <div id="directorVideoStatus" role="status" aria-live="polite" class="director-action-note">Belum ada video yang dipilih.</div>
+      <div id="directorVideoFrame" hidden style="margin-top:8px">
+        <video id="directorVideoPlayer" controls playsinline preload="metadata" style="display:block;width:100%;max-height:320px;background:#05070b;border-radius:10px"></video>
+        <p class="director-action-note">Periksa isi video, gambar, suara, dan durasi. Persetujuan publikasi tetap dilakukan melalui alur persetujuan yang terhubung dan bukan melalui pemutar ini.</p>
+      </div>
+    </section>
   </section>
   <button id="directorActionToggle" type="button" aria-expanded="false" aria-controls="directorActionPanel"><span aria-hidden="true">🔔</span><span>Notifikasi Direktur</span><span id="directorActionCount">0</span></button>
 </div>
@@ -1766,6 +1778,12 @@ window.addEventListener("unhandledrejection",function(e){
  const clear=document.getElementById("directorActionClear");
  const list=document.getElementById("directorActionList");
  const count=document.getElementById("directorActionCount");
+ const videoUrl=document.getElementById("directorVideoUrl");
+ const videoOpen=document.getElementById("directorVideoOpen");
+ const videoClear=document.getElementById("directorVideoClear");
+ const videoStatus=document.getElementById("directorVideoStatus");
+ const videoFrame=document.getElementById("directorVideoFrame");
+ const videoPlayer=document.getElementById("directorVideoPlayer");
  if(!dock||!panel||!toggle||!list)return;
  let unread=0;
  function notify(title,detail,kind="info"){
@@ -1782,6 +1800,19 @@ window.addEventListener("unhandledrejection",function(e){
  function shut(){panel.hidden=true;toggle.setAttribute("aria-expanded","false");}
  toggle.addEventListener("click",()=>panel.hidden?open():shut());
  close?.addEventListener("click",shut);
+ videoOpen?.addEventListener("click",()=>{
+  let parsed;
+  try{parsed=new URL(videoUrl?.value.trim()||"");if(parsed.protocol!=="https:"||parsed.username||parsed.password)throw new Error("URL harus berupa tautan HTTPS yang valid.");}
+  catch(e){videoStatus.textContent=e.message||"Masukkan URL video HTTPS yang valid.";notify("Video belum dapat dibuka",videoStatus.textContent,"error");return;}
+  if(!videoPlayer||!videoFrame)return;
+  videoPlayer.pause();videoPlayer.removeAttribute("src");videoPlayer.load();
+  videoPlayer.src=parsed.href;videoFrame.hidden=false;videoStatus.textContent="Memuat metadata video. Jika gagal, pastikan tautan dapat diakses dan server mengizinkan pemutaran lintas situs.";
+  videoPlayer.onloadedmetadata=()=>{videoStatus.textContent="Video tersedia untuk ditinjau · "+Math.round(videoPlayer.duration)+" detik.";notify("Video siap ditinjau","Pemutar berhasil membaca metadata video. Ini belum berarti video disetujui.","success");};
+  videoPlayer.onerror=()=>{videoStatus.textContent="Video tidak dapat dimuat. Periksa URL, format file, izin akses, atau dukungan CORS.";notify("Video gagal dimuat",videoStatus.textContent,"error");};
+  videoPlayer.load();
+ });
+ videoClear?.addEventListener("click",()=>{if(videoPlayer){videoPlayer.pause();videoPlayer.removeAttribute("src");videoPlayer.load();}if(videoFrame)videoFrame.hidden=true;if(videoStatus)videoStatus.textContent="Pemutar ditutup.";});
+ videoUrl?.addEventListener("keydown",event=>{if(event.key==="Enter"){event.preventDefault();videoOpen?.click();}});
  clear?.addEventListener("click",()=>{list.replaceChildren();unread=0;count.textContent="0";notify("Daftar dibersihkan","Riwayat lokal pada halaman ini telah dibersihkan.","info");});
  document.addEventListener("submit",event=>{
   const form=event.target;if(!(form instanceof HTMLFormElement))return;

@@ -606,6 +606,7 @@ a{color:#a9b7ff}
 
 <style id="DIRECTOR_ACTION_CENTER_STYLE">
 /* Director Action Center: responsive, event-based and honest about local-only state */
+#williamHelpForm label{font-size:12px;color:var(--muted)}#williamHelpForm textarea,#williamHelpForm input,#williamHelpForm select{width:100%;box-sizing:border-box;padding:10px}#williamHelpQueue:empty{display:none}.director-action-item{min-width:0}#williamHelpQueue button{white-space:normal}
 #directorActionDock{position:fixed;right:18px;bottom:18px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:10px;font-family:inherit}
 #directorActionToggle{border-radius:999px;box-shadow:0 8px 28px #0007;display:flex;align-items:center;gap:9px;padding:12px 16px}
 #directorActionCount{min-width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;background:#ffce78;color:#182033;font-size:12px;font-weight:900}
@@ -862,8 +863,25 @@ a{color:#a9b7ff}
 <div id="directorActionDock" aria-live="polite">
   <section id="directorActionPanel" hidden aria-label="Pusat tindakan direktur">
     <div class="director-action-head"><h3 style="margin:0">Pusat Tindakan William</h3><button id="directorActionClose" type="button" aria-label="Tutup pusat tindakan">Tutup</button></div>
-    <p class="director-action-note">Notifikasi ini mencatat peristiwa yang teramati pada halaman ini. Ini belum merupakan notifikasi server atau lintas perangkat.</p>
-    <div class="actions" style="margin:8px 0"><button id="directorActionClear" type="button">Bersihkan daftar</button></div>
+    <p class="director-action-note">Pusat bantuan William · prototipe lokal pada browser ini. Permintaan yang dibuat di sini belum otomatis dikirim ke backend atau agen cloud.</p>
+    <section class="director-video-review" aria-labelledby="williamHelpTitle">
+      <h4 id="williamHelpTitle" style="margin:14px 0 6px">Permintaan Bantuan Agen</h4>
+      <form id="williamHelpForm" style="display:grid;gap:8px">
+        <label for="williamHelpAgent">Agen yang meminta bantuan</label>
+        <select id="williamHelpAgent" required>
+          <option value="Alexander · Data Analyst">Alexander · Data Analyst</option><option value="Olivia · Product Researcher">Olivia · Product Researcher</option><option value="Ethan · Marketing Strategist">Ethan · Marketing Strategist</option><option value="Sophia · Content Creator">Sophia · Content Creator</option><option value="Daniel · SEO Specialist">Daniel · SEO Specialist</option><option value="Isabella · Graphic Designer">Isabella · Graphic Designer</option><option value="Lucas · Automation Engineer">Lucas · Automation Engineer</option><option value="Charlotte · Quality Controller">Charlotte · Quality Controller</option>
+        </select>
+        <label for="williamHelpTitleInput">Judul / data yang dibutuhkan</label>
+        <input id="williamHelpTitleInput" required maxlength="140" placeholder="Contoh: Laporan komisi 7 hari terakhir" />
+        <label for="williamHelpDetail">Rincian permintaan</label>
+        <textarea id="williamHelpDetail" required maxlength="2000" rows="3" placeholder="Jelaskan data, format, periode, atau kendala yang perlu dibantu William"></textarea>
+        <button class="primary" type="submit">＋ Catat permintaan bantuan</button>
+      </form>
+      <div class="director-action-note" id="williamHelpStatus" role="status" aria-live="polite" style="margin-top:8px">Permintaan disimpan lokal di browser ini. Integrasi backend diperlukan agar agen cloud bisa membuat dan menerima respons secara otomatis.</div>
+      <h4 style="margin:14px 0 6px">Kotak Permintaan</h4>
+      <div id="williamHelpQueue" role="log" aria-live="polite" aria-relevant="additions" style="display:grid;gap:8px"></div>
+    </section>
+    <div class="actions" style="margin:8px 0"><button id="directorActionClear" type="button">Bersihkan notifikasi</button></div>
     <div id="directorActionList" role="log" aria-live="polite" aria-relevant="additions"></div>
     <section class="director-video-review" aria-labelledby="directorVideoTitle">
       <h4 id="directorVideoTitle" style="margin:14px 0 6px">Pemeriksaan Video</h4>
@@ -1784,8 +1802,53 @@ window.addEventListener("unhandledrejection",function(e){
  const videoStatus=document.getElementById("directorVideoStatus");
  const videoFrame=document.getElementById("directorVideoFrame");
  const videoPlayer=document.getElementById("directorVideoPlayer");
+ const helpForm=document.getElementById("williamHelpForm");
+ const helpAgent=document.getElementById("williamHelpAgent");
+ const helpTitle=document.getElementById("williamHelpTitleInput");
+ const helpDetail=document.getElementById("williamHelpDetail");
+ const helpQueue=document.getElementById("williamHelpQueue");
+ const helpStatus=document.getElementById("williamHelpStatus");
  if(!dock||!panel||!toggle||!list)return;
  let unread=0;
+ const HELP_KEY="officeme_william_help_requests_v1";
+ let helpRequests=[];
+ try{const saved=JSON.parse(localStorage.getItem(HELP_KEY)||"[]");if(Array.isArray(saved))helpRequests=saved.filter(x=>x&&typeof x.id==="string").slice(0,80)}catch(_){}
+ function saveHelp(){try{localStorage.setItem(HELP_KEY,JSON.stringify(helpRequests.slice(0,80)));return true}catch(_){if(helpStatus)helpStatus.textContent="Penyimpanan browser penuh/tidak tersedia. Salin informasi permintaan sebelum menutup halaman.";return false}}
+ function renderHelp(){
+  if(!helpQueue)return;helpQueue.replaceChildren();
+  if(!helpRequests.length){const empty=document.createElement("div");empty.className="director-action-note";empty.textContent="Belum ada permintaan bantuan tercatat.";helpQueue.append(empty);return}
+  helpRequests.forEach(req=>{
+   const card=document.createElement("article");card.className="director-action-item";card.style.cssText="display:grid;gap:7px;padding:12px;border:1px solid rgba(139,163,204,.2);border-radius:12px";
+   const heading=document.createElement("b");heading.textContent=req.agent+" · "+req.title;
+   const detail=document.createElement("div");detail.style.cssText="font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere";detail.textContent=req.detail;
+   const state=document.createElement("small");state.textContent="Status: "+req.status+" · "+new Date(req.createdAt).toLocaleString("id-ID");
+   card.append(heading,detail,state);
+   if(req.reply){const answer=document.createElement("div");answer.style.cssText="font-size:12px;padding:8px;background:rgba(110,231,189,.07);border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere";answer.textContent="Respons William: "+req.reply;card.append(answer)}
+   const actions=document.createElement("div");actions.className="actions";
+   if(req.status!=="DIBANTU"){
+    const reply=document.createElement("textarea");reply.rows=2;reply.maxLength=2000;reply.placeholder="Balasan William / lokasi file atau ringkasan data yang diberikan…";reply.setAttribute("aria-label","Balasan William untuk "+req.title);reply.style.width="100%";
+    const submit=document.createElement("button");submit.type="button";submit.textContent="Kirim respons William";
+    submit.addEventListener("click",()=>{const value=reply.value.trim();if(!value){reply.focus();return}req.reply=value;req.status="DIBANTU";req.repliedAt=new Date().toISOString();saveHelp();renderHelp();notify("Respons William dicatat",req.agent+" menerima respons lokal untuk: "+req.title,"success");if(helpStatus)helpStatus.textContent="Respons dicatat di browser ini. Belum dikirim ke agen backend.";});
+    actions.append(submit);card.append(reply,actions);
+   }
+   helpQueue.append(card);
+  });
+ }
+ helpForm?.addEventListener("submit",event=>{
+  event.preventDefault();
+  const agent=helpAgent?.value||"",title=helpTitle?.value.trim()||"",detail=helpDetail?.value.trim()||"";
+  if(!agent||!title||!detail)return;
+  const req={id:"help-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),agent,title,detail,status:"MENUNGGU WILLIAM",createdAt:new Date().toISOString(),reply:""};
+  helpRequests.unshift(req);helpRequests=helpRequests.slice(0,80);saveHelp();renderHelp();notify("Permintaan bantuan dicatat",agent+" membutuhkan bantuan: "+title,"info");
+  if(helpStatus)helpStatus.textContent="Permintaan dicatat secara lokal. Agar agen sungguhan dapat membuat dan menerima respons otomatis, diperlukan endpoint backend dan pengujian integrasi.";
+  helpForm.reset();
+ });
+ renderHelp();
+ window.addEventListener("appdigi:agent-help-request",event=>{
+  const d=event.detail||{};const agent=String(d.agent||"Agen AI").slice(0,100),title=String(d.title||"Bantuan diperlukan").slice(0,140),detail=String(d.detail||d.message||"Agen meminta informasi tambahan.").slice(0,2000);
+  const req={id:"help-"+Date.now()+"-"+Math.random().toString(36).slice(2,8),agent,title,detail,status:"MENUNGGU WILLIAM",createdAt:new Date().toISOString(),reply:""};
+  helpRequests.unshift(req);helpRequests=helpRequests.slice(0,80);saveHelp();renderHelp();notify("Agen meminta bantuan",agent+": "+title,"info");
+ });
  function notify(title,detail,kind="info"){
   const row=document.createElement("div");row.className="director-action-item";row.dataset.kind=kind;
   const dot=document.createElement("span");dot.className="director-action-dot";

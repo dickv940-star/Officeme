@@ -746,7 +746,7 @@ async function recordAffiliatePerformance(request, env, origin) {
   if (!db) return json({ ok: false, error: "D1 belum dikonfigurasi." }, 503, origin);
   let p;
   try { p = await request.json(); } catch (_) { return json({ ok: false, error: "JSON tidak valid." }, 400, origin); }
-  const validDate = typeof p.date === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(p.date);
+  const validDate = typeof p.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.date);
   const validText = (v, max) => v == null || (typeof v === "string" && v.length <= max);
   const validNum = (v) => v == null || (Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 1e12);
   if (!validDate || typeof p.product_id !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(p.product_id) ||

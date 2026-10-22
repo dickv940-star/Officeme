@@ -658,6 +658,53 @@ a{color:#a9b7ff}
 }
 @media(prefers-reduced-motion:reduce){#directorActionDock *{scroll-behavior:auto!important;transition:none!important}}
 </style>
+
+<style id="GLOBAL_LAYOUT_OVERLAP_FIX">
+/* Global responsive layout repair: keep text, controls and cards readable across OfficeMe. */
+html{width:100%;overflow-x:hidden;scroll-padding-top:16px}
+body{width:100%;min-width:0;overflow-x:hidden}
+img,video,canvas,iframe,svg{max-width:100%}
+.wrap,main,section,article,aside,header,footer,nav,form,fieldset{min-width:0}
+.wrap{width:100%;max-width:1450px;margin-inline:auto}
+.hero,.agents,.grid,.dashboard-grid,.stats-grid,.agent-grid,.connector-grid,.affiliate-link-fields,.staff-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.hero>* , .agents>* , .grid>* , .dashboard-grid>* , .stats-grid>* , .agent-grid>* , .connector-grid>* ,
+.panel,.agent,.specialist-card,.affiliate-link-card,.staff-card,.gemini-csv-panel,.agent-chat-panel,.vo3d-panel{min-width:0;max-width:100%}
+.top,.brand,.head,.agent-head,.actions,.agent-chat-head,.agent-monitor-header,.agent-monitor-cta,.affiliate-link-card-top,.staff-manager-head,.connector-actions{min-width:0;flex-wrap:wrap;align-items:flex-start}
+.top>* ,.brand>* ,.head>* ,.agent-head>* ,.actions>* ,.agent-chat-head>* ,.agent-monitor-header>* ,.agent-monitor-cta>* ,.affiliate-link-card-top>*{min-width:0;max-width:100%}
+h1,h2,h3,h4,h5,h6,p,label,small,strong,b,span,a,li,td,th,legend,figcaption{overflow-wrap:anywhere}
+h1,h2,h3,h4,h5,h6{line-height:1.3}
+p,li,label,small{line-height:1.55}
+.panel,.agent,.specialist-card,.affiliate-link-card,.staff-card,.agent-chat-panel,.vo3d-panel{overflow-wrap:anywhere}
+button,a.button,[role=button]{max-width:100%;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+input,select,textarea{min-width:0;max-width:100%;width:100%;line-height:1.45}
+.actions button,.actions a{flex:0 1 auto}
+.agent-chat-messages,.agent-monitor-output,#directorActionList,#williamHelpQueue{min-width:0;overflow-wrap:anywhere;overflow-x:hidden}
+.agent-chat-message{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal}
+table{width:100%;max-width:100%;border-collapse:collapse}
+td,th{overflow-wrap:anywhere;word-break:normal}
+pre,code{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:900px){
+ .wrap{padding:16px}
+ .hero,.agents,.grid,.dashboard-grid,.stats-grid,.agent-grid,.connector-grid,.affiliate-link-fields,.staff-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .panel{padding:16px}
+}
+@media(max-width:600px){
+ .wrap{padding:12px}
+ .hero,.agents,.grid,.dashboard-grid,.stats-grid,.agent-grid,.connector-grid,.affiliate-link-fields,.staff-form-grid{grid-template-columns:minmax(0,1fr)}
+ .panel,.agent,.agent-chat-panel,.vo3d-panel,.gemini-csv-panel{padding:13px}
+ .top{align-items:flex-start;gap:10px}
+ .brand h1{font-size:clamp(18px,5vw,24px);overflow-wrap:anywhere}
+ .agent-chat-controls{grid-template-columns:minmax(0,1fr)!important}
+ .agent-chat-controls label{grid-column:1/-1}
+ .agent-chat-compose{grid-template-columns:minmax(0,1fr)!important}
+ .agent-chat-compose button{width:100%}
+ .agent-monitor-overlay{padding:8px}
+ .agent-monitor-window{width:100%;max-height:92dvh;padding:14px;border-radius:14px}
+ .actions{gap:8px}
+ .actions>*{flex:1 1 100%}
+}
+</style>
+
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>

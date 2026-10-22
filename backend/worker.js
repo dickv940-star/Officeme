@@ -664,16 +664,16 @@ async function updateAgentHelp(id,payload,env,origin){
     if(!validHelpText(payload.reply,8000))return json({ok:false,error:"Balasan William wajib diisi (maksimal 8.000 karakter)."},400,origin);
     const attachment=payload.attachment&&typeof payload.attachment==="object"?payload.attachment:null;
     if(attachment&&(typeof attachment.name!=="string"||attachment.name.length>180||typeof attachment.text!=="string"||attachment.text.length>400000||!["text/csv","text/plain","application/json","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"].includes(attachment.type)))return json({ok:false,error:"Lampiran harus berupa teks/CSV/JSON maksimal 400 KB. File Excel biner belum didukung."},400,origin);
-    const status=payload.needsMoreInfo===true?"NEEDS_MORE_INFO":"ANSWERED";
+    const status="ANSWERED";
     await db.prepare("UPDATE agent_help_requests SET reply=?,attachment_name=COALESCE(?,attachment_name),attachment_type=COALESCE(?,attachment_type),attachment_text=COALESCE(?,attachment_text),status=?,updated_at=?,answered_at=? WHERE id=?")
       .bind(payload.reply.trim(),attachment?.name||null,attachment?.type||null,attachment?.text||null,status,now,now,id).run();
     if(status==="ANSWERED"&&row.task_text){
       try{
-        const continuation=await runOneAgent(row.agent_id,row.task_text,{williamResponse:payload.reply.trim(),providedAttachment:attachment?{name:attachment.name,type:attachment.type,content:attachment.text}:null,originalRequest:{title:row.title,detail:row.detail}},env);
+        const continuation=await runOneAgent(row.agent_id,row.task_text,{williamResponse:payload.reply.trim(),providedAttachment:attachment?{name:attachment.name,type:attachment.type,content:attachment.text}:null,williamRequestsMoreInfo:payload.needsMoreInfo===true,originalRequest:{title:row.title,detail:row.detail}},env);
         const newTime=new Date().toISOString();
         const pending=await db.prepare("SELECT id FROM agent_help_requests WHERE agent_id=? AND status='WAITING_FOR_WILLIAM' AND created_at>=? AND id<>? LIMIT 1").bind(row.agent_id,now,id).first();
         await db.prepare("UPDATE agent_help_requests SET agent_result=?,status=?,updated_at=? WHERE id=?")
-          .bind(continuation.result,pending?"NEEDS_MORE_INFO":"COMPLETED",newTime,id).run();
+          .bind(continuation.result,(pending||payload.needsMoreInfo===true)?"NEEDS_MORE_INFO":"COMPLETED",newTime,id).run();
       }catch(error){
         await db.prepare("UPDATE agent_help_requests SET status='FAILED',agent_result=?,updated_at=? WHERE id=?")
           .bind("Tugas belum dapat dilanjutkan: "+(error instanceof Error?error.message:"kesalahan backend"),new Date().toISOString(),id).run();

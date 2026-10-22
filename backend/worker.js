@@ -725,6 +725,44 @@ async function validatePublishPackage(request, env, origin) {
     message: "Persetujuan valid untuk paket dan channel ini. Endpoint ini hanya memvalidasi; tidak memublikasikan." }, 200, origin);
 }
 
+async function affiliateOpsSnapshot(env, origin) {
+  const db = env.APPROVAL_DB;
+  if (!db) return json({ ok: false, error: "D1 belum dikonfigurasi." }, 503, origin);
+  try {
+    const [config, products, queue, performance] = await Promise.all([
+      db.prepare("SELECT config_key, config_value, updated_at FROM affiliate_ops_config ORDER BY config_key").all(),
+      db.prepare("SELECT product_id, product_name, affiliate_url, test_share, active, actual_commission, commission_verified, notes FROM affiliate_products ORDER BY product_id").all(),
+      db.prepare("SELECT content_id, plan_date, product_id, format, content_angle, hook, status, asset_url, affiliate_url, human_approved, published_at, platform, created_at FROM affiliate_content_queue ORDER BY plan_date DESC, content_id LIMIT 100").all(),
+      db.prepare("SELECT record_id, date, product_id, content_id, platform, affiliate_clicks, orders, pending_commission, validated_commission, cancelled_orders, source, verified, notes, created_at FROM affiliate_performance_daily ORDER BY date DESC, created_at DESC LIMIT 500").all()
+    ]);
+    return json({ ok: true, source: "cloudflare-d1", config: config.results || [], products: products.results || [], queue: queue.results || [], performance: performance.results || [], publishingEnabled: false, humanApprovalRequired: true }, 200, origin);
+  } catch (_) {
+    return json({ ok: false, error: "Tabel operasional affiliate belum siap atau skema tidak cocok." }, 503, origin);
+  }
+}
+
+async function recordAffiliatePerformance(request, env, origin) {
+  const db = env.APPROVAL_DB;
+  if (!db) return json({ ok: false, error: "D1 belum dikonfigurasi." }, 503, origin);
+  let p;
+  try { p = await request.json(); } catch (_) { return json({ ok: false, error: "JSON tidak valid." }, 400, origin); }
+  const validDate = typeof p.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.date);
+  const validText = (v, max) => v == null || (typeof v === "string" && v.length <= max);
+  const validNum = (v) => v == null || (Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 1e12);
+  if (!validDate || typeof p.product_id !== "string" || !/^[a-zA-Z0-9_-]{1,100}$/.test(p.product_id) ||
+      !["affiliate_clicks", "orders", "pending_commission", "validated_commission", "cancelled_orders"].every(k => validNum(p[k])) ||
+      !validText(p.content_id, 100) || !validText(p.platform, 40) || !validText(p.source, 40) || !validText(p.notes, 1000)) {
+    return json({ ok: false, error: "Data performa tidak valid." }, 400, origin);
+  }
+  const product = await db.prepare("SELECT product_id FROM affiliate_products WHERE product_id = ? AND active = 1").bind(p.product_id).first();
+  if (!product) return json({ ok: false, error: "Produk aktif tidak ditemukan." }, 404, origin);
+  const now = new Date().toISOString();
+  const id = "perf-" + crypto.randomUUID();
+  await db.prepare("INSERT INTO affiliate_performance_daily (record_id, date, product_id, content_id, platform, affiliate_clicks, orders, pending_commission, validated_commission, cancelled_orders, source, verified, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)")
+    .bind(id, p.date, p.product_id, p.content_id || null, p.platform || null, p.affiliate_clicks == null ? null : Number(p.affiliate_clicks), p.orders == null ? null : Number(p.orders), p.pending_commission == null ? null : Number(p.pending_commission), p.validated_commission == null ? null : Number(p.validated_commission), p.cancelled_orders == null ? null : Number(p.cancelled_orders), p.source || "manual_entry", p.notes || null, now).run();
+  return json({ ok: true, record_id: id, verified: false, message: "Data tersimpan sebagai belum terverifikasi. Angka ini belum dianggap komisi resmi." }, 201, origin);
+}
+
 function healthPayload(env) {
   const providers = configuredProviders(env);
   return {
@@ -780,6 +818,8 @@ export default {
       return json({ ok: true, service: "shopee-affiliate-open-api", ...shopeeConfigStatus(env) }, 200, origin);
     }
     if (request.method === "GET" && path === "/api/integrations/status") { return json(integrationReadiness(env), 200, origin); }
+    if (request.method === "GET" && path === "/api/affiliate/ops") return affiliateOpsSnapshot(env, origin);
+    if (request.method === "POST" && path === "/api/affiliate/performance") return recordAffiliatePerformance(request, env, origin);
     if (request.method === "POST" && path === "/api/shopee/graphql") {
       const declaredLength = Number(request.headers.get("Content-Length") || 0);
       if (declaredLength > MAX_BODY_BYTES) return json({ ok: false, error: "Ukuran permintaan terlalu besar." }, 413, origin);

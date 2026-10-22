@@ -10,8 +10,8 @@ binding = "AI"
 
 [[d1_databases]]
 binding = "APPROVAL_DB"
-database_name = "officeme-approvals"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_name = "appdigi-approvals"
+database_id = "a4f2594e-954d-4375-a7b5-da9a12e00554"
 
 [vars]
 ALLOWED_ORIGINS = "https://dickv940-star.github.io"

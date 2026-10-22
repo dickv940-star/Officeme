@@ -85,4 +85,4 @@ The Worker never calls paid-only APIs. Each agent has an ordered list of free pr
 - `OPENROUTER_API_KEY` - OpenRouter free models.
 - Cloudflare Workers AI works through the `AI` binding with no key.
 
-Optional variables: `<PROVIDER>_DAILY_LIMIT` and `<PROVIDER>_MODEL`. See `backend/wrangler.toml.example`. Create the approvals table once with `backend/schema.sql`. Run tests with `node --test backend/test/*.test.mjs`.
+Optional variables: `<PROVIDER>_DAILY_LIMIT` and `<PROVIDER>_MODEL`. See `backend/wrangler.toml.example`. The approvals table already exists in your `appdigi-approvals` D1 database; `backend/schema.sql` documents it. Run tests with `node --test backend/test/*.test.mjs`.

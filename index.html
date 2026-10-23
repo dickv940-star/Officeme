@@ -585,6 +585,25 @@ a{color:#a9b7ff}
   *,*::before,*::after{transition:none!important;animation:none!important}
 }
 
+
+/* OfficeMe Director-first workflow: keep the main screen focused on one affiliate link */
+.office-simple-hidden{display:none!important}
+#geminiCsvAnalyzer,#platformIntegrationPanel,#shopeeApiPanel,#connectors,#directorActionDock,
+#roomView,#workerRooms,.team-charter,.agent-chat-panel{display:none!important}
+#affiliateLinkManager{margin:0 0 24px}
+#affiliateLinkManager .affiliate-link-howto,
+#affiliateLinkName,#affiliateLinkPlatform,#affiliateLinkCampaign,
+#affiliateLinkExport,#affiliateLinkClear{display:none!important}
+#affiliateLinkManager .affiliate-link-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+#affiliateLinkManager .affiliate-link-fields>div{display:none}
+#affiliateLinkManager .affiliate-link-fields>div:has(#affiliateLinkUrl){display:block}
+#affiliateLinkManager .gemini-csv-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#affiliateLinkManager .gemini-csv-actions button:not([type="submit"]){display:none!important}
+#affiliateLinkManager h2{font-size:clamp(22px,3vw,30px);margin:6px 0 8px}
+#affiliateLinkManager .director-simple-intro{font-size:14px;color:var(--muted);margin:0 0 16px}
+#agents{margin-top:12px}
+@media(max-width:600px){#affiliateLinkManager{padding:16px}}
+
 </style>
 <style>#appLoginGate{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 50% 0%,#1b2b4b,#070b14 68%);color:#edf3ff}#appLoginGate[hidden]{display:none!important}#appLoginGate form{width:min(440px,100%);padding:30px;border:1px solid #344865;border-radius:22px;background:linear-gradient(155deg,#17243c,#0d1424);box-shadow:0 24px 90px #0009}#appLoginGate .app-login-mark{width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:linear-gradient(135deg,#8c7bff,#4c9dff);font-weight:900;font-size:24px;margin-bottom:20px;color:white}#appLoginGate h1{font-size:25px;letter-spacing:-.04em;margin:7px 0 10px}#appLoginGate p{font-size:13px;line-height:1.65;color:#aabbd5;margin:0 0 22px}#appLoginGate label{display:block;font-size:12px;font-weight:700;margin-bottom:7px}#appLoginGate .app-login-input{display:flex;gap:8px}#appLoginGate input{min-width:0;flex:1;width:100%;background:#080f1d;color:#edf3ff;border:1px solid #344865;border-radius:10px;padding:13px;font:inherit}#appLoginGate button{cursor:pointer;border:1px solid #344865;border-radius:10px;padding:11px 14px;color:#edf3ff;background:#1a2942;font:inherit}#appLoginGate button.primary{width:100%;margin-top:14px;background:linear-gradient(110deg,#7664f7,#4b8cf6);border:0;font-weight:800}#appLoginGate button:disabled{opacity:.6;cursor:wait}#appLoginStatus{font-size:12px;line-height:1.5;margin-top:12px;color:#ffb4b4;min-height:18px}#appLoginStatus[data-ok="true"]{color:#72e0b2}#appLoginGate .app-login-foot{font-size:11px;line-height:1.6;color:#8193ae;margin-top:12px}@media(max-width:480px){#appLoginGate form{padding:23px}}</style>
 
@@ -2409,4 +2428,55 @@ window.addEventListener("unhandledrejection",function(e){
  window.addEventListener("offline",()=>notify("Koneksi terputus","Browser mendeteksi offline. Permintaan backend mungkin gagal.","error"));
 })();
 </script>
+
+<script>
+/* Focus the UI on William's one-input workflow without deleting dormant integration code. */
+(function(){
+  "use strict";
+  const byId=id=>document.getElementById(id);
+  const affiliate=byId("affiliateLinkManager");
+  const top=document.querySelector(".top");
+  if(affiliate&&top) top.insertAdjacentElement("afterend",affiliate);
+  const hero=document.querySelector(".hero");
+  if(hero) hero.classList.add("office-simple-hidden");
+  const hideHeadingSection=(exact)=>{
+    document.querySelectorAll("h1,h2,h3,h4").forEach(h=>{
+      if((h.textContent||"").trim()!==exact)return;
+      const target=h.closest("section")||h.closest(".section")||h.closest(".panel");
+      if(target)target.classList.add("office-simple-hidden");
+    });
+  };
+  ["3 Ruangan Interaktif","Ruangan Direktur","Pusat Plugin & Connector","Pemeriksaan Video","Permintaan Bantuan Agen"].forEach(hideHeadingSection);
+  if(affiliate){
+    const title=affiliate.querySelector("h2");
+    if(title)title.textContent="Mulai pekerjaan: tempel link Affiliate";
+    const intro=affiliate.querySelector(":scope > p.muted");
+    if(intro)intro.textContent="William, cukup masukkan link Affiliate Shopee. Tim AI akan mengikuti alur kerja dan tanggung jawab masing-masing tanpa Anda perlu memberi instruksi satu per satu.";
+    const urlLabel=affiliate.querySelector('label[for="affiliateLinkUrl"]');
+    if(urlLabel)urlLabel.textContent="Link Affiliate Shopee";
+    const urlInput=byId("affiliateLinkUrl");
+    if(urlInput)urlInput.placeholder="Tempel link Affiliate Shopee di sini…";
+    const submit=affiliate.querySelector('button[type="submit"]');
+    if(submit)submit.textContent="Mulai alur kerja AI";
+    const status=byId("affiliateLinkStatus");
+    if(status)status.textContent="Link disimpan di browser ini. Status riset akan ditampilkan di bawah; tahap agen berikutnya hanya boleh ditandai selesai setelah hasilnya benar-benar tersedia.";
+  }
+  const heading=document.querySelector("#agents");
+  if(heading){
+    const sectionHeader=heading.previousElementSibling;
+    if(sectionHeader&&sectionHeader.classList.contains("section")) {
+      const h=sectionHeader.querySelector("h2");
+      const p=sectionHeader.querySelector(".muted");
+      if(h)h.textContent="Tim AI OfficeMe";
+      if(p)p.textContent="Setiap agen memiliki tanggung jawab tetap. Anda cukup memasukkan link; Manager mengatur urutan kerja.";
+    }
+  }
+  const manualTaskHeading=[...document.querySelectorAll("h4")].find(h=>(h.textContent||"").trim()==="Tugaskan pekerjaan langsung");
+  if(manualTaskHeading){
+    const section=manualTaskHeading.closest(".agent-monitor-section");
+    if(section)section.classList.add("office-simple-hidden");
+  }
+})();
+</script>
+
 </body></html>

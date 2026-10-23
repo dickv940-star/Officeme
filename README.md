@@ -125,3 +125,21 @@ OfficeMe includes a free manual CSV bridge to Google Sheets and an optional Goog
 - Setup instructions: [google-sheets-bridge/README.md](./google-sheets-bridge/README.md).
 - No paid API, API key, or public Apps Script web app is required for this workflow.
 - CSV transfer is manual, not real-time synchronization. Social account connection and publishing still require official platform authorization.
+
+
+## Multi-platform affiliate workflow MVP
+
+The frontend loads `affiliate-workflow.js` with these capabilities:
+
+- Flexible local registry of affiliate accounts/channels (metadata only; adding an entry does not connect an account).
+- AI team content-draft generation via authenticated `POST /api/agents/run`.
+- Shopee product research via `POST /api/affiliate/analyze` when Google Search grounding is configured in the backend.
+- Editable drafts and a local owner-approval queue. Approval is a local workflow decision and **does not publish**.
+- Manual entry for reach, clicks, orders/conversions, and commission copied from official platform dashboards.
+- JSON backup/import and text export.
+
+### Current limitations — do not treat as live integration
+
+Account records, draft content, approval decisions, and metrics are stored in the current browser's localStorage. They are not shared across devices and do not constitute a server audit log. Metric fields are manual inputs, not live analytics. Multi-platform OAuth, automatic platform publishing, automatic commission sync, and persistent server-side account storage are not activated by this UI. Each platform's official API access, review, scopes, and account eligibility must be completed before enabling those actions. Every real publication must have explicit owner approval and server-side authorization.
+
+After deployment, hard-refresh the GitHub Pages site (Ctrl+F5). Test with a non-sensitive dummy account first.

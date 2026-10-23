@@ -350,6 +350,176 @@ async function fetchIntegrationJson(url,init={}){
  if(!response.ok)throw new Error("OAUTH_PROVIDER_HTTP_"+response.status);
  return body;
 }
+
+const METRICOOL_MCP_URL = "https://ai.metricool.com/mcp";
+function b64url(bytes){
+ const raw=toB64(bytes);
+ return raw.replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+async function metricoolOAuthMetadata(){
+ const resourceCandidates=[
+  "https://ai.metricool.com/.well-known/oauth-protected-resource/mcp",
+  "https://ai.metricool.com/.well-known/oauth-protected-resource",
+  "https://ai.metricool.com/mcp/.well-known/oauth-protected-resource"
+ ];
+ let resourceMeta=null;
+ for(const candidate of resourceCandidates){
+  try{resourceMeta=await fetchIntegrationJson(candidate);if(resourceMeta&&Array.isArray(resourceMeta.authorization_servers))break;}catch(_){}
+ }
+ const authServers=resourceMeta&&Array.isArray(resourceMeta.authorization_servers)?resourceMeta.authorization_servers:["https://app.metricool.com"];
+ for(const server of authServers){
+  let parsed;try{parsed=new URL(server)}catch(_){continue}
+  if(parsed.protocol!=="https:"||!/(^|\.)metricool\.com$/i.test(parsed.hostname))continue;
+  const candidates=[
+   parsed.origin+"/.well-known/oauth-authorization-server",
+   parsed.origin+"/.well-known/oauth-authorization-server"+(parsed.pathname==="/"?"":parsed.pathname),
+   parsed.origin+"/.well-known/openid-configuration"
+  ];
+  for(const candidate of [...new Set(candidates)]){
+   try{
+    const meta=await fetchIntegrationJson(candidate);
+    if(meta&&meta.authorization_endpoint&&meta.token_endpoint&&meta.registration_endpoint)return {resource:METRICOOL_MCP_URL,authorizationServer:parsed.origin,metadata:meta};
+   }catch(_){}
+  }
+ }
+ throw new Error("METRICOOL_OAUTH_DISCOVERY_FAILED");
+}
+async function startMetricoolMcpOAuth(env){
+ const kv=oauthKv(env);if(!kv)throw new Error("INTEGRATION_STORAGE_NOT_CONFIGURED");
+ const redirectUri=oauthCallbackUrl(env);
+ const discovered=await metricoolOAuthMetadata();
+ const meta=discovered.metadata;
+ const verifier=b64url(crypto.getRandomValues(new Uint8Array(32)));
+ const challenge=b64url(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier)));
+ const registration=await fetchIntegrationJson(meta.registration_endpoint,{
+  method:"POST",headers:{"content-type":"application/json","accept":"application/json"},
+  body:JSON.stringify({
+   client_name:"OfficeMe",
+   redirect_uris:[redirectUri],
+   grant_types:["authorization_code","refresh_token"],
+   response_types:["code"],
+   token_endpoint_auth_method:"none"
+  })
+ });
+ if(!registration.client_id)throw new Error("METRICOOL_OAUTH_CLIENT_REGISTRATION_FAILED");
+ const state=randomState();
+ const scope="mcp:read mcp:write";
+ const saved={
+  platform:"metricool",createdAt:Date.now(),redirectUri,verifier,
+  resource:METRICOOL_MCP_URL,metadata:meta,
+  client:{client_id:registration.client_id,client_secret:registration.client_secret||"",token_endpoint_auth_method:registration.token_endpoint_auth_method||"none"},
+  scope
+ };
+ await kv.put("oauth-state:"+state,JSON.stringify(saved),{expirationTtl:600});
+ const auth=new URL(meta.authorization_endpoint);
+ auth.searchParams.set("response_type","code");
+ auth.searchParams.set("client_id",registration.client_id);
+ auth.searchParams.set("redirect_uri",redirectUri);
+ auth.searchParams.set("scope",scope);
+ auth.searchParams.set("state",state);
+ auth.searchParams.set("code_challenge",challenge);
+ auth.searchParams.set("code_challenge_method","S256");
+ auth.searchParams.set("resource",METRICOOL_MCP_URL);
+ return {url:auth.toString()};
+}
+async function metricoolMcpRequest(accessToken,method,params={},sessionId=""){
+ const headers={
+  "authorization":"Bearer "+accessToken,
+  "content-type":"application/json",
+  "accept":"application/json, text/event-stream",
+  "mcp-protocol-version":"2025-03-26"
+ };
+ if(sessionId)headers["mcp-session-id"]=sessionId;
+ const id=crypto.randomUUID();
+ const response=await fetch(METRICOOL_MCP_URL,{
+  method:"POST",redirect:"error",signal:AbortSignal.timeout(20000),headers,
+  body:JSON.stringify({jsonrpc:"2.0",id,method,params})
+ });
+ const nextSession=response.headers.get("Mcp-Session-Id")||sessionId;
+ const raw=await response.text();
+ if(!response.ok)throw new Error("METRICOOL_MCP_HTTP_"+response.status);
+ let payload=null;
+ try{payload=JSON.parse(raw)}catch(_){
+  const events=raw.split(/\r?\n/).filter(line=>line.startsWith("data:")).map(line=>line.slice(5).trim()).filter(Boolean);
+  for(const event of events){try{payload=JSON.parse(event)}catch(_){}}
+ }
+ if(method==="notifications/initialized")return {payload:null,sessionId:nextSession};
+ if(!payload||payload.jsonrpc!=="2.0")throw new Error("METRICOOL_MCP_INVALID_RESPONSE");
+ if(payload.error)throw new Error("METRICOOL_MCP_RPC_ERROR_"+String(payload.error.code||"unknown"));
+ return {payload:payload.result,sessionId:nextSession};
+}
+async function metricoolVerifyConnection(record){
+ const token=record&&record.tokens&&record.tokens.accessToken;
+ if(!token)throw new Error("METRICOOL_MCP_TOKEN_MISSING");
+ const initialized=await metricoolMcpRequest(token,"initialize",{
+  protocolVersion:"2025-03-26",capabilities:{},clientInfo:{name:"OfficeMe",version:"1.0.0"}
+ });
+ const sessionId=initialized.sessionId||"";
+ await metricoolMcpRequest(token,"notifications/initialized",{},sessionId).catch(()=>null);
+ const listed=await metricoolMcpRequest(token,"tools/list",{},sessionId);
+ const tools=Array.isArray(listed.payload&&listed.payload.tools)?listed.payload.tools:[];
+ let brands=null;
+ const brandTool=tools.find(t=>["get_brands","get_brand_settings","getBrandSettings"].includes(t.name));
+ if(brandTool){
+  try{
+   const result=await metricoolMcpRequest(token,"tools/call",{name:brandTool.name,arguments:{}},sessionId);
+   brands=result.payload&&result.payload.content?result.payload.content:result.payload;
+  }catch(_){}
+ }
+ return {verified:true,toolCount:tools.length,tools:tools.map(t=>({name:t.name,description:String(t.description||"").slice(0,180)})),brands};
+}
+async function finishMetricoolMcpOAuth(code,saved,env,redirect){
+ try{
+  const meta=saved.metadata,client=saved.client;
+  if(!meta||!meta.token_endpoint||!client||!client.client_id||!saved.verifier)throw new Error("METRICOOL_OAUTH_STATE_INVALID");
+  const body=new URLSearchParams({
+   grant_type:"authorization_code",code,client_id:client.client_id,
+   redirect_uri:saved.redirectUri,code_verifier:saved.verifier
+  });
+  if(saved.resource)body.set("resource",saved.resource);
+  const init={method:"POST",headers:{"content-type":"application/x-www-form-urlencoded","accept":"application/json"},body};
+  if(client.client_secret&&client.token_endpoint_auth_method==="client_secret_post")body.set("client_secret",client.client_secret);
+  if(client.client_secret&&client.token_endpoint_auth_method==="client_secret_basic"){
+   init.headers.authorization="Basic "+btoa(client.client_id+":"+client.client_secret);
+  }
+  const token=await fetchIntegrationJson(meta.token_endpoint,init);
+  if(!token.access_token)throw new Error("METRICOOL_OAUTH_TOKEN_MISSING");
+  const record={
+   platform:"metricool",connected:false,connectedAt:new Date().toISOString(),
+   scopes:String(token.scope||saved.scope||"").split(/\s+/).filter(Boolean),
+   tokens:{accessToken:token.access_token,refreshToken:token.refresh_token||""},
+   expiresAt:Date.now()+Number(token.expires_in||3600)*1000,
+   oauth:{metadata:meta,client,resource:saved.resource}
+  };
+  const verification=await metricoolVerifyConnection(record);
+  record.connected=true;record.identity={type:"Metricool MCP",toolCount:verification.toolCount};
+  const kv=oauthKv(env);
+  await kv.put("integration:metricool",await encryptIntegration(record,env));
+  return redirect("success","metricool");
+ }catch(error){
+  const reason=error instanceof Error?error.message:"";
+  const status=reason==="METRICOOL_MCP_HTTP_401"?"reauthorization_required":
+   reason==="METRICOOL_OAUTH_DISCOVERY_FAILED"?"oauth_discovery_failed":
+   reason==="METRICOOL_OAUTH_CLIENT_REGISTRATION_FAILED"?"oauth_registration_failed":
+   reason==="METRICOOL_MCP_HTTP_403"?"permission_denied":"authorization_failed";
+  return redirect(status,"metricool");
+ }
+}
+async function metricoolMcpStatus(env){
+ const kv=oauthKv(env);
+ if(!kv)return {ok:true,configured:false,connected:false,verified:false,blockers:["Binding INTEGRATION_KV belum dikonfigurasi"]};
+ const raw=await kv.get("integration:metricool");
+ if(!raw)return {ok:true,configured:true,connected:false,verified:false,blockers:["Belum diotorisasi melalui Metricool MCP"]};
+ try{
+  const record=await decryptIntegration(raw,env);
+  const result=await metricoolVerifyConnection(record);
+  return {ok:true,configured:true,connected:true,verified:true,connectedAt:record.connectedAt,scope:record.scopes||[],toolCount:result.toolCount,tools:result.tools,brands:result.brands};
+ }catch(error){
+  const reason=error instanceof Error?error.message:"";
+  return {ok:true,configured:true,connected:false,verified:false,blockers:[reason.startsWith("METRICOOL_MCP_HTTP_401")?"Sesi Metricool kedaluwarsa; hubungkan ulang.":"Koneksi tersimpan tetapi pemeriksaan MCP gagal ("+reason+")."]};
+ }
+}
+
 async function finishIntegrationOAuth(request,env){
  const url=new URL(request.url),state=url.searchParams.get("state"),code=url.searchParams.get("code");
  const appUrl=env.OAUTH_APP_URL||OAUTH_APP_DEFAULT;
@@ -362,7 +532,9 @@ async function finishIntegrationOAuth(request,env){
  if(!stateRaw)return redirect("invalid_state","");
  let saved;try{saved=JSON.parse(stateRaw)}catch(_){return redirect("failed","")}
  const platform=saved.platform;
- if(!OAUTH_PLATFORMS.has(platform)||Date.now()-saved.createdAt>600000)return redirect("expired",platform);
+ if(Date.now()-saved.createdAt>600000)return redirect("expired",platform);
+ if(platform==="metricool")return finishMetricoolMcpOAuth(code,saved,env,redirect);
+ if(!OAUTH_PLATFORMS.has(platform))return redirect("expired",platform);
  try{
   const redirectUri=oauthCallbackUrl(env);
   const record={platform,connected:false,connectedAt:new Date().toISOString(),scopes:[],tokens:{}};
@@ -1186,6 +1358,23 @@ export default {
     }
     if (request.method === "GET" && path === "/api/shopee/status") {
       return json({ ok: true, service: "shopee-affiliate-open-api", ...shopeeConfigStatus(env) }, 200, origin);
+    }
+    if (request.method === "POST" && path === "/api/integrations/metricool/start") {
+      try {
+        const result = await startMetricoolMcpOAuth(env);
+        return json({ ok: true, authorizationUrl: result.url, expiresInSeconds: 600 }, 200, origin);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : "";
+        const message = code === "INTEGRATION_STORAGE_NOT_CONFIGURED" ? "Penyimpanan integrasi belum dikonfigurasi." :
+          code === "OAUTH_CALLBACK_URL_INVALID" ? "URL callback backend belum valid." :
+          code === "METRICOOL_OAUTH_DISCOVERY_FAILED" ? "Metadata OAuth Metricool tidak dapat ditemukan. Periksa endpoint resmi dan coba lagi." :
+          code === "METRICOOL_OAUTH_CLIENT_REGISTRATION_FAILED" ? "Metricool tidak menerima pendaftaran OAuth otomatis untuk OfficeMe. Integrasi memerlukan registrasi klien yang didukung Metricool." :
+          "Tidak dapat memulai koneksi Metricool MCP. Periksa konfigurasi backend; jangan kirim token rahasia ke chat.";
+        return json({ ok: false, error: message }, 502, origin);
+      }
+    }
+    if (request.method === "GET" && path === "/api/integrations/metricool/status") {
+      return json(await metricoolMcpStatus(env), 200, origin);
     }
     if (request.method === "POST" && path === "/api/integrations/oauth/start") {
       let body; try { body = await request.json(); } catch (_) { return json({ ok: false, error: "JSON tidak valid." }, 400, origin); }

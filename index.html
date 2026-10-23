@@ -877,6 +877,60 @@ pre,code{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
 }
 </style>
 
+<style id="OFFICEME_LAYOUT_REFINEMENT">
+/* OfficeMe layout refinement — consistent spacing, alignment, and responsive behavior */
+:root{--layout-gap:16px;--layout-radius:16px}
+html{scroll-behavior:smooth;scroll-padding-top:18px}
+body{min-width:320px;overflow-x:hidden}
+.wrap{width:min(100%,1440px);padding:clamp(14px,2.2vw,30px)}
+.top{gap:16px;flex-wrap:wrap}
+.brand{min-width:0}
+.brand h1{overflow-wrap:anywhere}
+.hero,.bottom{align-items:stretch;gap:var(--layout-gap)}
+.hero>.panel,.bottom>.panel{min-width:0;height:100%}
+.panel{min-width:0;border-radius:var(--layout-radius);padding:clamp(14px,1.6vw,22px)}
+.section{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:28px 0 13px}
+.section h2{line-height:1.3;overflow-wrap:anywhere}
+.agents{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--layout-gap);align-items:stretch}
+.agent{min-width:0;height:100%;display:flex;flex-direction:column;gap:8px}
+.agent-head{min-width:0;gap:11px}
+.agent-head>div:last-child{min-width:0}
+.agent h3,.agent p,.footline{overflow-wrap:anywhere}
+.agent p{flex:1;min-height:0;margin:4px 0}
+.rooms-layout{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--layout-gap);align-items:stretch}
+.room-card{height:100%;min-width:0}
+.room-card h3{overflow-wrap:anywhere}
+.room-scene{width:100%;min-width:0}
+.actions{align-items:center}
+button,input,select,textarea{max-width:100%}
+textarea{display:block}
+input,select{min-width:0}
+img,video,iframe,canvas{max-width:100%}
+.task{min-width:0}
+.task>div{min-width:0;overflow-wrap:anywhere}
+.footer{padding:0 8px}
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media(max-width:1000px){
+ .agents{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .rooms-layout{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:680px){
+ .wrap{padding:14px}
+ .top{align-items:flex-start}
+ .hero,.bottom{grid-template-columns:minmax(0,1fr)}
+ .agents,.rooms-layout{grid-template-columns:minmax(0,1fr)}
+ .panel{padding:15px}
+ .stats{gap:7px}
+ .stat{min-width:0;padding:10px}
+ .stat strong{font-size:clamp(17px,5vw,22px);overflow-wrap:anywhere}
+ .private{max-width:100%;white-space:normal}
+ .worker-scene{max-width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+</style>
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>

@@ -402,6 +402,47 @@ async function finishIntegrationOAuth(request,env){
   return redirect(safeStatus,platform);
  }
 }
+
+async function readIntegrationData(platform,env){
+ if(!OAUTH_PLATFORMS.has(platform))throw new Error("INTEGRATION_PLATFORM_UNSUPPORTED");
+ const kv=oauthKv(env);if(!kv)throw new Error("INTEGRATION_STORAGE_NOT_CONFIGURED");
+ const raw=await kv.get("integration:"+platform);if(!raw)throw new Error("INTEGRATION_NOT_CONNECTED");
+ const record=await decryptIntegration(raw,env);
+ if(!record.connected||!record.identity||!record.tokens)throw new Error("INTEGRATION_NOT_CONNECTED");
+ let data;
+ if(platform==="instagram"||platform==="facebook"){
+  const graph="https://graph.facebook.com/"+(env.META_GRAPH_VERSION||"v23.0");
+  const id=platform==="instagram"?record.identity.id:record.identity.id;
+  const fields=platform==="instagram"?"id,username,media_count,followers_count,follows_count":"id,name,fan_count,followers_count";
+  data=await fetchIntegrationJson(graph+"/"+encodeURIComponent(id)+"?fields="+encodeURIComponent(fields),{headers:{Authorization:"Bearer "+record.tokens.pageAccessToken}});
+ }else if(platform==="youtube"){
+  if(!record.tokens.accessToken||Number(record.expiresAt||0)<Date.now()+60000){
+   if(!record.tokens.refreshToken)throw new Error("INTEGRATION_REAUTH_REQUIRED");
+   const refreshed=await fetchIntegrationJson("https://oauth2.googleapis.com/token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},
+    body:new URLSearchParams({client_id:env.YOUTUBE_OAUTH_CLIENT_ID,client_secret:env.YOUTUBE_OAUTH_CLIENT_SECRET,refresh_token:record.tokens.refreshToken,grant_type:"refresh_token"})});
+   if(!refreshed.access_token)throw new Error("INTEGRATION_REAUTH_REQUIRED");
+   record.tokens.accessToken=refreshed.access_token;record.expiresAt=Date.now()+Number(refreshed.expires_in||3600)*1000;
+   await kv.put("integration:"+platform,await encryptIntegration(record,env));
+  }
+  const channel=await fetchIntegrationJson("https://www.googleapis.com/youtube/v3/channels?part=snippet%2Cstatistics%2CcontentDetails%2Cid&mine=true",{headers:{Authorization:"Bearer "+record.tokens.accessToken}});
+  const item=channel.items&&channel.items[0];if(!item)throw new Error("INTEGRATION_PROFILE_NOT_FOUND");
+  data={id:item.id,title:item.snippet&&item.snippet.title||"",description:item.snippet&&item.snippet.description||"",publishedAt:item.snippet&&item.snippet.publishedAt||null,statistics:item.statistics||{},uploadsPlaylistId:item.contentDetails&&item.contentDetails.relatedPlaylists&&item.contentDetails.relatedPlaylists.uploads||null};
+ }else{
+  if(!record.tokens.accessToken||Number(record.expiresAt||0)<Date.now()+60000){
+   if(!record.tokens.refreshToken)throw new Error("INTEGRATION_REAUTH_REQUIRED");
+   const refreshed=await fetchIntegrationJson("https://open.tiktokapis.com/v2/oauth/token/",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},
+    body:new URLSearchParams({client_key:env.TIKTOK_CLIENT_KEY,client_secret:env.TIKTOK_CLIENT_SECRET,refresh_token:record.tokens.refreshToken,grant_type:"refresh_token"})});
+   const td=refreshed.data||refreshed;if(!td.access_token)throw new Error("INTEGRATION_REAUTH_REQUIRED");
+   record.tokens.accessToken=td.access_token;if(td.refresh_token)record.tokens.refreshToken=td.refresh_token;
+   record.expiresAt=Date.now()+Number(td.expires_in||86400)*1000;
+   await kv.put("integration:"+platform,await encryptIntegration(record,env));
+  }
+  const profile=await fetchIntegrationJson("https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url,follower_count,following_count,likes_count,video_count",{headers:{Authorization:"Bearer "+record.tokens.accessToken}});
+  data=profile.data&&profile.data.user;if(!data)throw new Error("INTEGRATION_PROFILE_NOT_FOUND");
+ }
+ return {ok:true,platform,verified:true,account:record.identity,data,readAt:new Date().toISOString(),writeActionsEnabled:false};
+}
+
 async function integrationConnectionSummary(platform,env){
  const kv=oauthKv(env),configured=oauthConfigured(platform,env);
  if(!kv)return {configured:false,connected:false,verified:false,blockers:["Binding INTEGRATION_KV belum ada"]};
@@ -1026,6 +1067,21 @@ export default {
           code === "OAUTH_PLATFORM_NOT_CONFIGURED" ? "Konfigurasi OAuth atau binding INTEGRATION_KV belum lengkap. Lihat README untuk daftar secret." :
           "Tidak dapat memulai otorisasi akun.";
         return json({ ok: false, error: message }, 503, origin);
+      }
+    }
+    if (request.method === "GET" && path === "/api/integrations/data") {
+      const platform = (new URL(request.url).searchParams.get("platform") || "").toLowerCase();
+      try { return json(await readIntegrationData(platform, env), 200, origin); }
+      catch (error) {
+        const code = error instanceof Error ? error.message : "";
+        const status = code === "INTEGRATION_NOT_CONNECTED" ? 409 : code === "INTEGRATION_STORAGE_NOT_CONFIGURED" ? 503 :
+          code === "INTEGRATION_PLATFORM_UNSUPPORTED" ? 400 : code === "INTEGRATION_REAUTH_REQUIRED" ? 401 : 502;
+        const message = code === "INTEGRATION_NOT_CONNECTED" ? "Akun belum terhubung dan terverifikasi." :
+          code === "INTEGRATION_STORAGE_NOT_CONFIGURED" ? "Penyimpanan integrasi belum dikonfigurasi." :
+          code === "INTEGRATION_PLATFORM_UNSUPPORTED" ? "Platform tidak didukung untuk pembacaan data." :
+          code === "INTEGRATION_REAUTH_REQUIRED" ? "Otorisasi perlu diulang. Hubungkan kembali akun melalui halaman resmi." :
+          "Gagal membaca data akun melalui API resmi. Periksa izin yang diberikan dan konfigurasi aplikasi.";
+        return json({ ok: false, error: message }, status, origin);
       }
     }
     if (request.method === "GET" && path === "/api/integrations/status") {

@@ -1069,6 +1069,50 @@ img,video,iframe,canvas{max-width:100%}
 .account-data-result{max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border:1px solid var(--line,#263650);border-radius:12px;background:rgba(4,9,20,.5);font:12px/1.5 ui-monospace,monospace}.account-read{margin-top:0!important}
 @media(max-width:560px){.account-connect-grid{grid-template-columns:1fr}.account-connect-card{padding:14px}.account-connect-card button{width:100%}}
 </style>
+
+<style id="OFFICEME_CLEAN_HOME">
+/* Clean director workspace: one input, then a compact activity feed. */
+#directorActionDock.office-inline-activity{
+  position:static!important;inset:auto!important;z-index:auto!important;
+  display:flex!important;align-items:stretch!important;flex-direction:column!important;
+  width:100%!important;max-width:none!important;min-width:0!important;
+  margin:14px 0 24px!important;gap:0!important;
+}
+#directorActionDock.office-inline-activity #directorActionToggle{display:none!important}
+#directorActionDock.office-inline-activity #directorActionPanel,
+#directorActionDock.office-inline-activity #directorActionPanel[hidden]{
+  display:block!important;position:static!important;width:100%!important;
+  max-width:none!important;max-height:none!important;overflow:visible!important;
+  margin:0!important;padding:16px!important;border-radius:16px!important;
+  background:linear-gradient(160deg,#16223a,#10182a)!important;
+  border:1px solid var(--line)!important;box-shadow:none!important;
+}
+#directorActionDock.office-inline-activity #directorActionPanel>.director-action-head h3{font-size:18px!important}
+#directorActionDock.office-inline-activity #directorActionPanel>.director-action-head button,
+#directorActionDock.office-inline-activity #directorActionPanel>.director-action-note,
+#directorActionDock.office-inline-activity #williamHelpForm,
+#directorActionDock.office-inline-activity #williamHelpQueue,
+#directorActionDock.office-inline-activity #directorVideoUrl,
+#directorActionDock.office-inline-activity #directorVideoOpen,
+#directorActionDock.office-inline-activity #directorVideoClear,
+#directorActionDock.office-inline-activity #directorVideoStatus,
+#directorActionDock.office-inline-activity #directorVideoFrame,
+#directorActionDock.office-inline-activity #directorVideoTitle,
+#directorActionDock.office-inline-activity #directorVideoTitle~p,
+#directorActionDock.office-inline-activity #directorVideoTitle~label,
+#directorActionDock.office-inline-activity #directorVideoTitle~.actions{display:none!important}
+#directorActionDock.office-inline-activity #directorActionPanel .director-video-review{display:none!important}
+#directorActionDock.office-inline-activity #directorActionList{min-height:52px}
+#directorActionDock.office-inline-activity #directorActionList:empty:after{
+ content:"Aktivitas akan muncul di sini setelah link dikirim. Status hanya ditampilkan jika tahap benar-benar berjalan.";
+ line-height:1.6
+}
+@media(max-width:600px){
+ #directorActionDock.office-inline-activity{left:auto!important;right:auto!important;bottom:auto!important}
+ #directorActionDock.office-inline-activity #directorActionPanel{width:100%!important;max-height:none!important}
+}
+</style>
+
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>
@@ -2476,6 +2520,32 @@ window.addEventListener("unhandledrejection",function(e){
     const section=manualTaskHeading.closest(".agent-monitor-section");
     if(section)section.classList.add("office-simple-hidden");
   }
+})();
+</script>
+
+
+<script id="OFFICEME_CLEAN_HOME_INIT">
+(function(){
+  const byId=id=>document.getElementById(id);
+  const affiliate=byId("affiliateLinkManager");
+  const dock=byId("directorActionDock");
+  const panel=byId("directorActionPanel");
+  if(affiliate&&dock){
+    affiliate.insertAdjacentElement("afterend",dock);
+    dock.classList.add("office-inline-activity");
+  }
+  if(panel) panel.hidden=false;
+  const agents=byId("agents");
+  if(agents){
+    agents.classList.add("office-simple-hidden");
+    const heading=agents.previousElementSibling;
+    if(heading&&heading.classList.contains("section")) heading.classList.add("office-simple-hidden");
+  }
+  document.querySelectorAll("h1,h2,h3,h4").forEach(h=>{
+    if((h.textContent||"").trim()==="Pusat Tindakan William"){
+      h.textContent="Aktivitas kerja";
+    }
+  });
 })();
 </script>
 

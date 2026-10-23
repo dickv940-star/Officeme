@@ -1043,6 +1043,12 @@ img,video,iframe,canvas{max-width:100%}
 }
 </style>
 
+<style id="OFFICEME_ACCOUNT_CONNECT_LAYOUT">
+.account-connect-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:14px;margin:18px 0}
+.account-connect-card{min-width:0;border:1px solid var(--line,#263650);border-radius:16px;padding:16px;background:rgba(18,27,47,.72);display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.account-connect-card h3{margin:0;font-size:16px}.account-connect-card p{margin:0 0 4px}.account-connect-card button{margin-top:auto}.account-connect-state{font-size:13px;line-height:1.5;color:var(--muted,#9aabc5);overflow-wrap:anywhere;white-space:pre-wrap}.account-connect-state[data-connected="true"]{color:var(--green,#72e0b2)}.account-connect-state[data-error="true"]{color:#ffaaa8}.account-connect-card a{color:var(--accent,#86aaff)}
+@media(max-width:560px){.account-connect-grid{grid-template-columns:1fr}.account-connect-card{padding:14px}.account-connect-card button{width:100%}}
+</style>
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>
@@ -1077,11 +1083,19 @@ img,video,iframe,canvas{max-width:100%}
 </section>
 
 <section class="gemini-csv-panel" id="platformIntegrationPanel">
-  <div class="eyebrow">Kesiapan integrasi multi-platform</div>
-  <h2>Status Instagram, Facebook, Shopee, dan YouTube</h2>
-  <p class="muted">Status ini hanya memeriksa keberadaan konfigurasi backend, bukan koneksi akun. OAuth Instagram/Facebook/YouTube belum aktif; tombol koneksi akun belum dapat bekerja sampai alur OAuth aman dibangun dan aplikasi developer disiapkan. Publikasi tetap terkunci dan persetujuan manusia wajib.</p>
-  <div class="gemini-csv-actions"><button type="button" class="primary" id="platformIntegrationCheck">Periksa semua platform</button></div>
-  <div id="platformIntegrationStatus" class="gemini-csv-status" role="status" aria-live="polite">Belum diperiksa.</div>
+  <div class="eyebrow">Koneksi akun · OAuth resmi</div>
+  <h2>Hubungkan Instagram, Facebook, YouTube, TikTok, dan Shopee</h2>
+  <p class="muted">Login dan izin diberikan di situs resmi tiap platform. Token disimpan terenkripsi di backend. Shopee Affiliate memakai API key resmi dan bukan OAuth login. Status terhubung hanya muncul setelah callback dan verifikasi identitas akun berhasil. Publikasi tetap memerlukan persetujuan manusia.</p>
+  <div class="account-connect-grid">
+    <article class="account-connect-card"><h3>Instagram Professional</h3><p class="muted">Memerlukan akun Business/Creator yang terhubung ke Facebook Page.</p><button type="button" class="primary account-connect" data-platform="instagram">Hubungkan Instagram</button><div class="account-connect-state" data-status="instagram" role="status">Belum diperiksa.</div></article>
+    <article class="account-connect-card"><h3>Facebook Page</h3><p class="muted">Menghubungkan Page yang Anda kelola; bukan akses bebas ke akun pribadi.</p><button type="button" class="primary account-connect" data-platform="facebook">Hubungkan Facebook</button><div class="account-connect-state" data-status="facebook" role="status">Belum diperiksa.</div></article>
+    <article class="account-connect-card"><h3>YouTube</h3><p class="muted">Membaca kanal dan meminta izin upload yang diizinkan oleh aplikasi Google.</p><button type="button" class="primary account-connect" data-platform="youtube">Hubungkan YouTube</button><div class="account-connect-state" data-status="youtube" role="status">Belum diperiksa.</div></article>
+    <article class="account-connect-card"><h3>TikTok</h3><p class="muted">Memerlukan Login Kit; izin tambahan seperti publikasi bergantung pada persetujuan aplikasi TikTok.</p><button type="button" class="primary account-connect" data-platform="tiktok">Hubungkan TikTok</button><div class="account-connect-state" data-status="tiktok" role="status">Belum diperiksa.</div></article>
+    <article class="account-connect-card"><h3>Shopee Affiliate</h3><p class="muted">Koneksi memakai Affiliate Open API dengan App ID dan Secret di Cloudflare. Tidak ada login OAuth Shopee generik di sini.</p><a href="https://open-api.affiliate.shopee.co.id/explorer/v2" target="_blank" rel="noopener noreferrer">Buka API Explorer ↗</a><div class="account-connect-state" data-status="shopee">Belum diverifikasi.</div></article>
+  </div>
+  <div class="gemini-csv-actions"><button type="button" class="primary" id="platformIntegrationCheck">Periksa status koneksi</button></div>
+  <div id="platformIntegrationStatus" class="gemini-csv-status" role="status" aria-live="polite">Belum diperiksa. Masuk ke OfficeMe dan pastikan backend telah dikonfigurasi.</div>
+  <div class="gemini-csv-help">Persiapan backend: binding KV bernama INTEGRATION_KV, secret INTEGRATION_ENCRYPTION_KEY (acak, minimal 32 karakter), OAUTH_CALLBACK_URL, META_APP_ID/META_APP_SECRET, YOUTUBE_OAUTH_CLIENT_ID/YOUTUBE_OAUTH_CLIENT_SECRET, dan TIKTOK_CLIENT_KEY/TIKTOK_CLIENT_SECRET. Daftarkan URL callback yang sama persis pada aplikasi developer masing-masing. Jangan memasukkan secret di halaman ini, GitHub, atau chat.</div>
 </section>
 
 <section class="gemini-csv-panel" id="shopeeApiPanel">
@@ -2112,28 +2126,55 @@ window.addEventListener("unhandledrejection",function(e){
  const status=document.getElementById("platformIntegrationStatus");
  const urlInput=document.getElementById("geminiCsvWorkerUrl");
  const tokenInput=document.getElementById("geminiCsvToken");
- if(!button||!status)return;
- button.addEventListener("click",async()=>{
-  let base;
-  try{
-   const url=new URL(urlInput?.value.trim()||"");
-   if(url.protocol!=="https:"||!url.hostname.endsWith(".workers.dev")||url.pathname!=="/"||url.search||url.hash||url.username||url.password)throw new Error();
-   base=url.origin;
-  }catch(_){status.textContent="URL backend Cloudflare Workers tidak valid.";return}
-  const token=tokenInput?.value.trim();
-  if(!token){status.textContent="Masuk dahulu melalui panel login. Jangan kirim token ke chat.";return}
-  button.disabled=true;status.textContent="Memeriksa status konfigurasi platform…";
-  try{
-   const response=await fetch(base+"/api/integrations/status",{method:"GET",headers:{Authorization:"Bearer "+token},cache:"no-store"});
-   const data=await response.json().catch(()=>({}));
-   if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
-   const p=data.platforms||{};
-   const line=(label,x)=>label+": "+(x?.configured?"konfigurasi tersedia":"belum siap")+(x?.blockers?.length?"; perlu: "+x.blockers.join(", "):"");
-   status.textContent=[line("Shopee Affiliate",p.shopeeAffiliate),line("Instagram/Reels",p.instagram),line("Facebook Pages/Reels",p.facebook),line("YouTube Shorts",p.youtubeShorts),"Publikasi otomatis: NONAKTIF. Persetujuan manusia tetap wajib."].join("\n");
-   status.style.whiteSpace="pre-wrap";
-  }catch(error){status.textContent="Pemeriksaan gagal: "+(error.message||"Kesalahan koneksi")+". Pastikan backend sudah diperbarui dan token valid."}
+ function backend(){
+  const url=new URL(urlInput?.value.trim()||"");
+  if(url.protocol!=="https:"||!url.hostname.endsWith(".workers.dev")||url.pathname!=="/"||url.search||url.hash||url.username||url.password)throw new Error("URL backend Cloudflare Workers tidak valid.");
+  return url.origin;
+ }
+ function token(){const value=tokenInput?.value.trim();if(!value)throw new Error("Masuk dahulu melalui panel login. Jangan kirim token ke chat.");return value;}
+ async function check(){
+  const base=backend(),auth=token();
+  const response=await fetch(base+"/api/integrations/status",{headers:{Authorization:"Bearer "+auth},cache:"no-store"});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
+  const p=data.platforms||{};
+  for(const name of ["instagram","facebook","youtube","tiktok","shopee"]){
+   const el=document.querySelector('[data-status="'+name+'"]');if(!el)continue;
+   const item=name==="youtube"?p.youtubeShorts:name==="shopee"?p.shopeeAffiliate:p[name];
+   const connected=Boolean(item?.connected&&item?.verified);
+   el.dataset.connected=String(connected);el.dataset.error=String(!connected&&Boolean(item?.error));
+   const identity=item?.account||null;
+   const account=identity?(identity.username?"@"+identity.username:identity.title||identity.name||identity.type||identity.id):"";
+   const blockers=(item?.blockers||[]).join(", ");
+   el.textContent=connected?"TERHUBUNG · "+(account||"identitas diverifikasi"):"BELUM TERHUBUNG"+(item?.configured?" · konfigurasi siap":"")+(blockers?"\nPerlu: "+blockers:"");
+  }
+  const line=(label,x)=>label+": "+(x?.connected&&x?.verified?"TERHUBUNG":x?.configured?"belum diotorisasi":"belum dikonfigurasi")+(x?.blockers?.length?"; "+x.blockers.join(", "):"");
+  status.textContent=[line("Instagram",p.instagram),line("Facebook Page",p.facebook),line("YouTube",p.youtubeShorts),line("TikTok",p.tiktok),line("Shopee Affiliate",p.shopeeAffiliate),"Publikasi otomatis: NONAKTIF. Persetujuan manusia tetap wajib."].join("\n");
+  status.style.whiteSpace="pre-wrap";
+ }
+ button?.addEventListener("click",async()=>{
+  button.disabled=true;status.textContent="Memverifikasi otorisasi dan konfigurasi di backend…";
+  try{await check();const q=new URLSearchParams(location.search);if(q.has("integration")){const result=q.get("integration");status.textContent+="\nHasil callback terakhir: "+result+" ("+(q.get("platform")||"platform tidak diketahui")+").";q.delete("integration");q.delete("platform");history.replaceState(null,"",location.pathname+(q.toString()?"?"+q.toString():"")+location.hash);}}
+  catch(error){status.textContent="Pemeriksaan gagal: "+(error.message||"Kesalahan koneksi")+". Pastikan backend dan token valid."}
   finally{button.disabled=false}
  });
+ document.querySelectorAll(".account-connect[data-platform]").forEach((connectButton)=>{
+  connectButton.addEventListener("click",async()=>{
+   let base,auth;const platform=connectButton.dataset.platform;
+   try{base=backend();auth=token();}catch(error){status.textContent=error.message;return}
+   connectButton.disabled=true;const state=document.querySelector('[data-status="'+platform+'"]');if(state)state.textContent="Menyiapkan otorisasi resmi…";
+   try{
+    const response=await fetch(base+"/api/integrations/oauth/start",{method:"POST",headers:{"Authorization":"Bearer "+auth,"Content-Type":"application/json"},body:JSON.stringify({platform})});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.ok||!data.authorizationUrl)throw new Error(data.error||"Backend tidak berhasil menyiapkan otorisasi.");
+    location.assign(data.authorizationUrl);
+   }catch(error){if(state){state.dataset.error="true";state.textContent="Belum terhubung. "+(error.message||"Otorisasi gagal.");}status.textContent="Koneksi "+platform+" gagal dimulai: "+(error.message||"Kesalahan koneksi");connectButton.disabled=false;}
+  });
+ });
+ if(new URLSearchParams(location.search).has("integration")){
+  status.textContent="Kembali dari halaman otorisasi. Tekan “Periksa status koneksi” untuk memverifikasi hasilnya.";
+  setTimeout(()=>button?.click(),100);
+ }
 })();
 </script>
 <script id="SHOPEE_AFFILIATE_STATUS_SCRIPT">

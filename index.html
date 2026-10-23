@@ -931,6 +931,118 @@ img,video,iframe,canvas{max-width:100%}
  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
 </style>
+
+<style id="OFFICEME_NOTIFICATION_LAYOUT">
+/* Notification center polish: clear hierarchy, readable activity cards, tidy mobile dock */
+#directorActionDock{
+  right:clamp(10px,1.5vw,22px);
+  bottom:clamp(10px,1.5vw,22px);
+  gap:10px;
+}
+#directorActionToggle{
+  min-height:46px;
+  padding:10px 15px;
+  gap:10px;
+  border:1px solid rgba(145,166,255,.42)!important;
+  background:linear-gradient(135deg,#202f4b,#111c30)!important;
+  box-shadow:0 10px 32px rgba(0,0,0,.34),0 0 0 1px rgba(145,166,255,.08);
+  white-space:nowrap;
+}
+#directorActionToggle span:nth-child(2){letter-spacing:.01em}
+#directorActionCount{
+  flex:0 0 auto;
+  min-width:23px;
+  height:23px;
+  padding:0 6px;
+  background:#a9b8ff;
+  color:#11182a;
+  font-variant-numeric:tabular-nums;
+}
+#directorActionPanel{
+  width:min(430px,calc(100vw - 28px))!important;
+  max-height:min(76dvh,720px)!important;
+  padding:18px!important;
+  border-color:rgba(145,166,255,.28)!important;
+  border-radius:18px!important;
+  background:linear-gradient(155deg,rgba(19,30,49,.99),rgba(9,16,29,.99))!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.48),0 0 0 1px rgba(255,255,255,.025);
+  scrollbar-width:thin;
+  scrollbar-color:#405575 transparent;
+}
+#directorActionPanel>.director-action-head{
+  position:sticky;
+  top:-18px;
+  z-index:2;
+  padding:12px 0 13px;
+  margin:0 0 12px!important;
+  background:linear-gradient(180deg,#131e31 80%,rgba(19,30,49,.94));
+  border-bottom:1px solid rgba(139,163,204,.16);
+}
+#directorActionPanel>.director-action-head h3{font-size:16px;letter-spacing:-.02em}
+#directorActionPanel>.director-action-head button{min-height:34px;padding:7px 11px}
+#directorActionPanel>.director-action-note{
+  margin:0 0 14px;
+  padding:10px 12px;
+  border:1px solid rgba(139,163,204,.14);
+  border-radius:11px;
+  background:rgba(5,11,21,.32);
+}
+#directorActionList{
+  display:grid!important;
+  gap:8px;
+  margin-top:10px;
+}
+#directorActionList:empty:after{
+  padding:16px 12px;
+  text-align:center;
+  border:1px dashed rgba(139,163,204,.22);
+  border-radius:12px;
+  background:rgba(5,11,21,.22);
+}
+#directorActionList>.director-action-item{
+  display:grid;
+  grid-template-columns:8px minmax(0,1fr);
+  align-items:start;
+  gap:10px;
+  padding:12px;
+  border:1px solid rgba(139,163,204,.17);
+  border-radius:12px;
+  background:rgba(6,13,25,.48);
+}
+#directorActionList>.director-action-item:first-child{border-top:1px solid rgba(139,163,204,.17)}
+#directorActionList .director-action-dot{margin-top:5px;box-shadow:0 0 0 3px rgba(134,170,255,.1)}
+#directorActionList .director-action-item[data-kind="error"]{border-color:rgba(255,141,141,.28);background:rgba(75,25,36,.18)}
+#directorActionList .director-action-item[data-kind="success"]{border-color:rgba(114,224,178,.22);background:rgba(16,63,54,.16)}
+#directorActionList .director-action-item b{font-size:13px;line-height:1.45;color:#f1f5ff}
+#directorActionList .director-action-item div div{font-size:12px!important;line-height:1.6;color:#c7d2e7}
+#directorActionList .director-action-item small{font-size:10px;line-height:1.5;color:#91a2bd;margin-top:7px}
+#williamHelpQueue article,#williamHelpQueue .director-action-item{
+  padding:13px!important;
+  border-radius:12px!important;
+  border-color:rgba(139,163,204,.17)!important;
+  background:rgba(5,11,21,.35);
+}
+#williamHelpQueue article>b{font-size:13px;line-height:1.5;color:#edf2ff}
+#williamHelpQueue article>small{line-height:1.55}
+#williamHelpStatus{margin-top:10px!important}
+@media(max-width:600px){
+  #directorActionDock{left:10px;right:10px;bottom:10px;align-items:flex-end;max-width:none}
+  #directorActionToggle{min-height:44px;padding:9px 12px;font-size:12px}
+  #directorActionPanel{
+    width:100%!important;
+    max-height:min(74dvh,680px)!important;
+    padding:14px!important;
+    border-radius:15px!important;
+  }
+  #directorActionPanel>.director-action-head{top:-14px;padding:10px 0 12px}
+  #directorActionPanel>.director-action-head h3{font-size:15px}
+  #directorActionList>.director-action-item{padding:11px}
+}
+@media(prefers-reduced-motion:reduce){
+  #directorActionToggle{transition:none!important}
+}
+</style>
+
 </head>
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>

@@ -86,3 +86,31 @@ The Worker never calls paid-only APIs. Each agent has an ordered list of free pr
 - Cloudflare Workers AI works through the `AI` binding with no key.
 
 Optional variables: `<PROVIDER>_DAILY_LIMIT` and `<PROVIDER>_MODEL`. See `backend/wrangler.toml.example`. The approvals table already exists in your `appdigi-approvals` D1 database; `backend/schema.sql` documents it. Run tests with `node --test backend/test/*.test.mjs`.
+
+## Secure account connections (OAuth)
+
+The account-connect UI and backend OAuth callbacks are implemented, but a platform is **not connected** until its developer application is configured and the user completes consent and identity verification.
+
+### Required Cloudflare Worker configuration
+
+1. Create a Cloudflare KV namespace and bind it to the Worker as INTEGRATION_KV.
+2. Add Worker secrets/variables (never commit their values):
+   - INTEGRATION_ENCRYPTION_KEY: high-entropy random secret, at least 32 characters. Changing it makes previously encrypted integration tokens unreadable.
+   - OAUTH_CALLBACK_URL: exact HTTPS URL https://YOUR-WORKER-HOST/api/integrations/oauth/callback. Register this exact URI with each provider.
+   - OAUTH_APP_URL: optional, defaults to the OfficeMe GitHub Pages app URL.
+   - Meta: META_APP_ID, META_APP_SECRET; optionally META_GRAPH_VERSION.
+   - Google: YOUTUBE_OAUTH_CLIENT_ID, YOUTUBE_OAUTH_CLIENT_SECRET; enable YouTube Data API v3 and configure the OAuth consent screen.
+   - TikTok: TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET; optionally TIKTOK_SCOPES (default user.info.basic,video.list).
+3. In Meta, configure Facebook Login/Instagram API products and request only permissions approved for your app. Instagram requires a Professional (Business/Creator) account linked to a Facebook Page.
+4. In Google Cloud, register the callback as an authorized redirect URI and enable YouTube Data API v3.
+5. In TikTok for Developers, enable Login Kit and register the callback URI. Additional publishing scopes require TikTok approval.
+6. Deploy backend/worker.js, then use the OfficeMe “Hubungkan Akun” cards. The user must already be logged into OfficeMe with the backend shared token. Tokens are encrypted with AES-GCM before storage in KV; OAuth state expires after 10 minutes and is single-use.
+
+### Platform-specific limitations
+
+- Instagram and Facebook use Meta OAuth and verify a managed Facebook Page (Instagram additionally requires a linked professional Instagram account).
+- YouTube uses Google OAuth and verifies a channel through YouTube Data API.
+- TikTok uses Login Kit and verifies the authorized TikTok identity. The default scope reads basic profile and video-list access; publishing is not enabled automatically.
+- Shopee in this repository is the Shopee Affiliate Open API, which uses official app credentials and signed API calls, not a generic Shopee account OAuth flow. Its status deliberately remains unconnected until a separate authenticated API verification is added.
+- Content publication and other write actions remain disabled in this milestone. OAuth grants only scopes approved by the provider; it does not itself implement or authorize every publishing action. Human approval remains mandatory.
+

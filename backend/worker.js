@@ -480,6 +480,10 @@ async function tryRunOneAgent(agentId, task, context, env) {
 }
 
 async function runAgents(input, env) {
+  const savedMemory = await loadAgentMemoryContext(env);
+  const suppliedContext = input && input.context && typeof input.context === "object" ? input.context : {};
+  const enrichedInput = { ...input, context: savedMemory ? { ...suppliedContext, ...savedMemory } : suppliedContext };
+  input = enrichedInput;
   if (!input || typeof input.task !== "string" || !input.task.trim() || input.task.length > 8000) throw new Error("INVALID_AGENT_INPUT");
   const mode = input.mode === "team" ? "team" : "single";
   if (mode === "single") {
@@ -817,6 +821,73 @@ async function validatePublishPackage(request, env, origin) {
 }
 
 
+
+async function ensureAgentMemoryTable(env) {
+  const db = env.APPROVAL_DB;
+  if (!db || typeof db.prepare !== "function") throw new Error("TASK_STORE_NOT_CONFIGURED");
+  await db.prepare(`CREATE TABLE IF NOT EXISTS agent_memory (
+    id TEXT PRIMARY KEY,
+    memory_key TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL CHECK (category IN ('project', 'preference', 'sop', 'decision')),
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    tags_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`).run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_agent_memory_category_updated ON agent_memory (category, updated_at DESC)").run();
+  return db;
+}
+
+function looksLikeCredential(value) {
+  return /(?:api[_ -]?key|client[_ -]?secret|access[_ -]?token|refresh[_ -]?token|bearer\\s+[a-z0-9._-]{12,}|password|private[_ -]?key)\\s*[:=]/i.test(value);
+}
+
+async function listAgentMemory(env, origin) {
+  try {
+    const db = await ensureAgentMemoryTable(env);
+    const rows = await db.prepare("SELECT id, memory_key, category, title, content, tags_json, created_at, updated_at FROM agent_memory ORDER BY updated_at DESC LIMIT 100").all();
+    return json({ ok: true, items: (rows.results || []).map(row => {
+      let tags = [];
+      try { tags = JSON.parse(row.tags_json || "[]"); } catch (_) {}
+      return { id: row.id, key: row.memory_key, category: row.category, title: row.title, content: row.content, tags, createdAt: row.created_at, updatedAt: row.updated_at };
+    }) }, 200, origin);
+  } catch (error) {
+    const status = error && error.message === "TASK_STORE_NOT_CONFIGURED" ? 503 : 500;
+    return json({ ok: false, error: status === 503 ? "Penyimpanan memori belum dikonfigurasi." : "Tidak dapat membaca memori agen." }, status, origin);
+  }
+}
+
+async function saveAgentMemory(input, env, origin) {
+  if (!input || typeof input.key !== "string" || !/^[a-z0-9][a-z0-9._-]{1,79}$/i.test(input.key) ||
+      !["project", "preference", "sop", "decision"].includes(input.category) ||
+      typeof input.title !== "string" || !input.title.trim() || input.title.length > 160 ||
+      typeof input.content !== "string" || !input.content.trim() || input.content.length > 4000) {
+    return json({ ok: false, error: "Memori tidak valid. Periksa key, kategori, judul, dan konten (maksimal 4.000 karakter)." }, 400, origin);
+  }
+  if (looksLikeCredential(input.content) || looksLikeCredential(input.title)) {
+    return json({ ok: false, error: "Jangan simpan kredensial, token, atau password dalam memori agen." }, 400, origin);
+  }
+  const tags = Array.isArray(input.tags) ? [...new Set(input.tags.filter(t => typeof t === "string").map(t => t.trim()).filter(Boolean).map(t => t.slice(0, 40)))].slice(0, 10) : [];
+  const db = await ensureAgentMemoryTable(env);
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+  await db.prepare("INSERT INTO agent_memory (id, memory_key, category, title, content, tags_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(memory_key) DO UPDATE SET category=excluded.category, title=excluded.title, content=excluded.content, tags_json=excluded.tags_json, updated_at=excluded.updated_at")
+    .bind(id, input.key.trim(), input.category, input.title.trim(), input.content.trim(), JSON.stringify(tags), now, now).run();
+  return json({ ok: true, key: input.key.trim(), category: input.category, title: input.title.trim(), updatedAt: now }, 200, origin);
+}
+
+async function loadAgentMemoryContext(env) {
+  try {
+    const db = await ensureAgentMemoryTable(env);
+    const rows = await db.prepare("SELECT memory_key, category, title, content, tags_json FROM agent_memory ORDER BY CASE category WHEN 'sop' THEN 0 WHEN 'decision' THEN 1 WHEN 'project' THEN 2 ELSE 3 END, updated_at DESC LIMIT 20").all();
+    const items = (rows.results || []).map(row => ({ key: row.memory_key, category: row.category, title: row.title, content: row.content, tags: (() => { try { return JSON.parse(row.tags_json || "[]"); } catch (_) { return []; } })() }));
+    return items.length ? { officeMeLongTermMemory: items } : null;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function ensureAgentTasksTable(env) {
   const db = env.APPROVAL_DB;
   if (!db || typeof db.prepare !== "function") throw new Error("TASK_STORE_NOT_CONFIGURED");
@@ -933,6 +1004,7 @@ export default {
       body.action="status";return updateAgentHelp(helpStatusMatch[1],body,env,origin);
     }
     if (request.method === "GET" && path === "/api/tasks") return listAgentTaskRecords(env, origin);
+    if (request.method === "GET" && path === "/api/memory") return listAgentMemory(env, origin);
     if (request.method === "GET" && path === "/api/session") {
       return json({ ok: true, authenticated: true }, 200, origin);
     }
@@ -969,7 +1041,7 @@ export default {
     if (request.method === "POST" && path === "/api/publisher/validate") return validatePublishPackage(request, env, origin);
     const decisionMatch = path.match(/^\/api\/approvals\/([a-zA-Z0-9_-]{1,80})\/decision$/);
     if (request.method === "POST" && decisionMatch) return decideApproval(request, env, origin, decisionMatch[1]);
-    if (request.method !== "POST" || !["/api/analyze", "/api/agents/run", "/api/agents/chat", "/api/agents/delegate", "/api/shopee/graphql"].includes(path)) {
+    if (request.method !== "POST" || !["/api/analyze", "/api/agents/run", "/api/agents/chat", "/api/agents/delegate", "/api/shopee/graphql", "/api/memory"].includes(path)) {
       return json({ ok: false, error: "Rute tidak ditemukan." }, 404, origin);
     }
     const declaredLength = Number(request.headers.get("Content-Length") || 0);
@@ -978,6 +1050,7 @@ export default {
       const raw = await request.text();
       if (raw.length > MAX_BODY_BYTES) return json({ ok: false, error: "Ukuran permintaan terlalu besar." }, 413, origin);
       const input = JSON.parse(raw);
+      if (path === "/api/memory") return saveAgentMemory(input, env, origin);
       if (path === "/api/agents/run") {
         const record = await createAgentTaskRecord(input, env);
         try {

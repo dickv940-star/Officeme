@@ -33,6 +33,103 @@
   researchPanel.append(researchHeading, researchBody, researchSources);
   list.parentNode.insertBefore(researchPanel, list);
 
+  const workflowPanel = document.createElement("section");
+  workflowPanel.className = "gemini-csv-result";
+  workflowPanel.hidden = true;
+  workflowPanel.setAttribute("aria-live", "polite");
+  workflowPanel.style.marginTop = "12px";
+  const workflowHeading = document.createElement("strong");
+  workflowHeading.textContent = "Alur kerja Tim AI";
+  const workflowStatus = document.createElement("div");
+  workflowStatus.style.cssText = "margin-top:8px;white-space:pre-wrap;line-height:1.6";
+  const workflowResults = document.createElement("div");
+  workflowResults.style.cssText = "display:grid;gap:8px;margin-top:12px";
+  workflowPanel.append(workflowHeading, workflowStatus, workflowResults);
+  researchPanel.parentNode.insertBefore(workflowPanel, list);
+
+  let teamWorkflowRunning = false;
+  async function runTeamWorkflow(url, productName, base, token, research, researchError) {
+    if (teamWorkflowRunning) return;
+    teamWorkflowRunning = true;
+    workflowPanel.hidden = false;
+    workflowHeading.textContent = "AI Manager · pembagian tugas otomatis";
+    workflowStatus.textContent = "Manager sedang menugaskan Data Analyst, Product Researcher, Strategist, Content Producer, SEO, Visual Designer, Automation Engineer, lalu Quality & Compliance Reviewer. Tidak perlu instruksi terpisah.";
+    workflowResults.replaceChildren();
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    const task = [
+      "Jalankan alur standar OfficeMe untuk satu link affiliate Shopee yang diberikan William sebagai direktur.",
+      "Setiap agen harus menjalankan tanggung jawab tetap sesuai spesialisasinya tanpa meminta William menulis instruksi tambahan.",
+      "Mulai dengan mengidentifikasi produk hanya dari bukti yang tersedia; gunakan hasil riset Google Search bila tersedia.",
+      "Hasil yang dibutuhkan: ringkasan produk dan batasan data; audiens dan strategi affiliate; konsep konten video pendek beserta hook/naskah/caption/CTA; kata kunci dan judul SEO; brief visual/shot list; kebutuhan integrasi dan langkah lanjutan; pemeriksaan klaim, disclosure affiliate, serta risiko kepatuhan.",
+      "Jangan mengarang harga, rating, ulasan, komisi, stok, penjualan, atau performa. Jangan mengklaim konten telah dipublikasikan. Semua publikasi dan tindakan eksternal tetap menunggu persetujuan William.",
+      "Jika riset produk tidak berhasil, lanjutkan bagian yang masih bisa dikerjakan dari link dan tandai dengan jelas data yang belum diketahui."
+    ].join("\n");
+    try {
+      const response = await fetch(base + "/api/agents/run", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task,
+          mode: "team",
+          context: {
+            source: "Shopee Affiliate link submitted by William",
+            productUrl: url,
+            productName: productName || null,
+            research: research ? { answer: research.answer || "", sources: Array.isArray(research.sources) ? research.sources : [] } : null,
+            researchUnavailable: researchError || null,
+            requiredOutputLanguage: "Bahasa Indonesia",
+            approvalPolicy: "Human approval required before any external action"
+          }
+        }),
+        cache: "no-store"
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data || !Array.isArray(data.results)) {
+        throw new Error(data.error || ("Backend AI Team merespons HTTP " + response.status));
+      }
+      const successful = data.results.filter(item => item && item.ok).length;
+      workflowHeading.textContent = "Alur kerja Tim AI · " + successful + "/" + data.results.length + " agen selesai";
+      workflowStatus.textContent = data.qualityStatus
+        ? "Status pemeriksaan: " + data.qualityStatus + ". " + (data.ok ? "Hasil tim tersedia untuk ditinjau." : "Sebagian tugas gagal atau perlu diperiksa; lihat status tiap agen.")
+        : "Hasil tim diterima. Periksa status tiap agen sebelum menggunakan rekomendasi.";
+      if (data.finalReview) {
+        const review = document.createElement("article");
+        review.style.cssText = "border:1px solid var(--line);border-radius:10px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere";
+        const label = document.createElement("b");
+        label.textContent = "Ringkasan pemeriksaan Charlotte";
+        const body = document.createElement("div");
+        body.style.marginTop = "7px";
+        body.textContent = typeof data.finalReview === "string" ? data.finalReview : JSON.stringify(data.finalReview, null, 2);
+        review.append(label, body);
+        workflowResults.append(review);
+      }
+      data.results.forEach(item => {
+        const card = document.createElement("details");
+        card.style.cssText = "border:1px solid var(--line);border-radius:10px;padding:10px 12px";
+        const summary = document.createElement("summary");
+        summary.style.cursor = "pointer";
+        summary.textContent = (item.name || item.agentId || "AI Agent") + " · " + (item.ok ? "hasil tersedia" : "gagal");
+        const body = document.createElement("div");
+        body.style.cssText = "margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6";
+        const resultText = item.ok
+          ? (typeof item.result === "string" ? item.result : JSON.stringify(item.result, null, 2))
+          : (item.error || "Agen tidak mengembalikan hasil.");
+        body.textContent = resultText;
+        card.append(summary, body);
+        workflowResults.append(card);
+      });
+      setStatus("Link tersimpan. Riset dan alur Tim AI sudah diproses; tinjau hasil serta keterbatasannya sebelum mengambil tindakan.");
+    } catch (error) {
+      workflowHeading.textContent = "Alur kerja Tim AI belum berhasil";
+      workflowStatus.textContent = (error.message || "Backend AI Team gagal merespons.") + "\nLink tetap tersimpan. Periksa provider AI yang dikonfigurasi di backend; tidak ada publikasi otomatis yang dilakukan.";
+      setStatus("Link tersimpan, tetapi alur Tim AI gagal: " + (error.message || "koneksi gagal"), true);
+    } finally {
+      teamWorkflowRunning = false;
+      if (submitButton) submitButton.disabled = false;
+    }
+  }
+
   async function runResearch(url, productName) {
     const backendInput = $("geminiCsvWorkerUrl");
     const tokenInput = $("geminiCsvToken");
@@ -96,6 +193,7 @@
       note.textContent = data.note || "Data komisi dan penjualan pribadi tetap memerlukan laporan resmi Shopee Affiliate.";
       researchSources.append(note);
       setStatus("Link tersimpan. Riset AI selesai; periksa fakta dan sumber sebelum memakai konten.");
+      void runTeamWorkflow(url.href, productName, base, token, data, null);
     } catch (error) {
       researchHeading.textContent = "Riset otomatis belum berhasil";
       researchBody.textContent = error.message || "Koneksi riset gagal.";
@@ -103,6 +201,7 @@
       note.textContent = "Link tetap tersimpan secara lokal. Periksa backend, token, kuota Gemini, dan konfigurasi Google Search grounding.";
       researchSources.replaceChildren(note);
       setStatus("Link tersimpan, tetapi riset gagal: " + (error.message || "koneksi gagal"), true);
+      void runTeamWorkflow(url.href, productName, base, token, null, error.message || "Riset Google Search tidak berhasil.");
     } finally {
       if (submitButton) submitButton.disabled = false;
     }

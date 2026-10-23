@@ -815,14 +815,22 @@ async function analyzeAffiliateLink(input, env) {
     headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      tools: [{ googleSearch: {} }],
+      tools: [{ google_search: {} }],
       generationConfig: { maxOutputTokens: 1800, temperature: 0.2 }
     })
   });
   if (response.status === 429) throw new Error("LLM_RATE_LIMIT");
   if (!response.ok) {
-    console.error("Grounded product research request failed", response.status);
-    throw new Error(response.status === 403 ? "WEB_SEARCH_NOT_CONFIGURED" : "WEB_SEARCH_FAILED");
+    // Log only safe diagnostic metadata; never log request headers or API keys.
+    const apiStatus = typeof data?.error?.status === "string" ? data.error.status : "";
+    const apiMessage = typeof data?.error?.message === "string" ? data.error.message.slice(0, 240) : "";
+    console.error("Grounded product research request failed", JSON.stringify({
+      httpStatus: response.status, apiStatus, apiMessage
+    }));
+    if (response.status === 403 || response.status === 401) throw new Error("WEB_SEARCH_NOT_CONFIGURED");
+    if (response.status === 429) throw new Error("LLM_RATE_LIMIT");
+    if (response.status === 400 && /google.?search|tool|grounding/i.test(apiMessage)) throw new Error("WEB_SEARCH_NOT_CONFIGURED");
+    throw new Error("WEB_SEARCH_FAILED");
   }
   const candidate = data?.candidates?.[0];
   const answer = Array.isArray(candidate?.content?.parts)

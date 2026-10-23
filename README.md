@@ -94,3 +94,13 @@ The Worker never calls paid-only APIs. Each agent has an ordered list of free pr
 - Cloudflare Workers AI works through the `AI` binding with no key.
 
 Optional variables: `<PROVIDER>_DAILY_LIMIT` and `<PROVIDER>_MODEL`. See `backend/wrangler.toml.example`. The approvals table already exists in your `appdigi-approvals` D1 database; `backend/schema.sql` documents it. Run tests with `node --test backend/test/*.test.mjs`.
+
+
+## Agent memory
+
+- `GET /api/memory` lists up to 100 saved entries.
+- `POST /api/memory` creates or updates an entry by unique key. Supported categories: `project`, `preference`, `sop`, `decision`.
+- The dashboard memory panel saves project notes and procedures in the existing D1 binding `APPROVAL_DB`.
+- Agent runs receive up to 20 saved entries as context. Context is treated as untrusted data, not system instructions.
+- Do not store passwords, API keys, access tokens, or sensitive personal information. The input guard catches common credential patterns but cannot detect every possible case.
+- If D1 is unavailable, the dashboard shows a backend error rather than pretending that the memory was saved.

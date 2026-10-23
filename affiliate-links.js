@@ -45,7 +45,61 @@
   const workflowResults = document.createElement("div");
   workflowResults.style.cssText = "display:grid;gap:8px;margin-top:12px";
   workflowPanel.append(workflowHeading, workflowStatus, workflowResults);
+  const metricoolActions = document.createElement("div");
+  metricoolActions.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;margin-top:12px";
+  metricoolActions.hidden = true;
+  const metricoolExportButton = button("Unduh paket konten untuk Metricool (.md)", () => {
+    if (!metricoolExportButton.dataset.content) return;
+    const blob = new Blob([metricoolExportButton.dataset.content], { type: "text/markdown;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = "officeme-paket-konten-metricool.md";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+    setStatus("Paket konten diunduh. Periksa fakta, media, disclosure affiliate, dan jadwalkan secara manual di Metricool Free.");
+  }, "primary");
+  const metricoolOpenButton = button("Buka Metricool", () => {
+    window.open("https://app.metricool.com/", "_blank", "noopener,noreferrer");
+  });
+  metricoolActions.append(metricoolExportButton, metricoolOpenButton);
+  workflowPanel.append(metricoolActions);
   researchPanel.parentNode.insertBefore(workflowPanel, list);
+
+  function makeMetricoolContentPack(data, url, productName) {
+    const lines = [
+      "# OfficeMe — Paket Konten untuk Metricool",
+      "",
+      "> Draf saja: belum dijadwalkan atau dipublikasikan. Periksa dan setujui secara manual sebelum mengunggah.",
+      "",
+      "## Informasi produk",
+      "- Nama produk: " + (productName || "Belum terverifikasi dari riset"),
+      "- Link affiliate: " + url,
+      "- Dibuat: " + new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }),
+      "",
+      "## Disclosure affiliate",
+      "Tambahkan disclosure yang jelas bahwa tautan dapat menghasilkan komisi, sesuai aturan platform dan program affiliate.",
+      "",
+      "## Pemeriksaan sebelum publikasi",
+      "- [ ] Verifikasi nama, spesifikasi, harga, stok, klaim, dan setiap angka terhadap sumber resmi terbaru.",
+      "- [ ] Pastikan video/gambar yang diperlukan sudah tersedia dan memiliki hak penggunaan.",
+      "- [ ] Periksa caption, CTA, hashtag, link affiliate, dan aturan platform.",
+      "- [ ] Pastikan William menyetujui isi dan waktu publikasi.",
+      "",
+      "## Hasil pemeriksaan tim AI",
+      typeof data.finalReview === "string" ? data.finalReview : JSON.stringify(data.finalReview || "Tidak ada ringkasan pemeriksaan akhir.", null, 2),
+      "",
+      "## Hasil setiap agen"
+    ];
+    (Array.isArray(data.results) ? data.results : []).forEach((item) => {
+      lines.push("", "### " + (item.name || item.agentId || "AI Agent") + " — " + (item.ok ? "hasil tersedia" : "perlu diperiksa"));
+      lines.push(typeof item.result === "string" ? item.result : JSON.stringify(item.result ?? item.error ?? "Tidak ada hasil.", null, 2));
+    });
+    lines.push("", "## Alur gratis", "1. Buka Metricool dan pilih Planner.", "2. Buat posting baru untuk jaringan yang sudah terhubung.", "3. Salin draf yang sudah diperiksa dari dokumen ini; lampirkan media yang diwajibkan.", "4. Jadwalkan manual. Metricool Free memiliki batas publikasi bulanan; periksa penghitung di Planner.", "");
+    return lines.join("\n");
+  }
 
   let teamWorkflowRunning = false;
   async function runTeamWorkflow(url, productName, base, token, research, researchError) {
@@ -104,6 +158,8 @@
         review.append(label, body);
         workflowResults.append(review);
       }
+      metricoolExportButton.dataset.content = makeMetricoolContentPack(data, url, productName);
+      metricoolActions.hidden = false;
       data.results.forEach(item => {
         const card = document.createElement("details");
         card.style.cssText = "border:1px solid var(--line);border-radius:10px;padding:10px 12px";

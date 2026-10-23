@@ -104,13 +104,15 @@ The account-connect UI and backend OAuth callbacks are implemented, but a platfo
 3. In Meta, configure Facebook Login/Instagram API products and request only permissions approved for your app. Instagram requires a Professional (Business/Creator) account linked to a Facebook Page.
 4. In Google Cloud, register the callback as an authorized redirect URI and enable YouTube Data API v3.
 5. In TikTok for Developers, enable Login Kit and register the callback URI. Additional publishing scopes require TikTok approval.
-6. Deploy backend/worker.js, then use the OfficeMe “Hubungkan Akun” cards. The user must already be logged into OfficeMe with the backend shared token. Tokens are encrypted with AES-GCM before storage in KV; OAuth state expires after 10 minutes and is single-use.
+6. In Pinterest Developers, register an app and the exact callback URI. Request only the required scopes; Pinterest must approve the app/access tier before production use.
+7. Deploy backend/worker.js, then use the OfficeMe “Hubungkan Akun” cards. The user must already be logged into OfficeMe with the backend shared token. Tokens are encrypted with AES-GCM before storage in KV; OAuth state expires after 10 minutes and is single-use.
 
 ### Platform-specific limitations
 
 - Instagram and Facebook use Meta OAuth and verify a managed Facebook Page (Instagram additionally requires a linked professional Instagram account).
-- YouTube uses Google OAuth and verifies a channel through YouTube Data API.
+- YouTube uses Google OAuth and verifies a channel through YouTube Data API. This confirms the YouTube channel, not a separate Shorts account; Shorts publishing is still disabled until upload, privacy settings, and human approval are implemented and tested.
 - TikTok uses Login Kit and verifies the authorized TikTok identity. The default scope reads basic profile and video-list access; publishing is not enabled automatically.
+- Pinterest uses the official OAuth authorization-code flow, encrypts access/refresh tokens in KV, verifies `/v5/user_account`, and reads up to 25 boards. Pin creation is intentionally disabled; OAuth connection does not mean a Pin can be published.
 - Shopee in this repository is the Shopee Affiliate Open API, which uses official app credentials and signed API calls, not a generic Shopee account OAuth flow. Its status deliberately remains unconnected until a separate authenticated API verification is added.
 - Content publication and other write actions remain disabled in this milestone. OAuth grants only scopes approved by the provider; it does not itself implement or authorize every publishing action. Human approval remains mandatory.
 

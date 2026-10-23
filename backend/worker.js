@@ -799,9 +799,11 @@ async function analyzeAffiliateLink(input, env) {
   } catch (_) { throw new Error("INVALID_AFFILIATE_URL"); }
   if (!env.GEMINI_API_KEY) throw new Error("WEB_SEARCH_NOT_CONFIGURED");
   if (!(await reserveProviderCall("gemini", env))) throw new Error("LLM_RATE_LIMIT");
-  const model = providerModel("gemini", env);
-  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
-    encodeURIComponent(model) + ":generateContent";
+  const requestedModel = providerModel("gemini", env);
+  // A stale GEMINI_MODEL setting can point to a model that no longer exists or
+  // does not support Search grounding. Try known supported free models before failing.
+  const models = [...new Set([requestedModel, "gemini-2.5-flash", "gemini-2.0-flash"])]
+    .filter((name) => typeof name === "string" && /^[a-zA-Z0-9._-]{1,100}$/.test(name));
   const prompt = [
     "Lakukan riset produk untuk OfficeMe Affiliate Analyst menggunakan Google Search grounding.",
     "Link Shopee yang diberikan pengguna: " + productUrl.href,
@@ -809,27 +811,59 @@ async function analyzeAffiliateLink(input, env) {
     "Gunakan Google Search untuk mencari URL persis tersebut, mengidentifikasi produk jika mungkin, dan membandingkan informasi publik dari sumber yang relevan.",
     "Jawab dalam Bahasa Indonesia dengan bagian: Identitas produk; Fakta yang ditemukan; Target pembeli dan kebutuhan; Kata kunci pencarian; Ide artikel SEO; Ide video YouTube Shorts; Risiko/keterbatasan; Rekomendasi langkah berikutnya.",
     "Bedakan fakta bersumber dari dugaan. Sertakan URL sumber yang relevan. Jangan mengarang harga, rating, ulasan, stok, komisi, penjualan, atau tren. Jika link pendek tidak dapat diidentifikasi oleh Search, katakan tidak berhasil mengidentifikasi dan jangan menebak. Jangan mengklaim halaman Shopee telah dibuka jika tidak ada bukti."
-  ].join("\n\n");
-  const { response, data } = await fetchJsonWithTimeout(endpoint, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      tools: [{ google_search: {} }],
-      generationConfig: { maxOutputTokens: 1800, temperature: 0.2 }
-    })
-  });
-  if (response.status === 429) throw new Error("LLM_RATE_LIMIT");
-  if (!response.ok) {
-    // Log only safe diagnostic metadata; never log request headers or API keys.
-    const apiStatus = typeof data?.error?.status === "string" ? data.error.status : "";
-    const apiMessage = typeof data?.error?.message === "string" ? data.error.message.slice(0, 240) : "";
+  ].join("\\n\\n");
+  let response = null;
+  let data = null;
+  let model = requestedModel;
+  let lastApiStatus = "";
+  let lastApiMessage = "";
+  for (const candidateModel of models) {
+    model = candidateModel;
+    const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
+      encodeURIComponent(candidateModel) + ":generateContent";
+    try {
+      const result = await fetchJsonWithTimeout(endpoint, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          tools: [{ google_search: {} }],
+          generationConfig: { maxOutputTokens: 1800, temperature: 0.2 }
+        })
+      });
+      response = result.response;
+      data = result.data;
+    } catch (error) {
+      console.error("Grounded product research network attempt failed", JSON.stringify({
+        model: candidateModel,
+        reason: error?.name === "AbortError" ? "timeout" : "network_error"
+      }));
+      if (candidateModel !== models[models.length - 1]) continue;
+      throw new Error("WEB_SEARCH_TEMPORARY_FAILURE");
+    }
+    if (response.ok) break;
+    lastApiStatus = typeof data?.error?.status === "string" ? data.error.status : "";
+    lastApiMessage = typeof data?.error?.message === "string" ? data.error.message.slice(0, 240) : "";
     console.error("Grounded product research request failed", JSON.stringify({
-      httpStatus: response.status, apiStatus, apiMessage
+      model: candidateModel, httpStatus: response.status,
+      apiStatus: lastApiStatus, apiMessage: lastApiMessage
     }));
-    if (response.status === 403 || response.status === 401) throw new Error("WEB_SEARCH_NOT_CONFIGURED");
+    if (response.status === 401 || response.status === 403) throw new Error("WEB_SEARCH_NOT_CONFIGURED");
     if (response.status === 429) throw new Error("LLM_RATE_LIMIT");
-    if (response.status === 400 && /google.?search|tool|grounding/i.test(apiMessage)) throw new Error("WEB_SEARCH_NOT_CONFIGURED");
+    const mayTryAnotherModel =
+      response.status >= 500 ||
+      ((response.status === 400 || response.status === 404) &&
+        /model|google.?search|tool|grounding|not found|unsupported/i.test(lastApiMessage));
+    if (!mayTryAnotherModel || candidateModel === models[models.length - 1]) break;
+  }
+  if (!response?.ok) {
+    if (response?.status === 400 && /google.?search|tool|grounding/i.test(lastApiMessage)) {
+      throw new Error("WEB_SEARCH_NOT_CONFIGURED");
+    }
+    if (response?.status === 404 && /model|not found/i.test(lastApiMessage)) {
+      throw new Error("WEB_SEARCH_MODEL_UNAVAILABLE");
+    }
+    if (response && response.status >= 500) throw new Error("WEB_SEARCH_TEMPORARY_FAILURE");
     throw new Error("WEB_SEARCH_FAILED");
   }
   const candidate = data?.candidates?.[0];
@@ -1137,7 +1171,9 @@ export default {
         const map = {
           INVALID_AFFILIATE_URL: [400, "Masukkan link HTTPS Shopee yang valid."],
           WEB_SEARCH_NOT_CONFIGURED: [503, "Gemini API belum siap untuk riset Google Search. Periksa konfigurasi GEMINI_API_KEY dan akses Google Search grounding."],
-          WEB_SEARCH_FAILED: [502, "Pencarian Google melalui Gemini gagal. Coba lagi nanti atau periksa konfigurasi Gemini."],
+          WEB_SEARCH_FAILED: [502, "Pencarian Google melalui Gemini gagal setelah mencoba model cadangan. Periksa log Worker untuk kode HTTP dan model yang ditolak; jangan kirim API key."],
+          WEB_SEARCH_MODEL_UNAVAILABLE: [503, "Model Gemini yang dikonfigurasi tidak tersedia untuk Google Search. Hapus GEMINI_MODEL atau atur ke gemini-2.5-flash di Cloudflare Worker."],
+          WEB_SEARCH_TEMPORARY_FAILURE: [503, "Layanan Gemini sedang gagal atau timeout. Model cadangan sudah dicoba; coba lagi beberapa saat."],
           LLM_RATE_LIMIT: [429, "Kuota Gemini untuk riset hari ini sedang habis. Coba lagi nanti."],
           EMPTY_LLM_RESPONSE: [502, "Gemini tidak mengembalikan hasil riset."]
         };

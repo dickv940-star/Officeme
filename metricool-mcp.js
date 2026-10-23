@@ -95,7 +95,6 @@
   } else {
     void refreshStatus();
   }
-}
   // Google Sheets Rp0 bridge: local-first content calendar with CSV import/export.
   function installGoogleSheetsBridge() {
     if (document.getElementById("officeGoogleSheetsBridge")) return;

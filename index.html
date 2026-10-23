@@ -1148,19 +1148,20 @@ img,video,iframe,canvas{max-width:100%}
 
 <section class="gemini-csv-panel" id="platformIntegrationPanel">
   <div class="eyebrow">Koneksi akun · OAuth resmi</div>
-  <h2>Hubungkan Instagram, Facebook, YouTube, TikTok, dan Shopee</h2>
+  <h2>Hubungkan YouTube Shorts, Pinterest, Instagram, Facebook, TikTok, dan Shopee</h2>
   <p class="muted">Login dan izin diberikan di situs resmi tiap platform. Token disimpan terenkripsi di backend. Shopee Affiliate memakai API key resmi dan bukan OAuth login. Status terhubung hanya muncul setelah callback dan verifikasi identitas akun berhasil. Publikasi tetap memerlukan persetujuan manusia.</p>
   <div class="account-connect-grid">
     <article class="account-connect-card"><h3>Instagram Professional</h3><p class="muted">Memerlukan akun Business/Creator yang terhubung ke Facebook Page.</p><button type="button" class="primary account-connect" data-platform="instagram">Hubungkan Instagram</button><button type="button" class="account-read" data-platform-read="instagram">Baca data API</button><div class="account-connect-state" data-status="instagram" role="status">Belum diperiksa.</div></article>
     <article class="account-connect-card"><h3>Facebook Page</h3><p class="muted">Menghubungkan Page yang Anda kelola; bukan akses bebas ke akun pribadi.</p><button type="button" class="primary account-connect" data-platform="facebook">Hubungkan Facebook</button><button type="button" class="account-read" data-platform-read="facebook">Baca data API</button><div class="account-connect-state" data-status="facebook" role="status">Belum diperiksa.</div></article>
-    <article class="account-connect-card"><h3>YouTube</h3><p class="muted">Membaca kanal dan meminta izin upload yang diizinkan oleh aplikasi Google.</p><button type="button" class="primary account-connect" data-platform="youtube">Hubungkan YouTube</button><button type="button" class="account-read" data-platform-read="youtube">Baca data API</button><div class="account-connect-state" data-status="youtube" role="status">Belum diperiksa.</div></article>
+    <article class="account-connect-card"><h3>YouTube Shorts</h3><p class="muted">Otorisasi kanal YouTube melalui Google OAuth. Status koneksi memverifikasi kanal; upload Shorts tetap nonaktif sampai alur publikasi diuji.</p><button type="button" class="primary account-connect" data-platform="youtube">Hubungkan YouTube</button><button type="button" class="account-read" data-platform-read="youtube">Baca data kanal</button><div class="account-connect-state" data-status="youtube" role="status">Belum diperiksa.</div></article>
+    <article class="account-connect-card"><h3>Pinterest</h3><p class="muted">Hubungkan akun lewat Pinterest OAuth resmi. Membaca profil dan board; publikasi Pin belum diaktifkan.</p><button type="button" class="primary account-connect" data-platform="pinterest">Hubungkan Pinterest</button><button type="button" class="account-read" data-platform-read="pinterest">Baca profil & board</button><div class="account-connect-state" data-status="pinterest" role="status">Belum diperiksa.</div></article>
     <article class="account-connect-card"><h3>TikTok</h3><p class="muted">Memerlukan Login Kit; izin tambahan seperti publikasi bergantung pada persetujuan aplikasi TikTok.</p><button type="button" class="primary account-connect" data-platform="tiktok">Hubungkan TikTok</button><button type="button" class="account-read" data-platform-read="tiktok">Baca data API</button><div class="account-connect-state" data-status="tiktok" role="status">Belum diperiksa.</div></article>
     <article class="account-connect-card"><h3>Shopee Affiliate</h3><p class="muted">Koneksi memakai Affiliate Open API dengan App ID dan Secret di Cloudflare. Tidak ada login OAuth Shopee generik di sini.</p><a href="https://open-api.affiliate.shopee.co.id/explorer/v2" target="_blank" rel="noopener noreferrer">Buka API Explorer ↗</a><div class="account-connect-state" data-status="shopee">Belum diverifikasi.</div></article>
   </div>
   <div class="gemini-csv-actions"><button type="button" class="primary" id="platformIntegrationCheck">Periksa status koneksi</button></div>
   <pre id="integrationDataResult" class="account-data-result" hidden aria-live="polite"></pre>
   <div id="platformIntegrationStatus" class="gemini-csv-status" role="status" aria-live="polite">Belum diperiksa. Masuk ke OfficeMe dan pastikan backend telah dikonfigurasi.</div>
-  <div class="gemini-csv-help">Persiapan backend: binding KV bernama INTEGRATION_KV, secret INTEGRATION_ENCRYPTION_KEY (acak, minimal 32 karakter), OAUTH_CALLBACK_URL, META_APP_ID/META_APP_SECRET, YOUTUBE_OAUTH_CLIENT_ID/YOUTUBE_OAUTH_CLIENT_SECRET, dan TIKTOK_CLIENT_KEY/TIKTOK_CLIENT_SECRET. Daftarkan URL callback yang sama persis pada aplikasi developer masing-masing. Jangan memasukkan secret di halaman ini, GitHub, atau chat.</div>
+  <div class="gemini-csv-help">Persiapan backend: binding KV bernama INTEGRATION_KV, secret INTEGRATION_ENCRYPTION_KEY (acak, minimal 32 karakter), OAUTH_CALLBACK_URL, META_APP_ID/META_APP_SECRET, YOUTUBE_OAUTH_CLIENT_ID/YOUTUBE_OAUTH_CLIENT_SECRET, TIKTOK_CLIENT_KEY/TIKTOK_CLIENT_SECRET, dan PINTEREST_APP_ID/PINTEREST_APP_SECRET. Tambahkan callback yang sama persis ke pengaturan aplikasi Pinterest. Daftarkan URL callback yang sama persis pada aplikasi developer masing-masing. Jangan memasukkan secret di halaman ini, GitHub, atau chat.</div>
 </section>
 
 <section class="gemini-csv-panel" id="shopeeApiPanel">
@@ -2217,7 +2218,7 @@ window.addEventListener("unhandledrejection",function(e){
   const data=await response.json().catch(()=>({}));
   if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
   const p=data.platforms||{};
-  for(const name of ["instagram","facebook","youtube","tiktok","shopee"]){
+  for(const name of ["instagram","facebook","youtube","pinterest","tiktok","shopee"]){
    const el=document.querySelector('[data-status="'+name+'"]');if(!el)continue;
    const item=name==="youtube"?p.youtubeShorts:name==="shopee"?p.shopeeAffiliate:p[name];
    const connected=Boolean(item?.connected&&item?.verified);
@@ -2228,7 +2229,7 @@ window.addEventListener("unhandledrejection",function(e){
    el.textContent=connected?"TERHUBUNG · "+(account||"identitas diverifikasi"):"BELUM TERHUBUNG"+(item?.configured?" · konfigurasi siap":"")+(blockers?"\nPerlu: "+blockers:"");
   }
   const line=(label,x)=>label+": "+(x?.connected&&x?.verified?"TERHUBUNG":x?.configured?"belum diotorisasi":"belum dikonfigurasi")+(x?.blockers?.length?"; "+x.blockers.join(", "):"");
-  status.textContent=[line("Instagram",p.instagram),line("Facebook Page",p.facebook),line("YouTube",p.youtubeShorts),line("TikTok",p.tiktok),line("Shopee Affiliate",p.shopeeAffiliate),"Publikasi otomatis: NONAKTIF. Persetujuan manusia tetap wajib."].join("\n");
+  status.textContent=[line("Instagram",p.instagram),line("Facebook Page",p.facebook),line("YouTube Shorts",p.youtubeShorts),line("Pinterest",p.pinterest),line("TikTok",p.tiktok),line("Shopee Affiliate",p.shopeeAffiliate),"Publikasi otomatis: NONAKTIF. Persetujuan manusia tetap wajib."].join("\n");
   status.style.whiteSpace="pre-wrap";
  }
  button?.addEventListener("click",async()=>{
@@ -2267,7 +2268,7 @@ window.addEventListener("unhandledrejection",function(e){
  if(oauthParams.has("integration")){
   const result=oauthParams.get("integration")||"failed";
   const platform=oauthParams.get("platform")||"";
-  const platformName=({youtube:"YouTube",instagram:"Instagram",facebook:"Facebook",tiktok:"TikTok"})[platform]||"akun";
+  const platformName=({youtube:"YouTube Shorts",pinterest:"Pinterest",instagram:"Instagram",facebook:"Facebook",tiktok:"TikTok"})[platform]||"akun";
   const resultMessages={
    success:"Otorisasi "+platformName+" selesai. Memeriksa status koneksi dan data akun melalui backend…",
    denied:"Otorisasi dibatalkan atau ditolak. "+platformName+" belum terhubung; mulai ulang dan setujui izin yang diperlukan.",
@@ -2277,6 +2278,7 @@ window.addEventListener("unhandledrejection",function(e){
    instagram_needs_professional_account:"Instagram memerlukan akun Professional yang terhubung ke Facebook Page. Periksa pengaturan akun, lalu coba lagi.",
    facebook_page_required:"Tidak ditemukan Facebook Page yang dapat diakses. Pastikan akun memiliki Page dan izin yang diperlukan.",
    tiktok_profile_not_verified:"TikTok belum berhasil memverifikasi profil. Periksa izin aplikasi dan coba lagi.",
+    pinterest_profile_not_verified:"Pinterest merespons, tetapi profil belum bisa diverifikasi. Periksa izin user_accounts:read dan coba lagi.",
    authorization_failed:"Otorisasi gagal diselesaikan. Mulai ulang koneksi. Jika berulang, periksa URL callback dan konfigurasi OAuth penyedia."
   };
   status.textContent=resultMessages[result]||"Hasil OAuth tidak dikenali. Periksa status koneksi sebelum mengulangi proses.";

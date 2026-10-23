@@ -1937,7 +1937,7 @@ window.addEventListener("unhandledrejection",function(e){
  const reveal=document.getElementById("appLoginReveal");
  const backend=(urlInput&&urlInput.value.trim())||"https://appdigi-w001-backend.dickv940.workers.dev";
  if(urlInput) urlInput.value=backend;
- function unlock(token){tokenInput.value=token;gate.hidden=true;document.documentElement.dataset.appAuthenticated="true";}
+ function unlock(token){tokenInput.value=token;gate.hidden=true;document.documentElement.dataset.appAuthenticated="true";window.dispatchEvent(new CustomEvent("appdigi:authenticated"));}
  async function validate(token){
   const response=await fetch(backend.replace(/\/$/,"")+"/api/session",{method:"GET",headers:{Authorization:"Bearer "+token},cache:"no-store"});
   let data={};try{data=await response.json()}catch(_){}

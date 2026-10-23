@@ -356,6 +356,16 @@ function b64url(bytes){
  const raw=toB64(bytes);
  return raw.replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 }
+async function fetchMetricoolMetadataJson(url){
+ const requested=new URL(url);
+ if(requested.protocol!=="https:"||!/(^|\.)metricool\.com$/i.test(requested.hostname))throw new Error("METRICOOL_METADATA_URL_INVALID");
+ const response=await fetch(requested.toString(),{redirect:"follow",signal:AbortSignal.timeout(12000),headers:{"accept":"application/json"}});
+ const finalUrl=new URL(response.url||requested.toString());
+ if(finalUrl.protocol!=="https:"||!/(^|\.)metricool\.com$/i.test(finalUrl.hostname))throw new Error("METRICOOL_METADATA_REDIRECT_INVALID");
+ const body=await response.json().catch(()=>null);
+ if(!response.ok||!body||typeof body!=="object")throw new Error("METRICOOL_METADATA_HTTP_"+response.status);
+ return body;
+}
 async function metricoolOAuthMetadata(){
  const resourceCandidates=[
   "https://ai.metricool.com/.well-known/oauth-protected-resource/mcp",
@@ -365,32 +375,27 @@ async function metricoolOAuthMetadata(){
  let challengedResourceUrl="";
  try{
   const response=await fetch(METRICOOL_MCP_URL,{
-   method:"POST",redirect:"error",signal:AbortSignal.timeout(12000),
-   headers:{"content-type":"application/json","accept":"application/json, text/event-stream"},
+   method:"POST",redirect:"follow",signal:AbortSignal.timeout(12000),
+   headers:{"content-type":"application/json","accept":"application/json, text/event-stream","mcp-protocol-version":"2025-03-26"},
    body:JSON.stringify({jsonrpc:"2.0",id:"office-me-discovery",method:"initialize",params:{protocolVersion:"2025-03-26",capabilities:{},clientInfo:{name:"OfficeMe",version:"1.0.0"}}})
   });
   const challenge=response.headers.get("www-authenticate")||"";
-  const match=challenge.match(/resource_metadata\s*=\s*"?([^",\s]+)"?/i);
-  if(match)challengedResourceUrl=match[1];
+  const match=challenge.match(/resource_metadata\s*=\s*"([^"]+)"/i)||challenge.match(/resource_metadata\s*=\s*([^,\s]+)/i);
+  if(match)challengedResourceUrl=match[1].replace(/^"|"$/g,"");
   await response.body?.cancel().catch(()=>{});
  }catch(_){}
  const resourceUrls=[challengedResourceUrl,...resourceCandidates].filter(Boolean);
  let resourceMeta=null,resourceMetaUrl="";
  for(const candidate of [...new Set(resourceUrls)]){
   try{
-   const parsedUrl=new URL(candidate);
-   if(parsedUrl.protocol!=="https:"||!/(^|\.)metricool\.com$/i.test(parsedUrl.hostname))continue;
-   const candidateMeta=await fetchIntegrationJson(candidate);
+   const candidateMeta=await fetchMetricoolMetadataJson(candidate);
    if(candidateMeta&&Array.isArray(candidateMeta.authorization_servers)&&candidateMeta.authorization_servers.length){
     resourceMeta=candidateMeta;resourceMetaUrl=candidate;break;
    }
   }catch(_){}
  }
- if(!resourceMeta){
-  throw new Error("METRICOOL_RESOURCE_METADATA_NOT_FOUND");
- }
- const authServers=resourceMeta.authorization_servers;
- for(const server of authServers){
+ if(!resourceMeta)throw new Error("METRICOOL_RESOURCE_METADATA_NOT_FOUND");
+ for(const server of resourceMeta.authorization_servers){
   let parsed;try{parsed=new URL(server)}catch(_){continue}
   if(parsed.protocol!=="https:"||!/(^|\.)metricool\.com$/i.test(parsed.hostname))continue;
   const path=parsed.pathname.replace(/\/+$/,"");
@@ -406,17 +411,13 @@ async function metricoolOAuthMetadata(){
     ];
   for(const candidate of [...new Set(candidates)]){
    try{
-    const meta=await fetchIntegrationJson(candidate);
+    const meta=await fetchMetricoolMetadataJson(candidate);
     if(!meta||!meta.authorization_endpoint||!meta.token_endpoint)continue;
     if(meta.issuer&&meta.issuer.replace(/\/+$/,"")!==server.replace(/\/+$/,""))continue;
     const supportsDcr=Boolean(meta.registration_endpoint);
     const supportsCimd=meta.client_id_metadata_document_supported===true;
     if(!supportsDcr&&!supportsCimd)continue;
-    return {
-     resource:METRICOOL_MCP_URL,resourceMetadataUrl:resourceMetaUrl,
-     authorizationServer:server,metadata:meta,
-     registrationMode:supportsDcr?"dcr":"cimd"
-    };
+    return {resource:METRICOOL_MCP_URL,resourceMetadataUrl:resourceMetaUrl,authorizationServer:server,metadata:meta,registrationMode:supportsDcr?"dcr":"cimd"};
    }catch(_){}
   }
  }

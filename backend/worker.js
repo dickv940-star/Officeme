@@ -811,7 +811,7 @@ async function analyzeAffiliateLink(input, env) {
     "Gunakan Google Search untuk mencari URL persis tersebut, mengidentifikasi produk jika mungkin, dan membandingkan informasi publik dari sumber yang relevan.",
     "Jawab dalam Bahasa Indonesia dengan bagian: Identitas produk; Fakta yang ditemukan; Target pembeli dan kebutuhan; Kata kunci pencarian; Ide artikel SEO; Ide video YouTube Shorts; Risiko/keterbatasan; Rekomendasi langkah berikutnya.",
     "Bedakan fakta bersumber dari dugaan. Sertakan URL sumber yang relevan. Jangan mengarang harga, rating, ulasan, stok, komisi, penjualan, atau tren. Jika link pendek tidak dapat diidentifikasi oleh Search, katakan tidak berhasil mengidentifikasi dan jangan menebak. Jangan mengklaim halaman Shopee telah dibuka jika tidak ada bukti."
-  ].join("\\n\\n");
+  ].join("\n\n");
   let response = null;
   let data = null;
   let model = requestedModel;

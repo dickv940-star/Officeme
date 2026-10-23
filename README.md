@@ -114,3 +114,14 @@ The account-connect UI and backend OAuth callbacks are implemented, but a platfo
 - Shopee in this repository is the Shopee Affiliate Open API, which uses official app credentials and signed API calls, not a generic Shopee account OAuth flow. Its status deliberately remains unconnected until a separate authenticated API verification is added.
 - Content publication and other write actions remain disabled in this milestone. OAuth grants only scopes approved by the provider; it does not itself implement or authorize every publishing action. Human approval remains mandatory.
 
+
+
+## Google Sheets bridge (Rp0)
+
+OfficeMe includes a free manual CSV bridge to Google Sheets and an optional Google Apps Script helper:
+
+- The OfficeMe **Kalender Konten Google Sheets** panel stores drafts in the current browser and imports/exports CSV.
+- The helper script is in [google-sheets-bridge/Code.gs](./google-sheets-bridge/Code.gs).
+- Setup instructions: [google-sheets-bridge/README.md](./google-sheets-bridge/README.md).
+- No paid API, API key, or public Apps Script web app is required for this workflow.
+- CSV transfer is manual, not real-time synchronization. Social account connection and publishing still require official platform authorization.

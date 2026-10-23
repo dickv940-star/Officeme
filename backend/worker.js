@@ -286,6 +286,131 @@ function shopeeConfigStatus(env) {
   };
 }
 
+
+const OAUTH_PLATFORMS = new Set(["instagram", "facebook", "youtube", "tiktok"]);
+const OAUTH_APP_DEFAULT = "https://dickv940-star.github.io/Officeme/";
+const OAUTH_META_SCOPES = {
+ instagram:["pages_show_list","pages_read_engagement","instagram_basic","instagram_content_publish","instagram_manage_comments"],
+ facebook:["pages_show_list","pages_read_engagement","pages_manage_posts","pages_manage_engagement"]
+};
+function oauthKv(env){return env.INTEGRATION_KV&&typeof env.INTEGRATION_KV.get==="function"?env.INTEGRATION_KV:null}
+function oauthConfigured(platform,env){
+ if(!env.OAUTH_CALLBACK_URL||!env.INTEGRATION_ENCRYPTION_KEY||!oauthKv(env))return false;
+ if(platform==="instagram"||platform==="facebook")return Boolean(env.META_APP_ID&&env.META_APP_SECRET);
+ if(platform==="youtube")return Boolean(env.YOUTUBE_OAUTH_CLIENT_ID&&env.YOUTUBE_OAUTH_CLIENT_SECRET);
+ if(platform==="tiktok")return Boolean(env.TIKTOK_CLIENT_KEY&&env.TIKTOK_CLIENT_SECRET);
+ return false;
+}
+function oauthCallbackUrl(env){
+ const url=new URL(env.OAUTH_CALLBACK_URL||"");
+ if(url.protocol!=="https:"||url.username||url.password||url.hash||url.search||url.pathname!=="/api/integrations/oauth/callback")throw new Error("OAUTH_CALLBACK_URL_INVALID");
+ return url.toString();
+}
+async function encryptionKey(env){
+ if(!env.INTEGRATION_ENCRYPTION_KEY||env.INTEGRATION_ENCRYPTION_KEY.length<32)throw new Error("INTEGRATION_ENCRYPTION_KEY_MISSING");
+ const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(env.INTEGRATION_ENCRYPTION_KEY));
+ return crypto.subtle.importKey("raw",digest,"AES-GCM",false,["encrypt","decrypt"]);
+}
+function toB64(bytes){return btoa(String.fromCharCode(...new Uint8Array(bytes)))}
+function fromB64(value){return Uint8Array.from(atob(value),c=>c.charCodeAt(0))}
+async function encryptIntegration(value,env){
+ const key=await encryptionKey(env),iv=crypto.getRandomValues(new Uint8Array(12));
+ const cipher=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(JSON.stringify(value)));
+ return JSON.stringify({v:1,iv:toB64(iv),data:toB64(cipher)});
+}
+async function decryptIntegration(value,env){
+ const record=typeof value==="string"?JSON.parse(value):value;
+ if(!record||record.v!==1||!record.iv||!record.data)throw new Error("INTEGRATION_RECORD_INVALID");
+ const key=await encryptionKey(env);
+ const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromB64(record.iv)},key,fromB64(record.data));
+ return JSON.parse(new TextDecoder().decode(plain));
+}
+function randomState(){return Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,"0")).join("")}
+async function startIntegrationOAuth(platform,env){
+ if(!OAUTH_PLATFORMS.has(platform))throw new Error("OAUTH_PLATFORM_UNSUPPORTED");
+ if(!oauthConfigured(platform,env))throw new Error("OAUTH_PLATFORM_NOT_CONFIGURED");
+ const redirectUri=oauthCallbackUrl(env),state=randomState(),kv=oauthKv(env);
+ await kv.put("oauth-state:"+state,JSON.stringify({platform,createdAt:Date.now()}),{expirationTtl:600});
+ const url=new URL(platform==="youtube"?"https://accounts.google.com/o/oauth2/v2/auth":platform==="tiktok"?"https://www.tiktok.com/v2/auth/authorize/":"https://www.facebook.com/"+(env.META_GRAPH_VERSION||"v23.0")+"/dialog/oauth");
+ if(platform==="instagram"||platform==="facebook"){
+  url.searchParams.set("client_id",env.META_APP_ID);url.searchParams.set("redirect_uri",redirectUri);url.searchParams.set("response_type","code");url.searchParams.set("state",state);url.searchParams.set("scope",OAUTH_META_SCOPES[platform].join(","));
+ }else if(platform==="youtube"){
+  url.searchParams.set("client_id",env.YOUTUBE_OAUTH_CLIENT_ID);url.searchParams.set("redirect_uri",redirectUri);url.searchParams.set("response_type","code");
+  url.searchParams.set("scope","https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload");
+  url.searchParams.set("access_type","offline");url.searchParams.set("include_granted_scopes","true");url.searchParams.set("prompt","consent");url.searchParams.set("state",state);
+ }else{
+  url.searchParams.set("client_key",env.TIKTOK_CLIENT_KEY);url.searchParams.set("redirect_uri",redirectUri);url.searchParams.set("response_type","code");
+  url.searchParams.set("scope",env.TIKTOK_SCOPES||"user.info.basic,video.list");url.searchParams.set("state",state);
+ }
+ return {url:url.toString()};
+}
+async function fetchIntegrationJson(url,init={}){
+ const response=await fetch(url,{...init,redirect:"error",signal:AbortSignal.timeout(15000)});
+ const body=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error("OAUTH_PROVIDER_HTTP_"+response.status);
+ return body;
+}
+async function finishIntegrationOAuth(request,env){
+ const url=new URL(request.url),state=url.searchParams.get("state"),code=url.searchParams.get("code");
+ const appUrl=env.OAUTH_APP_URL||OAUTH_APP_DEFAULT;
+ const safeAppUrl=/^https:\/\/dickv940-star\.github\.io\/Officeme\/?$/.test(appUrl)?appUrl:OAUTH_APP_DEFAULT;
+ const redirect=(status,platform)=>Response.redirect(safeAppUrl+"?integration="+encodeURIComponent(status)+(platform?"&platform="+encodeURIComponent(platform):""),302);
+ if(url.searchParams.has("error"))return redirect("denied","");
+ const kv=oauthKv(env);
+ if(!kv||!state||!/^[a-f0-9]{64}$/.test(state)||!code||code.length>4096)return redirect("failed","");
+ const stateKey="oauth-state:"+state,stateRaw=await kv.get(stateKey);await kv.delete(stateKey);
+ if(!stateRaw)return redirect("invalid_state","");
+ let saved;try{saved=JSON.parse(stateRaw)}catch(_){return redirect("failed","")}
+ const platform=saved.platform;
+ if(!OAUTH_PLATFORMS.has(platform)||Date.now()-saved.createdAt>600000)return redirect("expired",platform);
+ try{
+  const redirectUri=oauthCallbackUrl(env);
+  const record={platform,connected:false,connectedAt:new Date().toISOString(),scopes:[],tokens:{}};
+  if(platform==="instagram"||platform==="facebook"){
+   const graph="https://graph.facebook.com/"+(env.META_GRAPH_VERSION||"v23.0"),tokenUrl=new URL(graph+"/oauth/access_token");
+   tokenUrl.searchParams.set("client_id",env.META_APP_ID);tokenUrl.searchParams.set("client_secret",env.META_APP_SECRET);tokenUrl.searchParams.set("redirect_uri",redirectUri);tokenUrl.searchParams.set("code",code);
+   const token=await fetchIntegrationJson(tokenUrl);if(!token.access_token)throw new Error("OAUTH_TOKEN_MISSING");
+   let longToken=token.access_token;
+   try{const longUrl=new URL(graph+"/oauth/access_token");longUrl.searchParams.set("grant_type","fb_exchange_token");longUrl.searchParams.set("client_id",env.META_APP_ID);longUrl.searchParams.set("client_secret",env.META_APP_SECRET);longUrl.searchParams.set("fb_exchange_token",token.access_token);const longResult=await fetchIntegrationJson(longUrl);if(longResult.access_token)longToken=longResult.access_token}catch(_){}
+   const pages=await fetchIntegrationJson(graph+"/me/accounts?fields=id,name,access_token,instagram_business_account{id,username}&limit=100",{headers:{Authorization:"Bearer "+longToken}});
+   const pageList=Array.isArray(pages.data)?pages.data:[];
+   const page=platform==="instagram"?pageList.find(p=>p.instagram_business_account&&p.instagram_business_account.id):pageList.find(p=>p.id&&p.access_token);
+   if(!page)throw new Error(platform==="instagram"?"NO_LINKED_INSTAGRAM_PRO_ACCOUNT":"NO_FACEBOOK_PAGE_ACCESS");
+   record.identity=platform==="instagram"?{id:page.instagram_business_account.id,username:page.instagram_business_account.username||"",pageId:page.id,pageName:page.name||""}:{id:page.id,name:page.name||"",type:"Facebook Page"};
+   record.scopes=Array.isArray(token.permissions)?token.permissions.map(p=>p.permission).filter(Boolean):[];
+   record.tokens={userAccessToken:longToken,pageAccessToken:page.access_token};
+  }else if(platform==="youtube"){
+   const token=await fetchIntegrationJson("https://oauth2.googleapis.com/token",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({code,client_id:env.YOUTUBE_OAUTH_CLIENT_ID,client_secret:env.YOUTUBE_OAUTH_CLIENT_SECRET,redirect_uri:redirectUri,grant_type:"authorization_code"})});
+   if(!token.access_token)throw new Error("OAUTH_TOKEN_MISSING");
+   const channel=await fetchIntegrationJson("https://www.googleapis.com/youtube/v3/channels?part=snippet%2Cid&mine=true",{headers:{Authorization:"Bearer "+token.access_token}});
+   const item=channel.items&&channel.items[0];if(!item)throw new Error("YOUTUBE_CHANNEL_NOT_FOUND");
+   record.identity={id:item.id,title:item.snippet&&item.snippet.title||"",type:"YouTube channel"};record.scopes=(token.scope||"").split(" ").filter(Boolean);
+   record.tokens={accessToken:token.access_token,refreshToken:token.refresh_token||""};record.expiresAt=Date.now()+Number(token.expires_in||3600)*1000;
+  }else{
+   const token=await fetchIntegrationJson("https://open.tiktokapis.com/v2/oauth/token/",{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({client_key:env.TIKTOK_CLIENT_KEY,client_secret:env.TIKTOK_CLIENT_SECRET,code,grant_type:"authorization_code",redirect_uri:redirectUri})});
+   const tokenData=token.data||token;if(!tokenData.access_token)throw new Error("OAUTH_TOKEN_MISSING");
+   const profile=await fetchIntegrationJson("https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url",{headers:{Authorization:"Bearer "+tokenData.access_token}});
+   const user=profile.data&&profile.data.user;if(!user||!user.open_id)throw new Error("TIKTOK_PROFILE_NOT_VERIFIED");
+   record.identity={id:user.open_id,name:user.display_name||"",type:"TikTok account"};record.scopes=(tokenData.scope||"").split(",").filter(Boolean);
+   record.tokens={accessToken:tokenData.access_token,refreshToken:tokenData.refresh_token||""};record.expiresAt=Date.now()+Number(tokenData.expires_in||86400)*1000;
+  }
+  record.connected=true;await kv.put("integration:"+platform,await encryptIntegration(record,env));
+  return redirect("success",platform);
+ }catch(error){
+  const codeName=error instanceof Error?error.message:"";
+  const safeStatus=codeName==="NO_LINKED_INSTAGRAM_PRO_ACCOUNT"?"instagram_needs_professional_account":codeName==="NO_FACEBOOK_PAGE_ACCESS"?"facebook_page_required":codeName==="YOUTUBE_CHANNEL_NOT_FOUND"?"youtube_channel_not_found":codeName==="TIKTOK_PROFILE_NOT_VERIFIED"?"tiktok_profile_not_verified":"authorization_failed";
+  return redirect(safeStatus,platform);
+ }
+}
+async function integrationConnectionSummary(platform,env){
+ const kv=oauthKv(env),configured=oauthConfigured(platform,env);
+ if(!kv)return {configured:false,connected:false,verified:false,blockers:["Binding INTEGRATION_KV belum ada"]};
+ const raw=await kv.get("integration:"+platform);
+ if(!raw)return {configured,connected:false,verified:false,blockers:configured?["Belum diotorisasi oleh pemilik akun"]:["Konfigurasi OAuth, callback, KV, atau encryption key belum lengkap"]};
+ try{const record=await decryptIntegration(raw,env);return {configured,connected:Boolean(record.connected&&record.identity&&record.identity.id),verified:Boolean(record.connected&&record.identity&&record.identity.id),account:record.identity||null,connectedAt:record.connectedAt||null,scopes:record.scopes||[],blockers:[]}}
+ catch(_){return {configured,connected:false,verified:false,blockers:["Token tersimpan tidak dapat dibaca; periksa INTEGRATION_ENCRYPTION_KEY"]}}
+}
+
 function integrationReadiness(env) {
   const shopee = Boolean(env.SHOPEE_AFFILIATE_APP_ID && env.SHOPEE_AFFILIATE_SECRET);
   const metaApp = Boolean(env.META_APP_ID && env.META_APP_SECRET);
@@ -852,6 +977,7 @@ export default {
     if (request.method === "GET" && path === "/health" && !request.headers.get("Origin")) {
       return json(healthPayload(env), 200, "*");
     }
+    if (request.method === "GET" && path === "/api/integrations/oauth/callback") return finishIntegrationOAuth(request, env);
     if (!origin) return json({ ok: false, error: "Origin tidak diizinkan." }, 403, "null");
     // Health is intentionally read-only and may be checked before secrets are configured.
     if (request.method === "GET" && path === "/health") return json(healthPayload(env), 200, origin);
@@ -887,7 +1013,32 @@ export default {
     if (request.method === "GET" && path === "/api/shopee/status") {
       return json({ ok: true, service: "shopee-affiliate-open-api", ...shopeeConfigStatus(env) }, 200, origin);
     }
-    if (request.method === "GET" && path === "/api/integrations/status") { return json(integrationReadiness(env), 200, origin); }
+    if (request.method === "POST" && path === "/api/integrations/oauth/start") {
+      let body; try { body = await request.json(); } catch (_) { return json({ ok: false, error: "JSON tidak valid." }, 400, origin); }
+      try {
+        const result = await startIntegrationOAuth(String(body.platform || "").toLowerCase(), env);
+        return json({ ok: true, authorizationUrl: result.url, expiresInSeconds: 600 }, 200, origin);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : "";
+        const message = code === "OAUTH_PLATFORM_UNSUPPORTED" ? "Platform OAuth tidak didukung." :
+          code === "OAUTH_CALLBACK_URL_INVALID" ? "OAUTH_CALLBACK_URL harus berupa URL HTTPS callback backend yang terdaftar." :
+          code === "INTEGRATION_ENCRYPTION_KEY_MISSING" ? "INTEGRATION_ENCRYPTION_KEY belum dikonfigurasi." :
+          code === "OAUTH_PLATFORM_NOT_CONFIGURED" ? "Konfigurasi OAuth atau binding INTEGRATION_KV belum lengkap. Lihat README untuk daftar secret." :
+          "Tidak dapat memulai otorisasi akun.";
+        return json({ ok: false, error: message }, 503, origin);
+      }
+    }
+    if (request.method === "GET" && path === "/api/integrations/status") {
+      const ready = integrationReadiness(env);
+      const [instagram, facebook, youtube, tiktok] = await Promise.all(["instagram", "facebook", "youtube", "tiktok"].map((p) => integrationConnectionSummary(p, env)));
+      ready.platforms.instagram = { ...ready.platforms.instagram, ...instagram, canPublish: false };
+      ready.platforms.facebook = { ...ready.platforms.facebook, ...facebook, canPublish: false };
+      ready.platforms.youtubeShorts = { ...ready.platforms.youtubeShorts, ...youtube, canPublish: false };
+      ready.platforms.tiktok = { ...tiktok, canPublish: false, blockers: tiktok.blockers || [] };
+      ready.platforms.shopeeAffiliate = { ...ready.platforms.shopeeAffiliate, connected: false, verified: false,
+        note: "Shopee Affiliate menggunakan App ID/Secret dan operasi API yang ditandatangani, bukan OAuth login akun umum." };
+      return json(ready, 200, origin);
+    }
     if (request.method === "POST" && path === "/api/shopee/graphql") {
       const declaredLength = Number(request.headers.get("Content-Length") || 0);
       if (declaredLength > MAX_BODY_BYTES) return json({ ok: false, error: "Ukuran permintaan terlalu besar." }, 413, origin);

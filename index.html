@@ -1189,6 +1189,32 @@ team.forEach((a,i)=>{
 let queue=[];const form=document.getElementById("form"),input=document.getElementById("command"),list=document.getElementById("tasks"),toast=document.getElementById("toast");
 function render(){document.getElementById("taskCount").textContent=queue.length;list.replaceChildren();if(!queue.length){list.className="empty";list.textContent="Belum ada tugas.";return}list.className="";queue.slice().reverse().forEach(t=>{const row=document.createElement("div");row.className="task";const dot=document.createElement("span");dot.className="dot";const body=document.createElement("div");body.style.flex="1";const b=document.createElement("b");b.textContent=t.command;const sm=document.createElement("small");sm.textContent="Dibuat "+t.time+" · "+(t.status||"Menunggu backend");body.append(b,sm);if(t.result){const output=document.createElement("p");output.style.whiteSpace="pre-wrap";output.style.margin="8px 0 0";output.textContent=t.result;body.append(output)}const pill=document.createElement("span");pill.className="pill";pill.textContent=t.status==="Selesai"?"Selesai":t.status==="Perlu tinjauan"?"Perlu tinjauan":t.status==="Gagal"?"Gagal":t.status==="Berjalan"?"Berjalan":"Rancangan";row.append(dot,body,pill);list.append(row)})}
 form.addEventListener("submit",async e=>{e.preventDefault();const value=input.value.trim();if(!value)return;const task={command:value,time:new Date().toLocaleString("id-ID"),status:"Berjalan",result:"Meminta analisis dari 8 AI agent…"};queue.push(task);render();input.value="";toast.textContent="Tugas dikirim ke backend AI. Tidak ada publikasi atau aksi eksternal yang dijalankan.";try{const data=await call("/api/agents/run","POST",{task:value,mode:"team"});window.__appdigiAgentMonitor=window.__appdigiAgentMonitor||{};window.__appdigiAgentMonitor.lastRun={time:new Date().toLocaleString("id-ID"),task:value,ok:data.ok!==false,results:Array.isArray(data.results)?data.results:[],finalReview:data.finalReview||"",qualityStatus:data.qualityStatus||"",qualityGate:data.qualityGate||null};task.status=data.ok===false?"Gagal":"Perlu tinjauan";task.result=(data.results||[]).map(r=>r.name+" ("+r.role+")"+(r.provider?" · "+r.provider+"/"+(r.model||""):"")+(r.ok===false?" [GAGAL]":"")+":\\n"+(r.result||r.error||"Tidak ada hasil")).join("\\n\\n")+(data.finalReview?"\\n\\nREVIEW CHARLOTTE:\\n"+data.finalReview:"")+(data.qualityStatus?"\\n\\nSTATUS KUALITAS: "+data.qualityStatus:"")+(data.qualityGate?"\\nSpesialis berhasil: "+data.qualityGate.specialistsSucceeded+"/"+data.qualityGate.specialistsTotal+"; reviewer berhasil: "+data.qualityGate.reviewerSucceeded+"; tinjauan manusia wajib: "+data.qualityGate.humanReviewRequired:"");render();toast.textContent=data.ok===false?"Sebagian agen atau pemeriksaan kualitas gagal. Periksa hasil dan coba lagi.":"Analisis selesai; hasil tetap wajib ditinjau manusia sebelum digunakan.";window.dispatchEvent(new CustomEvent("appdigi:task-complete",{detail:{ok:data.ok!==false,task:value,message:data.ok===false?"Analisis selesai dengan kegagalan pada sebagian agen. Periksa rincian tugas.":"Analisis selesai dan menunggu tinjauan manusia."}}));}catch(error){task.status="Gagal";task.result=error.message||"Analisis gagal.";render();toast.textContent="Agent belum berjalan: "+task.result;window.dispatchEvent(new CustomEvent("appdigi:task-complete",{detail:{ok:false,task:value,message:"Permintaan analisis gagal: "+task.result}}));}});
+
+function formatPersistedAgentResult(data){
+ if(!data)return "";
+ const rows=Array.isArray(data.results)?data.results:[];
+ let text=rows.map(r=>(r.name||r.agentId||"Agen")+(r.role?" ("+r.role+")":"")+(r.provider?" · "+r.provider+"/"+(r.model||""):"")+(r.ok===false?" [GAGAL]":"")+":\\n"+(r.result||r.error||"Tidak ada hasil")).join("\\n\\n");
+ if(data.finalReview)text+="\\n\\nREVIEW CHARLOTTE:\\n"+data.finalReview;
+ if(data.qualityStatus)text+="\\n\\nSTATUS KUALITAS: "+data.qualityStatus;
+ if(data.qualityGate)text+="\\nSpesialis berhasil: "+data.qualityGate.specialistsSucceeded+"/"+data.qualityGate.specialistsTotal+"; reviewer berhasil: "+data.qualityGate.reviewerSucceeded+"; tinjauan manusia wajib: "+data.qualityGate.humanReviewRequired;
+ return text;
+}
+async function loadPersistedAgentTasks(){
+ try{
+  const data=await call("/api/tasks","GET");
+  if(!data.ok||!Array.isArray(data.items))return;
+  queue=data.items.map(item=>({
+   id:item.id,
+   command:item.task,
+   time:item.createdAt?new Date(item.createdAt).toLocaleString("id-ID"):"Waktu tidak tersedia",
+   status:item.status==="RUNNING"?"Berjalan":item.status==="FAILED"?"Gagal":"Perlu tinjauan",
+   result:item.error?("Tugas gagal: "+item.error):item.status==="RUNNING"?"Tugas sedang berjalan di backend…":formatPersistedAgentResult(item.result)
+  }));
+  render();
+ }catch(_){/* Keep the local interface usable when the backend is not configured. */}
+}
+window.addEventListener("appdigi:authenticated",loadPersistedAgentTasks);
+
 document.getElementById("example").addEventListener("click",()=>{input.value="Analisis produk melalui integrasi resmi yang tersedia, rangking 10 produk berdasarkan data valid, lalu buat 3 konsep konten untuk saya tinjau. Jangan publikasikan apa pun tanpa persetujuan saya.";input.focus()});
 document.getElementById("clear").addEventListener("click",()=>{queue=[];render();toast.textContent="Antrean lokal dibersihkan."});
 

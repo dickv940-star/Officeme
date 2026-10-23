@@ -1,0 +1,15 @@
+{
+  "client_id": "https://dickv940-star.github.io/Officeme/metricool-oauth-client.json",
+  "client_name": "OfficeMe",
+  "redirect_uris": [
+    "https://appdigi-w001-backend.dickv940.workers.dev/api/integrations/oauth/callback"
+  ],
+  "grant_types": [
+    "authorization_code",
+    "refresh_token"
+  ],
+  "response_types": [
+    "code"
+  ],
+  "token_endpoint_auth_method": "none"
+}

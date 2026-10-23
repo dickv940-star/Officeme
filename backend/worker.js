@@ -840,7 +840,7 @@ async function ensureAgentMemoryTable(env) {
 }
 
 function looksLikeCredential(value) {
-  return /(?:api[_ -]?key|client[_ -]?secret|access[_ -]?token|refresh[_ -]?token|bearer\\s+[a-z0-9._-]{12,}|password|private[_ -]?key)\\s*[:=]/i.test(value);
+  return /(?:api[_ -]?key|client[_ -]?secret|access[_ -]?token|refresh[_ -]?token|bearer\s+[a-z0-9._-]{12,}|password|private[_ -]?key)\s*[:=]/i.test(value);
 }
 
 async function listAgentMemory(env, origin) {

@@ -783,6 +783,76 @@ async function chatAgent(input, env) {
 
 
 
+
+async function analyzeAffiliateLink(input, env) {
+  const rawUrl = typeof input?.url === "string" ? input.url.trim() : "";
+  const productName = typeof input?.productName === "string" ? input.productName.trim().slice(0, 160) : "";
+  if (!rawUrl || rawUrl.length > 2048) throw new Error("INVALID_AFFILIATE_URL");
+  let productUrl;
+  try {
+    productUrl = new URL(rawUrl);
+    const host = productUrl.hostname.toLowerCase();
+    if (productUrl.protocol !== "https:" || productUrl.username || productUrl.password ||
+        !(host === "shope.ee" || host === "shopee.ee" || host === "shopee.co.id" ||
+          host === "s.shopee.co.id" || host.endsWith(".shopee.co.id")) ||
+        productUrl.hash.length > 200) throw new Error();
+  } catch (_) { throw new Error("INVALID_AFFILIATE_URL"); }
+  if (!env.GEMINI_API_KEY) throw new Error("WEB_SEARCH_NOT_CONFIGURED");
+  if (!(await reserveProviderCall("gemini", env))) throw new Error("LLM_RATE_LIMIT");
+  const model = providerModel("gemini", env);
+  const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/" +
+    encodeURIComponent(model) + ":generateContent";
+  const prompt = [
+    "Lakukan riset produk untuk OfficeMe Affiliate Analyst menggunakan Google Search grounding.",
+    "Link Shopee yang diberikan pengguna: " + productUrl.href,
+    productName ? "Nama produk dari pengguna (belum diverifikasi): " + productName : "Pengguna hanya memberikan link; temukan identitas produk dari sumber publik.",
+    "Gunakan Google Search untuk mencari URL persis tersebut, mengidentifikasi produk jika mungkin, dan membandingkan informasi publik dari sumber yang relevan.",
+    "Jawab dalam Bahasa Indonesia dengan bagian: Identitas produk; Fakta yang ditemukan; Target pembeli dan kebutuhan; Kata kunci pencarian; Ide artikel SEO; Ide video YouTube Shorts; Risiko/keterbatasan; Rekomendasi langkah berikutnya.",
+    "Bedakan fakta bersumber dari dugaan. Sertakan URL sumber yang relevan. Jangan mengarang harga, rating, ulasan, stok, komisi, penjualan, atau tren. Jika link pendek tidak dapat diidentifikasi oleh Search, katakan tidak berhasil mengidentifikasi dan jangan menebak. Jangan mengklaim halaman Shopee telah dibuka jika tidak ada bukti."
+  ].join("\n\n");
+  const { response, data } = await fetchJsonWithTimeout(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      tools: [{ googleSearch: {} }],
+      generationConfig: { maxOutputTokens: 1800, temperature: 0.2 }
+    })
+  });
+  if (response.status === 429) throw new Error("LLM_RATE_LIMIT");
+  if (!response.ok) {
+    console.error("Grounded product research request failed", response.status);
+    throw new Error(response.status === 403 ? "WEB_SEARCH_NOT_CONFIGURED" : "WEB_SEARCH_FAILED");
+  }
+  const candidate = data?.candidates?.[0];
+  const answer = Array.isArray(candidate?.content?.parts)
+    ? candidate.content.parts.map(part => typeof part?.text === "string" ? part.text : "").join("").trim()
+    : "";
+  if (!answer) throw new Error("EMPTY_LLM_RESPONSE");
+  const chunks = candidate?.groundingMetadata?.groundingChunks || [];
+  const sources = [];
+  const seen = new Set();
+  for (const chunk of chunks) {
+    const web = chunk?.web;
+    if (!web || typeof web.uri !== "string" || !/^https:\/\//i.test(web.uri) || seen.has(web.uri)) continue;
+    seen.add(web.uri);
+    sources.push({ title: String(web.title || web.uri).slice(0, 240), url: web.uri });
+  }
+  return {
+    ok: true,
+    task: "affiliate_product_research",
+    productUrl: productUrl.href,
+    productName: productName || null,
+    provider: "gemini",
+    model,
+    searchGroundingUsed: true,
+    answer,
+    sources: sources.slice(0, 10),
+    createdAt: new Date().toISOString(),
+    note: "Riset memakai hasil Google Search yang tersedia untuk model. Data akun Shopee pribadi dan komisi aktual tidak dijamin tersedia."
+  };
+}
+
 const HELP_STATUSES = new Set(["WAITING_FOR_WILLIAM","IN_PROGRESS","ANSWERED","NEEDS_MORE_INFO","COMPLETED","FAILED"]);
 const HELP_AGENTS = {
   alexander:"Alexander · Data Analyst", olivia:"Olivia · Product Researcher",
@@ -1047,6 +1117,25 @@ export default {
     if(request.method==="POST"&&helpStatusMatch){
       let body;try{body=await request.json()}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
       body.action="status";return updateAgentHelp(helpStatusMatch[1],body,env,origin);
+    }
+    if (request.method === "POST" && path === "/api/affiliate/analyze") {
+      let body;
+      try { body = await request.json(); } catch (_) { return json({ ok: false, error: "JSON tidak valid." }, 400, origin); }
+      try {
+        const result = await analyzeAffiliateLink(body, env);
+        return json(result, 200, origin);
+      } catch (error) {
+        const code = error instanceof Error ? error.message : "";
+        const map = {
+          INVALID_AFFILIATE_URL: [400, "Masukkan link HTTPS Shopee yang valid."],
+          WEB_SEARCH_NOT_CONFIGURED: [503, "Gemini API belum siap untuk riset Google Search. Periksa konfigurasi GEMINI_API_KEY dan akses Google Search grounding."],
+          WEB_SEARCH_FAILED: [502, "Pencarian Google melalui Gemini gagal. Coba lagi nanti atau periksa konfigurasi Gemini."],
+          LLM_RATE_LIMIT: [429, "Kuota Gemini untuk riset hari ini sedang habis. Coba lagi nanti."],
+          EMPTY_LLM_RESPONSE: [502, "Gemini tidak mengembalikan hasil riset."]
+        };
+        const [status, message] = map[code] || [502, "Riset produk gagal. Periksa status backend dan konfigurasi Gemini."];
+        return json({ ok: false, error: message }, status, origin);
+      }
     }
     if (request.method === "GET" && path === "/api/session") {
       return json({ ok: true, authenticated: true }, 200, origin);

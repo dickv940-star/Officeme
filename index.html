@@ -1206,6 +1206,20 @@ img,video,iframe,canvas{max-width:100%}
   <div id="affiliateLinkStatus" class="gemini-csv-status" role="status" aria-live="polite">Tautan disimpan hanya di penyimpanan browser ini; belum disinkronkan ke server.</div>
   <div id="affiliateLinkList" class="affiliate-link-list" aria-live="polite"></div>
   <div class="gemini-csv-help">Privasi dan batasan: tautan disimpan di browser perangkat ini (localStorage), bukan di Cloudflare. Ekspor CSV dapat dipakai sebagai cadangan. OfficeMe memeriksa format URL secara dasar saja—ia tidak dapat memastikan bahwa tautan tercatat atas akun affiliate Anda atau menjamin komisi.</div>
+
+</section>
+
+<section class="gemini-csv-panel" id="metricoolMcpConnector">
+  <div class="eyebrow">Integrasi langsung · MCP resmi</div>
+  <h2>Hubungkan OfficeMe ke Metricool</h2>
+  <p class="muted">Otorisasi langsung melalui halaman Metricool. OfficeMe menyimpan token terenkripsi di backend dan memeriksa koneksi MCP sebelum menampilkan status terhubung. Belum ada posting yang dibuat atau diterbitkan oleh tombol koneksi ini.</p>
+  <div class="gemini-csv-actions">
+    <button type="button" class="primary" id="metricoolMcpConnect">Hubungkan Metricool</button>
+    <button type="button" id="metricoolMcpRefresh">Periksa koneksi</button>
+  </div>
+  <div id="metricoolMcpStatus" class="gemini-csv-status" role="status" aria-live="polite">Status koneksi belum diperiksa.</div>
+  <div id="metricoolMcpTools" class="gemini-csv-result" hidden></div>
+  <div class="gemini-csv-help">Gunakan backend AppDIGI dan APP_SHARED_TOKEN pada panel konfigurasi di atas. Jangan kirim token atau kode otorisasi ke chat. Metricool Free tetap mengikuti batas paket, termasuk batas jumlah posting terjadwal.</div>
 </section>
 
 <section class="section">
@@ -2340,6 +2354,7 @@ window.addEventListener("unhandledrejection",function(e){
 })();
 </script>
 <script src="./affiliate-links.js?v=20261023-activity-fix"></script>
+<script src="./metricool-mcp.js?v=20261023-01"></script>
 
 <script id="DIRECTOR_ACTION_CENTER">
 (()=> {

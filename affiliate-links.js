@@ -14,6 +14,99 @@
   const exportButton = $("affiliateLinkExport");
   const clearButton = $("affiliateLinkClear");
   let links = load();
+  if (nameInput) {
+    nameInput.required = false;
+    nameInput.placeholder = "Opsional — AI akan mencoba menemukan nama produk";
+    const nameLabel = form.querySelector('label[for="affiliateLinkName"]');
+    if (nameLabel) nameLabel.textContent = "Nama produk (opsional)";
+  }
+  const researchPanel = document.createElement("div");
+  researchPanel.className = "gemini-csv-result";
+  researchPanel.hidden = true;
+  researchPanel.setAttribute("aria-live", "polite");
+  const researchHeading = document.createElement("strong");
+  researchHeading.textContent = "Hasil riset AI";
+  const researchBody = document.createElement("div");
+  researchBody.style.cssText = "white-space:pre-wrap;overflow-wrap:anywhere;margin-top:8px;line-height:1.65";
+  const researchSources = document.createElement("div");
+  researchSources.style.cssText = "display:grid;gap:6px;margin-top:10px";
+  researchPanel.append(researchHeading, researchBody, researchSources);
+  list.parentNode.insertBefore(researchPanel, list);
+
+  async function runResearch(url, productName) {
+    const backendInput = $("geminiCsvWorkerUrl");
+    const tokenInput = $("geminiCsvToken");
+    let base;
+    try {
+      const backendUrl = new URL(backendInput?.value.trim() || "");
+      if (backendUrl.protocol !== "https:" || !backendUrl.hostname.endsWith(".workers.dev") ||
+          backendUrl.pathname !== "/" || backendUrl.search || backendUrl.hash ||
+          backendUrl.username || backendUrl.password) throw new Error();
+      base = backendUrl.origin;
+    } catch (_) {
+      researchPanel.hidden = false;
+      researchBody.textContent = "Link tersimpan di browser, tetapi URL backend Cloudflare tidak valid. Periksa panel Analisis AI.";
+      return;
+    }
+    const token = tokenInput?.value.trim();
+    if (!token) {
+      researchPanel.hidden = false;
+      researchBody.textContent = "Link tersimpan di browser. Untuk menjalankan riset Google Search otomatis, masukkan APP_SHARED_TOKEN di panel Analisis AI. Token tidak perlu dikirim ke chat.";
+      return;
+    }
+    researchPanel.hidden = false;
+    researchBody.textContent = "Gemini sedang meneliti link dan mencari sumber publik melalui Google Search…";
+    researchSources.replaceChildren();
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    try {
+      const response = await fetch(base + "/api/affiliate/analyze", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ url, productName: productName || "" }),
+        cache: "no-store"
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.error || ("Backend merespons HTTP " + response.status));
+      researchHeading.textContent = "Hasil riset produk · " + (data.provider || "AI") + (data.searchGroundingUsed ? " + Google Search" : "");
+      researchBody.textContent = data.answer || "Riset selesai tanpa teks hasil.";
+      researchSources.replaceChildren();
+      const sources = Array.isArray(data.sources) ? data.sources : [];
+      if (sources.length) {
+        const label = document.createElement("b");
+        label.textContent = "Sumber yang dikembalikan Google Search";
+        researchSources.append(label);
+        sources.forEach(source => {
+          if (!source || typeof source.url !== "string" || !/^https:\/\//i.test(source.url)) return;
+          const anchor = document.createElement("a");
+          anchor.href = source.url;
+          anchor.target = "_blank";
+          anchor.rel = "noopener noreferrer";
+          anchor.textContent = String(source.title || source.url);
+          anchor.style.cssText = "color:#a9c4ff;overflow-wrap:anywhere";
+          researchSources.append(anchor);
+        });
+      } else {
+        const note = document.createElement("small");
+        note.textContent = "Google Search tidak mengembalikan daftar sumber yang bisa ditampilkan. Periksa klaim dan jangan menganggap data yang tidak bersumber sebagai fakta.";
+        researchSources.append(note);
+      }
+      const note = document.createElement("small");
+      note.style.cssText = "display:block;color:var(--muted);margin-top:8px";
+      note.textContent = data.note || "Data komisi dan penjualan pribadi tetap memerlukan laporan resmi Shopee Affiliate.";
+      researchSources.append(note);
+      setStatus("Link tersimpan. Riset AI selesai; periksa fakta dan sumber sebelum memakai konten.");
+    } catch (error) {
+      researchHeading.textContent = "Riset otomatis belum berhasil";
+      researchBody.textContent = error.message || "Koneksi riset gagal.";
+      const note = document.createElement("small");
+      note.textContent = "Link tetap tersimpan secara lokal. Periksa backend, token, kuota Gemini, dan konfigurasi Google Search grounding.";
+      researchSources.replaceChildren(note);
+      setStatus("Link tersimpan, tetapi riset gagal: " + (error.message || "koneksi gagal"), true);
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
+  }
 
   function load() {
     try {
@@ -134,7 +227,6 @@
     const campaign = campaignInput.value.trim().slice(0, 100);
     const platform = platformInput.value;
     const url = parseUrl(rawUrl);
-    if (!name) { setStatus("Masukkan nama produk atau kampanye.", true); nameInput.focus(); return; }
     if (!url) { setStatus("Masukkan URL HTTPS Shopee yang valid. Tautan eksternal atau URL yang tidak aman ditolak.", true); urlInput.focus(); return; }
     if (!looksAffiliate(url)) {
       setStatus("Link ini belum tampak seperti tautan Affiliate. Buat/salin link dari fitur Shopee Affiliate terlebih dahulu, lalu masukkan link tersebut.", true);
@@ -145,11 +237,14 @@
       setStatus("Tautan ini sudah ada di daftar OfficeMe.", true);
       return;
     }
-    links.push({ id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2), name, url: url.href, campaign, platform, createdAt: new Date().toISOString() });
+    const researchName = name;
+    const savedName = name || "Produk dari link Shopee";
+    links.push({ id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2), name: savedName, url: url.href, campaign, platform, createdAt: new Date().toISOString() });
     if (!save()) { links.pop(); return; }
     form.reset();
     render();
-    setStatus("Tautan disimpan di browser ini. OfficeMe belum memverifikasi atribusi komisi Shopee.");
+    setStatus("Tautan disimpan di browser ini. Memulai riset produk otomatis jika backend dan token tersedia.");
+    runResearch(url.href, researchName);
   });
 
   exportButton.addEventListener("click", () => {

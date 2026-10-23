@@ -78,3 +78,28 @@ test("rejects requests without a valid token", async () => {
   const res = await (await load()).fetch(r, { APP_SHARED_TOKEN: TOKEN, GROQ_API_KEY: "q" });
   assert.equal(res.status, 401);
 });
+
+
+test("persistent task history requires D1 storage", async () => {
+  const res = await (await load()).fetch(req("/api/tasks", undefined, "GET"), { APP_SHARED_TOKEN: TOKEN });
+  assert.equal(res.status, 503);
+  assert.equal((await res.json()).error, "Penyimpanan tugas belum dikonfigurasi.");
+});
+
+test("persistent task history endpoint returns a safe empty list", async () => {
+  const db = {
+    prepare(sql) {
+      return {
+        bind() { return this; },
+        async run() { return { success: true }; },
+        async all() { return { results: [] }; },
+        async first() { return null; }
+      };
+    }
+  };
+  const res = await (await load()).fetch(req("/api/tasks", undefined, "GET"), { APP_SHARED_TOKEN: TOKEN, APPROVAL_DB: db });
+  const data = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(data.ok, true);
+  assert.deepEqual(data.items, []);
+});

@@ -26,7 +26,7 @@
       cache: "no-store"
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.ok === false) throw new Error(data.error || ("Backend merespons HTTP " + response.status));
+    if (!response.ok || data.ok === false) { const code = typeof data.diagnosticCode === "string" && /^[A-Z0-9_-]{1,80}$/.test(data.diagnosticCode) ? " (kode diagnostik: " + data.diagnosticCode + ")" : ""; throw new Error((data.error || ("Backend merespons HTTP " + response.status)) + code); }
     return data;
   }
   function setStatus(message, kind = "info") {

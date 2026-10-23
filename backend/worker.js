@@ -302,7 +302,8 @@ function oauthConfigured(platform,env){
  return false;
 }
 function oauthCallbackUrl(env){
- const url=new URL(env.OAUTH_CALLBACK_URL||"");
+ let url;
+ try{url=new URL(env.OAUTH_CALLBACK_URL||"")}catch(_){throw new Error("OAUTH_CALLBACK_URL_INVALID")}
  if(url.protocol!=="https:"||url.username||url.password||url.hash||url.search||url.pathname!=="/api/integrations/oauth/callback")throw new Error("OAUTH_CALLBACK_URL_INVALID");
  return url.toString();
 }
@@ -1426,7 +1427,7 @@ export default {
           code === "METRICOOL_OAUTH_CLIENT_REGISTRATION_UNSUPPORTED" ? "Metadata OAuth Metricool ditemukan, tetapi tidak mengiklankan pendaftaran klien dinamis maupun client metadata URL. OfficeMe memerlukan klien OAuth yang didaftarkan Metricool sebelum bisa terhubung langsung." :
           code === "METRICOOL_OAUTH_CLIENT_REGISTRATION_FAILED" ? "Metricool tidak menerima pendaftaran OAuth otomatis untuk OfficeMe. Integrasi memerlukan registrasi klien yang didukung Metricool." :
           "Tidak dapat memulai koneksi Metricool MCP. Periksa konfigurasi backend; jangan kirim token rahasia ke chat.";
-        const diagnosticCode = /^[A-Z0-9_:-]{1,80}$/.test(code) ? code : (error && error.name === "AbortError" ? "METRICOOL_REQUEST_ABORTED" : error && error.name === "TimeoutError" ? "METRICOOL_REQUEST_TIMEOUT" : "METRICOOL_START_FAILED");
+        const diagnosticCode = /^[A-Z0-9_:-]{1,80}$/.test(code) ? code : (error && error.name === "AbortError" ? "METRICOOL_REQUEST_ABORTED" : error && error.name === "TimeoutError" ? "METRICOOL_REQUEST_TIMEOUT" : error && error.name === "TypeError" ? "METRICOOL_TYPE_ERROR" : error && error.name === "SyntaxError" ? "METRICOOL_SYNTAX_ERROR" : "METRICOOL_START_FAILED");
         console.error("Metricool OAuth start failed", diagnosticCode);
         return json({ ok: false, error: message, diagnosticCode }, 502, origin);
       }

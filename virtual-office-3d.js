@@ -523,18 +523,22 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
   }
   function init() {
     if(renderer)return;
-    scene=new THREE.Scene();scene.background=new THREE.Color("#c8dbe4");scene.fog=new THREE.Fog("#c8dbe4",13,28);
+    scene=new THREE.Scene();scene.background=new THREE.Color("#d9e7ee");scene.fog=new THREE.Fog("#d9e7ee",16,34);
     camera=new THREE.PerspectiveCamera(42,1,.1,80);camera.position.set(9,9,12);
     ensureStatusHud();ensureControlPanel();
     renderer=new THREE.WebGLRenderer({antialias:!mobile.matches,alpha:false,powerPreference:"low-power"});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,mobile.matches?1.25:1.7));
-    renderer.shadowMap.enabled=!mobile.matches;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.08;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,mobile.matches?1.35:2));
+    renderer.setClearColor("#d9e7ee",1);
+    renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
+    renderer.setAnimationLoop?.(null);
     canvasWrap.replaceChildren(renderer.domElement);renderer.domElement.setAttribute("aria-label","Visualisasi kantor 3D. Seret untuk memutar, roda mouse atau pinch untuk zoom, klik kanan atau dua jari untuk menggeser.");
     controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,1,0);controls.enableDamping=!reducedMotion.matches;controls.dampingFactor=.07;controls.minDistance=5;controls.maxDistance=23;controls.maxPolarAngle=Math.PI*.49;controls.minPolarAngle=.18;controls.update();
-    scene.add(new THREE.HemisphereLight("#eff8ff","#5e6c7b",2.0));
-    const key=new THREE.DirectionalLight("#fff0d9",3.0);key.position.set(-5,10,6);key.castShadow=true;key.shadow.mapSize.set(mobile.matches?512:1024,mobile.matches?512:1024);scene.add(key);
-    const fill=new THREE.DirectionalLight("#a6dfff",1.0);fill.position.set(5,6,-4);scene.add(fill);
+    scene.add(new THREE.HemisphereLight("#f4f8ff","#6d594b",2.35));
+    const key=new THREE.DirectionalLight("#fff0dc",3.4);key.position.set(-5,11,7);key.castShadow=true;key.shadow.mapSize.set(mobile.matches?768:1536,mobile.matches?768:1536);key.shadow.bias=-0.00018;key.shadow.normalBias=0.025;scene.add(key);
+    const fill=new THREE.DirectionalLight("#b8e5ff",1.35);fill.position.set(6,7,-5);scene.add(fill);
+    const rim=new THREE.DirectionalLight("#d9c6ff",0.85);rim.position.set(0,5,-7);scene.add(rim);
+    const ambientBounce=new THREE.PointLight("#f8d9b0",0.45,18);ambientBounce.position.set(0,3,2);scene.add(ambientBounce);
     resizeObserver=new ResizeObserver(resize);resizeObserver.observe(canvasWrap);resize();
     document.getElementById("vo3dReset")?.addEventListener("click",resetCamera);
     document.getElementById("vo3dMotion")?.addEventListener("click",toggleMotion);

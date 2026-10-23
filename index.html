@@ -1054,8 +1054,8 @@ img,video,iframe,canvas{max-width:100%}
 <body><div id="appLoginGate" role="dialog" aria-modal="true" aria-labelledby="appLoginTitle"><form id="appLoginForm"><div class="app-login-mark">A</div><div class="eyebrow">APPDIGI · SECURE WORKSPACE</div><h1 id="appLoginTitle">Masuk ke AI AFFILIATE</h1><p>Masukkan APP_SHARED_TOKEN yang sudah Anda atur di Cloudflare. Setelah berhasil, seluruh fitur menggunakan token ini otomatis—tidak perlu mengisinya lagi di panel lain.</p><label for="appLoginToken">APP_SHARED_TOKEN</label><div class="app-login-input"><input id="appLoginToken" type="password" autocomplete="current-password" required spellcheck="false" placeholder="Masukkan token akses"><button type="button" id="appLoginReveal" aria-label="Tampilkan atau sembunyikan token">Lihat</button></div><button class="primary" id="appLoginSubmit" type="submit">Masuk ke aplikasi</button><div id="appLoginStatus" role="status" aria-live="polite"></div><div class="app-login-foot">Token diperiksa langsung oleh backend AppDIGI. Token tidak dikirim ke chat. Sesi ini berlaku di tab browser ini.</div></form></div><main class="wrap">
 <header class="top"><div class="brand"><div class="logo">A</div><div><div class="eyebrow">AppDIGI · AI Workspace</div><h1>AI AFFILIATE</h1><div class="muted">Kantor digital untuk satu akun Shopee Affiliate</div></div></div><span class="private">● Repositori publik</span></header>
 <section class="hero">
-<div class="panel"><div class="eyebrow">Command center</div><h2>Selamat datang, Direktur.</h2><div class="muted">Berikan instruksi kepada tim AI. Tugas penting dan tindakan eksternal tetap memerlukan persetujuan Anda.</div><div class="stats"><div class="stat"><strong>8</strong><span>Pekerja AI</span></div><div class="stat"><strong id="taskCount">0</strong><span>Tugas lokal</span></div><div class="stat"><strong>1</strong><span>Akun affiliate</span></div></div></div>
-<div class="panel"><div class="eyebrow">Perintah direktur</div><h2 style="font-size:20px;letter-spacing:0">Apa yang harus dikerjakan?</h2><form id="form"><textarea id="command" maxlength="1200" required placeholder="Contoh: Analisis 20 produk dari API resmi yang tersedia, urutkan berdasarkan metrik yang valid, lalu buat 3 ide konten untuk ditinjau."></textarea><div class="actions"><button class="primary" type="submit">＋ Buat rencana tugas</button><button type="button" id="example">Isi contoh</button><button type="button" id="clear">Bersihkan antrean</button></div><div class="notice">Prototipe awal: antrean tersimpan di memori browser, dan akan hilang saat halaman dimuat ulang. Belum terhubung ke AI atau Shopee API.</div><div id="toast" class="toast" role="status" aria-live="polite"></div></form></div>
+<div class="panel"><div class="eyebrow">Command center</div><h2>Selamat datang, Direktur.</h2><div class="muted">Berikan instruksi kepada tim AI. Tugas penting dan tindakan eksternal tetap memerlukan persetujuan Anda.</div><div class="stats"><div class="stat"><strong>8</strong><span>Pekerja AI</span></div><div class="stat"><strong id="taskCount">0</strong><span>Riwayat tugas</span></div><div class="stat"><strong>1</strong><span>Akun affiliate</span></div></div></div>
+<div class="panel"><div class="eyebrow">Perintah direktur</div><h2 style="font-size:20px;letter-spacing:0">Apa yang harus dikerjakan?</h2><form id="form"><textarea id="command" maxlength="1200" required placeholder="Contoh: Analisis 20 produk dari API resmi yang tersedia, urutkan berdasarkan metrik yang valid, lalu buat 3 ide konten untuk ditinjau."></textarea><div class="actions"><button class="primary" type="submit">＋ Buat rencana tugas</button><button type="button" id="example">Isi contoh</button><button type="button" id="clear">Bersihkan antrean</button></div><div class="notice">Instruksi dikirim ke backend AI. Riwayat tugas disimpan di database jika D1 tersedia. Analisis bukan publikasi otomatis; tinjau hasil sebelum digunakan.</div><div id="toast" class="toast" role="status" aria-live="polite"></div></form></div>
 </section>
 
 
@@ -1291,6 +1291,20 @@ img,video,iframe,canvas{max-width:100%}
 <div class="panel team-charter"><div class="eyebrow">Operating standard</div><h3>Standar kerja profesional AppDIGI</h3><div class="charter-grid"><div><b>01 · Berbasis bukti</b><span>Bedakan fakta, asumsi, dan rekomendasi. Sertakan sumber saat tersedia.</span></div><div><b>02 · Hasil terukur</b><span>Setiap tugas menghasilkan deliverable dan kriteria selesai yang jelas.</span></div><div><b>03 · Quality gate</b><span>Charlotte memeriksa akurasi, tautan, klaim, privasi, dan disclosure affiliate.</span></div><div><b>04 · Aman & terkendali</b><span>Integrasi memakai akses resmi; tindakan publikasi atau transaksi perlu persetujuan.</span></div></div><div class="notice">Catatan transparansi: spesialisasi, SOP, dan indikator sudah ditetapkan di antarmuka. Kemampuan eksekusi AI nyata baru aktif setelah model AI, sumber data, dan connector API resmi dikonfigurasi.</div></div>
 <section class="agents" id="agents"></section>
 <section class="bottom">
+<div class="panel" id="memoryPanel">
+ <div class="head"><h2 style="font-size:18px;margin:0">Memori jangka panjang AI</h2><span class="pill">D1 · Backend</span></div>
+ <p class="muted">Simpan keputusan proyek, preferensi, atau SOP agar agen dapat menggunakannya pada tugas berikutnya. Jangan simpan token, password, atau rahasia akun.</p>
+ <form id="memoryForm">
+  <label for="memoryKey">Kunci unik</label><input id="memoryKey" required maxlength="80" pattern="[A-Za-z0-9][A-Za-z0-9._-]{1,79}" placeholder="officeme.project-goal">
+  <label for="memoryCategory">Kategori</label><select id="memoryCategory"><option value="project">Proyek</option><option value="preference">Preferensi</option><option value="sop">SOP / prosedur</option><option value="decision">Keputusan</option></select>
+  <label for="memoryTitle">Judul</label><input id="memoryTitle" required maxlength="160" placeholder="Tujuan utama OfficeMe">
+  <label for="memoryContent">Isi memori</label><textarea id="memoryContent" required maxlength="4000" placeholder="Tuliskan informasi yang stabil dan berguna untuk tugas mendatang."></textarea>
+  <label for="memoryTags">Tag (pisahkan dengan koma)</label><input id="memoryTags" maxlength="400" placeholder="officeme, arsitektur, prioritas">
+  <div class="actions"><button class="primary" type="submit" id="memorySave">Simpan memori</button><button type="button" id="memoryRefresh">Muat ulang</button></div>
+  <div id="memoryStatus" class="toast" role="status" aria-live="polite"></div>
+ </form>
+ <div id="memoryItems" class="empty">Belum memuat memori.</div>
+</div>
 <div class="panel"><div class="head"><h2 style="font-size:18px;margin:0">Antrean pekerjaan</h2><span class="pill">Lokal</span></div><div id="tasks" class="empty">Belum ada tugas.</div></div>
 <div class="panel"><div class="head"><h2 style="font-size:18px;margin:0">Persetujuan direktur</h2><span class="pill">Human-in-the-loop</span></div><div class="task"><span class="dot"></span><div><b>Integrasi Shopee API resmi</b><small>Menunggu konfirmasi akses dan kredensial resmi untuk akun Indonesia.</small></div></div><div class="task"><span class="dot"></span><div><b>Publikasi dan tindakan eksternal</b><small>Wajib ditinjau sebelum dijalankan.</small></div></div><div class="task"><span class="dot"></span><div><b>Rahasia dan data akun</b><small>Hanya disimpan di backend; jangan masukkan password, cookie, atau API key di sini.</small></div></div></div>
 </section><div class="footer">AI AFFILIATE by AppDIGI · Prototipe UI · Tidak terhubung ke akun Shopee.</div>
@@ -1371,8 +1385,76 @@ team.forEach((a,i)=>{
 let queue=[];const form=document.getElementById("form"),input=document.getElementById("command"),list=document.getElementById("tasks"),toast=document.getElementById("toast");
 function render(){document.getElementById("taskCount").textContent=queue.length;list.replaceChildren();if(!queue.length){list.className="empty";list.textContent="Belum ada tugas.";return}list.className="";queue.slice().reverse().forEach(t=>{const row=document.createElement("div");row.className="task";const dot=document.createElement("span");dot.className="dot";const body=document.createElement("div");body.style.flex="1";const b=document.createElement("b");b.textContent=t.command;const sm=document.createElement("small");sm.textContent="Dibuat "+t.time+" · "+(t.status||"Menunggu backend");body.append(b,sm);if(t.result){const output=document.createElement("p");output.style.whiteSpace="pre-wrap";output.style.margin="8px 0 0";output.textContent=t.result;body.append(output)}const pill=document.createElement("span");pill.className="pill";pill.textContent=t.status==="Selesai"?"Selesai":t.status==="Perlu tinjauan"?"Perlu tinjauan":t.status==="Gagal"?"Gagal":t.status==="Berjalan"?"Berjalan":"Rancangan";row.append(dot,body,pill);list.append(row)})}
 form.addEventListener("submit",async e=>{e.preventDefault();const value=input.value.trim();if(!value)return;const task={command:value,time:new Date().toLocaleString("id-ID"),status:"Berjalan",result:"Meminta analisis dari 8 AI agent…"};queue.push(task);render();input.value="";toast.textContent="Tugas dikirim ke backend AI. Tidak ada publikasi atau aksi eksternal yang dijalankan.";try{const data=await call("/api/agents/run","POST",{task:value,mode:"team"});window.__appdigiAgentMonitor=window.__appdigiAgentMonitor||{};window.__appdigiAgentMonitor.lastRun={time:new Date().toLocaleString("id-ID"),task:value,ok:data.ok!==false,results:Array.isArray(data.results)?data.results:[],finalReview:data.finalReview||"",qualityStatus:data.qualityStatus||"",qualityGate:data.qualityGate||null};task.status=data.ok===false?"Gagal":"Perlu tinjauan";task.result=(data.results||[]).map(r=>r.name+" ("+r.role+")"+(r.provider?" · "+r.provider+"/"+(r.model||""):"")+(r.ok===false?" [GAGAL]":"")+":\\n"+(r.result||r.error||"Tidak ada hasil")).join("\\n\\n")+(data.finalReview?"\\n\\nREVIEW CHARLOTTE:\\n"+data.finalReview:"")+(data.qualityStatus?"\\n\\nSTATUS KUALITAS: "+data.qualityStatus:"")+(data.qualityGate?"\\nSpesialis berhasil: "+data.qualityGate.specialistsSucceeded+"/"+data.qualityGate.specialistsTotal+"; reviewer berhasil: "+data.qualityGate.reviewerSucceeded+"; tinjauan manusia wajib: "+data.qualityGate.humanReviewRequired:"");render();toast.textContent=data.ok===false?"Sebagian agen atau pemeriksaan kualitas gagal. Periksa hasil dan coba lagi.":"Analisis selesai; hasil tetap wajib ditinjau manusia sebelum digunakan.";window.dispatchEvent(new CustomEvent("appdigi:task-complete",{detail:{ok:data.ok!==false,task:value,message:data.ok===false?"Analisis selesai dengan kegagalan pada sebagian agen. Periksa rincian tugas.":"Analisis selesai dan menunggu tinjauan manusia."}}));}catch(error){task.status="Gagal";task.result=error.message||"Analisis gagal.";render();toast.textContent="Agent belum berjalan: "+task.result;window.dispatchEvent(new CustomEvent("appdigi:task-complete",{detail:{ok:false,task:value,message:"Permintaan analisis gagal: "+task.result}}));}});
+
+function formatPersistedAgentResult(data){
+ if(!data)return "";
+ const rows=Array.isArray(data.results)?data.results:[];
+ let text=rows.map(r=>(r.name||r.agentId||"Agen")+(r.role?" ("+r.role+")":"")+(r.provider?" · "+r.provider+"/"+(r.model||""):"")+(r.ok===false?" [GAGAL]":"")+":\\n"+(r.result||r.error||"Tidak ada hasil")).join("\\n\\n");
+ if(data.finalReview)text+="\\n\\nREVIEW CHARLOTTE:\\n"+data.finalReview;
+ if(data.qualityStatus)text+="\\n\\nSTATUS KUALITAS: "+data.qualityStatus;
+ if(data.qualityGate)text+="\\nSpesialis berhasil: "+data.qualityGate.specialistsSucceeded+"/"+data.qualityGate.specialistsTotal+"; reviewer berhasil: "+data.qualityGate.reviewerSucceeded+"; tinjauan manusia wajib: "+data.qualityGate.humanReviewRequired;
+ return text;
+}
+async function loadPersistedAgentTasks(){
+ try{
+  const data=await call("/api/tasks","GET");
+  if(!data.ok||!Array.isArray(data.items))return;
+  queue=data.items.map(item=>({
+   id:item.id,
+   command:item.task,
+   time:item.createdAt?new Date(item.createdAt).toLocaleString("id-ID"):"Waktu tidak tersedia",
+   status:item.status==="RUNNING"?"Berjalan":item.status==="FAILED"?"Gagal":"Perlu tinjauan",
+   result:item.error?("Tugas gagal: "+item.error):item.status==="RUNNING"?"Tugas sedang berjalan di backend…":formatPersistedAgentResult(item.result)
+  }));
+  render();
+ }catch(_){/* Keep the local interface usable when the backend is not configured. */}
+}
+window.addEventListener("appdigi:authenticated",loadPersistedAgentTasks);
+
+async function memoryApi(path,method,payload){
+ const urlInput=document.getElementById("geminiCsvWorkerUrl"),tokenInput=document.getElementById("geminiCsvToken");
+ let base;try{const url=new URL(urlInput?.value.trim()||"");if(url.protocol!=="https:"||!url.hostname.endsWith(".workers.dev")||url.pathname!=="/"||url.search||url.hash||url.username||url.password)throw new Error();base=url.origin}catch(_){throw new Error("URL backend Cloudflare Workers tidak valid. Periksa pengaturan backend.")}
+ const token=tokenInput?.value.trim();if(!token)throw new Error("Token backend belum diisi. Masukkan token di pengaturan backend; jangan kirim token melalui chat.");
+ const response=await fetch(base+path,{method,headers:{Authorization:"Bearer "+token,...(payload?{"Content-Type":"application/json"}:{})},body:payload?JSON.stringify(payload):undefined,cache:"no-store"});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||!data.ok)throw new Error(data.error||("Backend merespons HTTP "+response.status));
+ return data;
+}
+async function refreshAgentMemory(){
+ const status=document.getElementById("memoryStatus"),root=document.getElementById("memoryItems");
+ try{
+  const data=await memoryApi("/api/memory","GET");
+  root.replaceChildren();
+  if(!data.items.length){root.className="empty";root.textContent="Belum ada memori tersimpan.";return}
+  root.className="";
+  for(const item of data.items){
+   const card=document.createElement("article");card.className="task";
+   const body=document.createElement("div");body.style.flex="1";
+   const title=document.createElement("strong");title.textContent=item.title;
+   const meta=document.createElement("small");meta.textContent=item.category+" · "+item.key+" · diperbarui "+new Date(item.updatedAt).toLocaleString("id-ID");
+   const text=document.createElement("p");text.style.whiteSpace="pre-wrap";text.textContent=item.content;
+   body.append(title,meta,text);
+   if(item.tags?.length){const tags=document.createElement("small");tags.textContent="Tag: "+item.tags.join(", ");body.append(tags)}
+   card.append(body);root.append(card);
+  }
+  if(status)status.textContent="Memori berhasil dimuat.";
+ }catch(error){root.className="empty";root.textContent="Memori belum dapat dimuat: "+(error.message||"kesalahan backend");if(status)status.textContent=root.textContent}
+}
+document.getElementById("memoryForm")?.addEventListener("submit",async e=>{
+ e.preventDefault();
+ const button=document.getElementById("memorySave"),status=document.getElementById("memoryStatus");
+ const payload={key:document.getElementById("memoryKey").value.trim(),category:document.getElementById("memoryCategory").value,title:document.getElementById("memoryTitle").value.trim(),content:document.getElementById("memoryContent").value.trim(),tags:document.getElementById("memoryTags").value.split(",").map(x=>x.trim()).filter(Boolean)};
+ button.disabled=true;status.textContent="Menyimpan memori…";
+ try{await memoryApi("/api/memory","POST",payload);status.textContent="Memori tersimpan. Agen akan menerima memori ini pada tugas berikutnya.";document.getElementById("memoryForm").reset();await refreshAgentMemory()}
+ catch(error){status.textContent="Gagal menyimpan: "+(error.message||"kesalahan backend")}
+ finally{button.disabled=false}
+});
+document.getElementById("memoryRefresh")?.addEventListener("click",refreshAgentMemory);
+window.addEventListener("appdigi:authenticated",refreshAgentMemory);
+
+
 document.getElementById("example").addEventListener("click",()=>{input.value="Analisis produk melalui integrasi resmi yang tersedia, rangking 10 produk berdasarkan data valid, lalu buat 3 konsep konten untuk saya tinjau. Jangan publikasikan apa pun tanpa persetujuan saya.";input.focus()});
-document.getElementById("clear").addEventListener("click",()=>{queue=[];render();toast.textContent="Antrean lokal dibersihkan."});
+document.getElementById("clear").addEventListener("click",()=>{queue=[];render();toast.textContent="Tampilan antrean dibersihkan; riwayat tugas di server tetap tersimpan."});
 
 const roomTeam=[
  {id:"director",icon:"👑",name:"Ruangan Direktur",desc:"Ruang pribadi untuk arahan, keputusan, dan mengawasi pekerjaan."},
@@ -1970,7 +2052,7 @@ window.addEventListener("unhandledrejection",function(e){
 })();
 </script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
-<script type="module" src="./virtual-office-3d.js?v=20261021-agent-team-fixes-1"></script>
+<script type="module" src="./virtual-office-3d.js?v=20261022-studio-visual-upgrade-1"></script>
 <style>
 /* Individual AI agent monitor */
 .specialist-card{cursor:pointer;position:relative;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
@@ -2093,7 +2175,7 @@ window.addEventListener("unhandledrejection",function(e){
  const reveal=document.getElementById("appLoginReveal");
  const backend=(urlInput&&urlInput.value.trim())||"https://appdigi-w001-backend.dickv940.workers.dev";
  if(urlInput) urlInput.value=backend;
- function unlock(token){tokenInput.value=token;gate.hidden=true;document.documentElement.dataset.appAuthenticated="true";}
+ function unlock(token){tokenInput.value=token;gate.hidden=true;document.documentElement.dataset.appAuthenticated="true";window.dispatchEvent(new CustomEvent("appdigi:authenticated"));}
  async function validate(token){
   const response=await fetch(backend.replace(/\/$/,"")+"/api/session",{method:"GET",headers:{Authorization:"Bearer "+token},cache:"no-store"});
   let data={};try{data=await response.json()}catch(_){}

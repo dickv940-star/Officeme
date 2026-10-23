@@ -5,7 +5,7 @@ Private workspace for managing one Shopee Affiliate account with eight logical A
 ## Current milestone: UI prototype
 
 - `index.html` is the first dashboard prototype.
-- The command form creates an in-memory local task queue for interface testing only.
+- The command form sends team runs to the authenticated Cloudflare Worker. The Worker records task status and outputs in D1; the dashboard reloads the latest 50 records after authentication. The current run endpoint is synchronous (not a background queue), so `RUNNING` records may only be briefly visible.
 - No AI model, database, Shopee API, affiliate account, or external publishing action is connected yet.
 - Never enter passwords, API keys, cookies, personal identifiers, or payout details into this prototype.
 
@@ -21,6 +21,14 @@ William Bigboss is the owner/director (you): sets targets, gives orders, receive
 6. Isabella - Lead Visual Designer
 7. Lucas - Automation & Integration Engineer
 8. Charlotte - Quality & Compliance Lead (reviews everyone's work)
+
+## Persistent AI task history
+
+- `GET /api/tasks` returns the latest 50 task records after `APP_SHARED_TOKEN` authentication.
+- `POST /api/agents/run` creates a `RUNNING` record, then stores the agent result as `COMPLETED` or `FAILED`.
+- Records are stored in the `agent_tasks` table in the existing `APPROVAL_DB` D1 binding. The Worker also creates the table/index defensively when first used.
+- If D1 is not configured, task runs fail with HTTP 503 rather than pretending that the result was persisted.
+- This is durable history, not yet a background queue or scheduler. Long-running work, retries, cancellation, and scheduled jobs remain future work.
 
 ## Planned architecture
 

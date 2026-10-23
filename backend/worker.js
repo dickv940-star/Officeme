@@ -646,6 +646,10 @@ async function tryRunOneAgent(agentId, task, context, env) {
 }
 
 async function runAgents(input, env) {
+  const savedMemory = await loadAgentMemoryContext(env);
+  const suppliedContext = input && input.context && typeof input.context === "object" ? input.context : {};
+  const enrichedInput = { ...input, context: savedMemory ? { ...suppliedContext, ...savedMemory } : suppliedContext };
+  input = enrichedInput;
   if (!input || typeof input.task !== "string" || !input.task.trim() || input.task.length > 8000) throw new Error("INVALID_AGENT_INPUT");
   const mode = input.mode === "team" ? "team" : "single";
   if (mode === "single") {
@@ -982,6 +986,124 @@ async function validatePublishPackage(request, env, origin) {
     message: "Persetujuan valid untuk paket dan channel ini. Endpoint ini hanya memvalidasi; tidak memublikasikan." }, 200, origin);
 }
 
+
+
+async function ensureAgentMemoryTable(env) {
+  const db = env.APPROVAL_DB;
+  if (!db || typeof db.prepare !== "function") throw new Error("TASK_STORE_NOT_CONFIGURED");
+  await db.prepare(`CREATE TABLE IF NOT EXISTS agent_memory (
+    id TEXT PRIMARY KEY,
+    memory_key TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL CHECK (category IN ('project', 'preference', 'sop', 'decision')),
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    tags_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`).run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_agent_memory_category_updated ON agent_memory (category, updated_at DESC)").run();
+  return db;
+}
+
+function looksLikeCredential(value) {
+  return /(?:api[_ -]?key|client[_ -]?secret|access[_ -]?token|refresh[_ -]?token|bearer\\s+[a-z0-9._-]{12,}|password|private[_ -]?key)\\s*[:=]/i.test(value);
+}
+
+async function listAgentMemory(env, origin) {
+  try {
+    const db = await ensureAgentMemoryTable(env);
+    const rows = await db.prepare("SELECT id, memory_key, category, title, content, tags_json, created_at, updated_at FROM agent_memory ORDER BY updated_at DESC LIMIT 100").all();
+    return json({ ok: true, items: (rows.results || []).map(row => {
+      let tags = [];
+      try { tags = JSON.parse(row.tags_json || "[]"); } catch (_) {}
+      return { id: row.id, key: row.memory_key, category: row.category, title: row.title, content: row.content, tags, createdAt: row.created_at, updatedAt: row.updated_at };
+    }) }, 200, origin);
+  } catch (error) {
+    const status = error && error.message === "TASK_STORE_NOT_CONFIGURED" ? 503 : 500;
+    return json({ ok: false, error: status === 503 ? "Penyimpanan memori belum dikonfigurasi." : "Tidak dapat membaca memori agen." }, status, origin);
+  }
+}
+
+async function saveAgentMemory(input, env, origin) {
+  if (!input || typeof input.key !== "string" || !/^[a-z0-9][a-z0-9._-]{1,79}$/i.test(input.key) ||
+      !["project", "preference", "sop", "decision"].includes(input.category) ||
+      typeof input.title !== "string" || !input.title.trim() || input.title.length > 160 ||
+      typeof input.content !== "string" || !input.content.trim() || input.content.length > 4000) {
+    return json({ ok: false, error: "Memori tidak valid. Periksa key, kategori, judul, dan konten (maksimal 4.000 karakter)." }, 400, origin);
+  }
+  if (looksLikeCredential(input.content) || looksLikeCredential(input.title)) {
+    return json({ ok: false, error: "Jangan simpan kredensial, token, atau password dalam memori agen." }, 400, origin);
+  }
+  const tags = Array.isArray(input.tags) ? [...new Set(input.tags.filter(t => typeof t === "string").map(t => t.trim()).filter(Boolean).map(t => t.slice(0, 40)))].slice(0, 10) : [];
+  const db = await ensureAgentMemoryTable(env);
+  const now = new Date().toISOString();
+  const id = crypto.randomUUID();
+  await db.prepare("INSERT INTO agent_memory (id, memory_key, category, title, content, tags_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(memory_key) DO UPDATE SET category=excluded.category, title=excluded.title, content=excluded.content, tags_json=excluded.tags_json, updated_at=excluded.updated_at")
+    .bind(id, input.key.trim(), input.category, input.title.trim(), input.content.trim(), JSON.stringify(tags), now, now).run();
+  return json({ ok: true, key: input.key.trim(), category: input.category, title: input.title.trim(), updatedAt: now }, 200, origin);
+}
+
+async function loadAgentMemoryContext(env) {
+  try {
+    const db = await ensureAgentMemoryTable(env);
+    const rows = await db.prepare("SELECT memory_key, category, title, content, tags_json FROM agent_memory ORDER BY CASE category WHEN 'sop' THEN 0 WHEN 'decision' THEN 1 WHEN 'project' THEN 2 ELSE 3 END, updated_at DESC LIMIT 20").all();
+    const items = (rows.results || []).map(row => ({ key: row.memory_key, category: row.category, title: row.title, content: row.content, tags: (() => { try { return JSON.parse(row.tags_json || "[]"); } catch (_) { return []; } })() }));
+    return items.length ? { officeMeLongTermMemory: items } : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function ensureAgentTasksTable(env) {
+  const db = env.APPROVAL_DB;
+  if (!db || typeof db.prepare !== "function") throw new Error("TASK_STORE_NOT_CONFIGURED");
+  await db.prepare(`CREATE TABLE IF NOT EXISTS agent_tasks (
+    id TEXT PRIMARY KEY,
+    task_text TEXT NOT NULL,
+    mode TEXT NOT NULL DEFAULT 'team',
+    status TEXT NOT NULL CHECK (status IN ('RUNNING', 'COMPLETED', 'FAILED')),
+    result_json TEXT,
+    error_code TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`).run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_agent_tasks_created ON agent_tasks (created_at DESC)").run();
+  return db;
+}
+
+async function createAgentTaskRecord(input, env) {
+  const db = await ensureAgentTasksTable(env);
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await db.prepare("INSERT INTO agent_tasks (id, task_text, mode, status, result_json, error_code, created_at, updated_at) VALUES (?, ?, ?, 'RUNNING', NULL, NULL, ?, ?)")
+    .bind(id, input.task.trim(), input.mode === "single" ? "single" : "team", now, now).run();
+  return { id, task: input.task.trim(), mode: input.mode === "single" ? "single" : "team", status: "RUNNING", createdAt: now, updatedAt: now };
+}
+
+async function finishAgentTaskRecord(id, status, result, errorCode, env) {
+  const db = await ensureAgentTasksTable(env);
+  const now = new Date().toISOString();
+  const serialized = result == null ? null : JSON.stringify(result).slice(0, 180000);
+  await db.prepare("UPDATE agent_tasks SET status = ?, result_json = ?, error_code = ?, updated_at = ? WHERE id = ?")
+    .bind(status, serialized, errorCode || null, now, id).run();
+}
+
+async function listAgentTaskRecords(env, origin) {
+  try {
+    const db = await ensureAgentTasksTable(env);
+    const rows = await db.prepare("SELECT id, task_text, mode, status, result_json, error_code, created_at, updated_at FROM agent_tasks ORDER BY created_at DESC LIMIT 50").all();
+    const items = (rows.results || []).map(row => {
+      let result = null;
+      try { result = row.result_json ? JSON.parse(row.result_json) : null; } catch (_) {}
+      return { id: row.id, task: row.task_text, mode: row.mode, status: row.status, result, error: row.error_code || null, createdAt: row.created_at, updatedAt: row.updated_at };
+    });
+    return json({ ok: true, items }, 200, origin);
+  } catch (error) {
+    const status = error && error.message === "TASK_STORE_NOT_CONFIGURED" ? 503 : 500;
+    return json({ ok: false, error: status === 503 ? "Penyimpanan tugas belum dikonfigurasi." : "Tidak dapat membaca riwayat tugas." }, status, origin);
+  }
+}
+
 function healthPayload(env) {
   const providers = configuredProviders(env);
   return {
@@ -1048,6 +1170,8 @@ export default {
       let body;try{body=await request.json()}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
       body.action="status";return updateAgentHelp(helpStatusMatch[1],body,env,origin);
     }
+    if (request.method === "GET" && path === "/api/tasks") return listAgentTaskRecords(env, origin);
+    if (request.method === "GET" && path === "/api/memory") return listAgentMemory(env, origin);
     if (request.method === "GET" && path === "/api/session") {
       return json({ ok: true, authenticated: true }, 200, origin);
     }
@@ -1124,7 +1248,7 @@ export default {
     if (request.method === "POST" && path === "/api/publisher/validate") return validatePublishPackage(request, env, origin);
     const decisionMatch = path.match(/^\/api\/approvals\/([a-zA-Z0-9_-]{1,80})\/decision$/);
     if (request.method === "POST" && decisionMatch) return decideApproval(request, env, origin, decisionMatch[1]);
-    if (request.method !== "POST" || !["/api/analyze", "/api/agents/run", "/api/agents/chat", "/api/agents/delegate", "/api/shopee/graphql"].includes(path)) {
+    if (request.method !== "POST" || !["/api/analyze", "/api/agents/run", "/api/agents/chat", "/api/agents/delegate", "/api/shopee/graphql", "/api/memory"].includes(path)) {
       return json({ ok: false, error: "Rute tidak ditemukan." }, 404, origin);
     }
     const declaredLength = Number(request.headers.get("Content-Length") || 0);
@@ -1133,9 +1257,19 @@ export default {
       const raw = await request.text();
       if (raw.length > MAX_BODY_BYTES) return json({ ok: false, error: "Ukuran permintaan terlalu besar." }, 413, origin);
       const input = JSON.parse(raw);
+      if (path === "/api/memory") return saveAgentMemory(input, env, origin);
       if (path === "/api/agents/run") {
-        const result = await runAgents(input, env);
-        return json(result, 200, origin);
+        const record = await createAgentTaskRecord(input, env);
+        try {
+          const result = await runAgents(input, env);
+          const status = result && result.ok === false ? "FAILED" : "COMPLETED";
+          await finishAgentTaskRecord(record.id, status, result, null, env);
+          return json({ ...result, taskRecord: { ...record, status, updatedAt: new Date().toISOString() } }, 200, origin);
+        } catch (error) {
+          const code = error instanceof Error ? error.message : "AGENT_RUN_FAILED";
+          try { await finishAgentTaskRecord(record.id, "FAILED", null, code, env); } catch (_) {}
+          throw error;
+        }
       }
       if (path === "/api/agents/chat") {
         const result = await chatAgent(input, env);
@@ -1167,6 +1301,7 @@ export default {
         INVALID_DELEGATION_INPUT: [400, "Delegasi harus berisi tugas 1–8000 karakter dan memilih spesialis selain Charlotte, yang bertugas sebagai reviewer."],
         INVALID_CHAT_INPUT: [400, "Riwayat percakapan tidak valid. Gunakan 1–16 pesan user/assistant, masing-masing maksimal 4000 karakter, dan akhiri dengan pesan pengguna."],
         INVALID_AGENT: [400, "ID agent tidak dikenal."],
+        TASK_STORE_NOT_CONFIGURED: [503, "Penyimpanan tugas belum dikonfigurasi. Pastikan binding D1 APP_SHARED_TOKEN tersedia."],
         INVALID_MODEL: [500, "Nama model backend tidak valid."]
       };
       const [status, message] = messages[code] || [500, "Terjadi kesalahan pada backend."];

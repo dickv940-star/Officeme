@@ -78,3 +78,56 @@ test("rejects requests without a valid token", async () => {
   const res = await (await load()).fetch(r, { APP_SHARED_TOKEN: TOKEN, GROQ_API_KEY: "q" });
   assert.equal(res.status, 401);
 });
+
+
+test("persistent task history requires D1 storage", async () => {
+  const res = await (await load()).fetch(req("/api/tasks", undefined, "GET"), { APP_SHARED_TOKEN: TOKEN });
+  assert.equal(res.status, 503);
+  assert.equal((await res.json()).error, "Penyimpanan tugas belum dikonfigurasi.");
+});
+
+test("persistent task history endpoint returns a safe empty list", async () => {
+  const db = {
+    prepare(sql) {
+      return {
+        bind() { return this; },
+        async run() { return { success: true }; },
+        async all() { return { results: [] }; },
+        async first() { return null; }
+      };
+    }
+  };
+  const res = await (await load()).fetch(req("/api/tasks", undefined, "GET"), { APP_SHARED_TOKEN: TOKEN, APPROVAL_DB: db });
+  const data = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(data.ok, true);
+  assert.deepEqual(data.items, []);
+});
+
+
+test("memory API rejects credentials and passwords", async () => {
+  const res = await (await load()).fetch(req("/api/memory", {
+    key: "project-secret",
+    category: "project",
+    title: "Credential",
+    content: "api_key: example-secret-value"
+  }), { APP_SHARED_TOKEN: TOKEN, APPROVAL_DB: { prepare() { throw new Error("should not reach database"); } } });
+  assert.equal(res.status, 400);
+  assert.match((await res.json()).error, /Jangan simpan kredensial/);
+});
+
+test("memory API validates input before saving", async () => {
+  const res = await (await load()).fetch(req("/api/memory", {
+    key: "bad key",
+    category: "project",
+    title: "Title",
+    content: "Text"
+  }), { APP_SHARED_TOKEN: TOKEN });
+  assert.equal(res.status, 400);
+});
+
+test("memory API reports unavailable D1 store clearly", async () => {
+  const res = await (await load()).fetch(req("/api/memory", undefined, "GET"), { APP_SHARED_TOKEN: TOKEN });
+  assert.equal(res.status, 503);
+  assert.equal((await res.json()).error, "Penyimpanan memori belum dikonfigurasi.");
+});

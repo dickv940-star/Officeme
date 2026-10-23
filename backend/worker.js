@@ -437,7 +437,7 @@ async function readIntegrationData(platform,env){
    record.expiresAt=Date.now()+Number(td.expires_in||86400)*1000;
    await kv.put("integration:"+platform,await encryptIntegration(record,env));
   }
-  const profile=await fetchIntegrationJson("https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url,follower_count,following_count,likes_count,video_count",{headers:{Authorization:"Bearer "+record.tokens.accessToken}});
+  const profile=await fetchIntegrationJson("https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url",{headers:{Authorization:"Bearer "+record.tokens.accessToken}});
   data=profile.data&&profile.data.user;if(!data)throw new Error("INTEGRATION_PROFILE_NOT_FOUND");
  }
  return {ok:true,platform,verified:true,account:record.identity,data,readAt:new Date().toISOString(),writeActionsEnabled:false};

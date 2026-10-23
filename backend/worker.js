@@ -1426,7 +1426,9 @@ export default {
           code === "METRICOOL_OAUTH_CLIENT_REGISTRATION_UNSUPPORTED" ? "Metadata OAuth Metricool ditemukan, tetapi tidak mengiklankan pendaftaran klien dinamis maupun client metadata URL. OfficeMe memerlukan klien OAuth yang didaftarkan Metricool sebelum bisa terhubung langsung." :
           code === "METRICOOL_OAUTH_CLIENT_REGISTRATION_FAILED" ? "Metricool tidak menerima pendaftaran OAuth otomatis untuk OfficeMe. Integrasi memerlukan registrasi klien yang didukung Metricool." :
           "Tidak dapat memulai koneksi Metricool MCP. Periksa konfigurasi backend; jangan kirim token rahasia ke chat.";
-        return json({ ok: false, error: message }, 502, origin);
+        const diagnosticCode = /^[A-Z0-9_:-]{1,80}$/.test(code) ? code : (error && error.name === "AbortError" ? "METRICOOL_REQUEST_ABORTED" : error && error.name === "TimeoutError" ? "METRICOOL_REQUEST_TIMEOUT" : "METRICOOL_START_FAILED");
+        console.error("Metricool OAuth start failed", diagnosticCode);
+        return json({ ok: false, error: message, diagnosticCode }, 502, origin);
       }
     }
     if (request.method === "GET" && path === "/api/integrations/metricool/status") {

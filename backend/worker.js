@@ -899,19 +899,49 @@ async function ensureAgentTasksTable(env) {
     result_json TEXT,
     error_code TEXT,
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    idempotency_key TEXT
   )`).run();
+  // Safe, additive migration for databases created before idempotency was added.
+  const columns = await db.prepare("PRAGMA table_info(agent_tasks)").all();
+  if (!(columns.results || []).some((column) => column.name === "idempotency_key")) {
+    await db.prepare("ALTER TABLE agent_tasks ADD COLUMN idempotency_key TEXT").run();
+  }
   await db.prepare("CREATE INDEX IF NOT EXISTS idx_agent_tasks_created ON agent_tasks (created_at DESC)").run();
+  await db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_tasks_idempotency ON agent_tasks (idempotency_key) WHERE idempotency_key IS NOT NULL").run();
   return db;
 }
 
-async function createAgentTaskRecord(input, env) {
+function taskRow(row) {
+  let result = null;
+  try { result = row.result_json ? JSON.parse(row.result_json) : null; } catch (_) {}
+  return {
+    id: row.id, task: row.task_text, mode: row.mode, status: row.status,
+    result, error: row.error_code || null, createdAt: row.created_at, updatedAt: row.updated_at
+  };
+}
+
+async function createAgentTaskRecord(input, env, idempotencyKey = null) {
   const db = await ensureAgentTasksTable(env);
+  const mode = input.mode === "single" ? "single" : "team";
+  if (idempotencyKey) {
+    const existing = await db.prepare("SELECT * FROM agent_tasks WHERE idempotency_key = ?").bind(idempotencyKey).first();
+    if (existing) return { ...taskRow(existing), replayed: true };
+  }
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-  await db.prepare("INSERT INTO agent_tasks (id, task_text, mode, status, result_json, error_code, created_at, updated_at) VALUES (?, ?, ?, 'RUNNING', NULL, NULL, ?, ?)")
-    .bind(id, input.task.trim(), input.mode === "single" ? "single" : "team", now, now).run();
-  return { id, task: input.task.trim(), mode: input.mode === "single" ? "single" : "team", status: "RUNNING", createdAt: now, updatedAt: now };
+  try {
+    await db.prepare("INSERT INTO agent_tasks (id, task_text, mode, status, result_json, error_code, created_at, updated_at, idempotency_key) VALUES (?, ?, ?, 'RUNNING', NULL, NULL, ?, ?, ?)")
+      .bind(id, input.task.trim(), mode, now, now, idempotencyKey).run();
+  } catch (error) {
+    // Concurrent duplicate requests may both pass the read; the unique index is authoritative.
+    if (idempotencyKey) {
+      const existing = await db.prepare("SELECT * FROM agent_tasks WHERE idempotency_key = ?").bind(idempotencyKey).first();
+      if (existing) return { ...taskRow(existing), replayed: true };
+    }
+    throw error;
+  }
+  return { id, task: input.task.trim(), mode, status: "RUNNING", result: null, error: null, createdAt: now, updatedAt: now, replayed: false };
 }
 
 async function finishAgentTaskRecord(id, status, result, errorCode, env) {
@@ -926,18 +956,12 @@ async function listAgentTaskRecords(env, origin) {
   try {
     const db = await ensureAgentTasksTable(env);
     const rows = await db.prepare("SELECT id, task_text, mode, status, result_json, error_code, created_at, updated_at FROM agent_tasks ORDER BY created_at DESC LIMIT 50").all();
-    const items = (rows.results || []).map(row => {
-      let result = null;
-      try { result = row.result_json ? JSON.parse(row.result_json) : null; } catch (_) {}
-      return { id: row.id, task: row.task_text, mode: row.mode, status: row.status, result, error: row.error_code || null, createdAt: row.created_at, updatedAt: row.updated_at };
-    });
-    return json({ ok: true, items }, 200, origin);
+    return json({ ok: true, items: (rows.results || []).map(taskRow) }, 200, origin);
   } catch (error) {
     const status = error && error.message === "TASK_STORE_NOT_CONFIGURED" ? 503 : 500;
     return json({ ok: false, error: status === 503 ? "Penyimpanan tugas belum dikonfigurasi." : "Tidak dapat membaca riwayat tugas." }, status, origin);
   }
 }
-
 function healthPayload(env) {
   const providers = configuredProviders(env);
   return {
@@ -1052,7 +1076,20 @@ export default {
       const input = JSON.parse(raw);
       if (path === "/api/memory") return saveAgentMemory(input, env, origin);
       if (path === "/api/agents/run") {
-        const record = await createAgentTaskRecord(input, env);
+        const idempotencyKey = request.headers.get("Idempotency-Key") || "";
+        if (idempotencyKey && !/^[A-Za-z0-9._:-]{8,128}$/.test(idempotencyKey)) {
+          return json({ ok: false, error: "Idempotency-Key harus 8–128 karakter aman." }, 400, origin);
+        }
+        const record = await createAgentTaskRecord(input, env, idempotencyKey || null);
+        if (record.replayed) {
+          if (record.status === "COMPLETED" && record.result) {
+            return json({ ...record.result, taskRecord: { ...record, replayed: true } }, 200, origin);
+          }
+          if (record.status === "RUNNING") {
+            return json({ ok: false, error: "Tugas dengan kunci ini sedang berjalan; jangan kirim ulang tugas baru.", taskRecord: record }, 409, origin);
+          }
+          return json({ ok: false, error: "Tugas dengan kunci ini sudah gagal. Periksa riwayat sebelum memulai tugas baru.", taskRecord: record }, 409, origin);
+        }
         try {
           const result = await runAgents(input, env);
           const status = result && result.ok === false ? "FAILED" : "COMPLETED";

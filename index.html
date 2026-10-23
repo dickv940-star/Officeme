@@ -2186,9 +2186,25 @@ window.addEventListener("unhandledrejection",function(e){
    }catch(error){if(state){state.dataset.error="true";state.textContent="Belum terhubung. "+(error.message||"Otorisasi gagal.");}status.textContent="Koneksi "+platform+" gagal dimulai: "+(error.message||"Kesalahan koneksi");connectButton.disabled=false;}
   });
  });
- if(new URLSearchParams(location.search).has("integration")){
-  status.textContent="Kembali dari halaman otorisasi. Tekan “Periksa status koneksi” untuk memverifikasi hasilnya.";
-  setTimeout(()=>button?.click(),100);
+ const oauthParams=new URLSearchParams(location.search);
+ if(oauthParams.has("integration")){
+  const result=oauthParams.get("integration")||"failed";
+  const platform=oauthParams.get("platform")||"";
+  const platformName=({youtube:"YouTube",instagram:"Instagram",facebook:"Facebook",tiktok:"TikTok"})[platform]||"akun";
+  const resultMessages={
+   success:"Otorisasi "+platformName+" selesai. Memeriksa status koneksi dan data akun melalui backend…",
+   denied:"Otorisasi dibatalkan atau ditolak. "+platformName+" belum terhubung; mulai ulang dan setujui izin yang diperlukan.",
+   invalid_state:"Sesi keamanan OAuth tidak valid atau sudah digunakan. Mulai ulang dari tombol Hubungkan "+platformName+".",
+   expired:"Sesi OAuth kedaluwarsa. Mulai ulang dari tombol Hubungkan "+platformName+" dan selesaikan dalam 10 menit.",
+   youtube_channel_not_found:"Login Google berhasil, tetapi API tidak menemukan kanal YouTube untuk akun yang dipilih. Pastikan akun Google memiliki kanal YouTube lalu coba lagi.",
+   instagram_needs_professional_account:"Instagram memerlukan akun Professional yang terhubung ke Facebook Page. Periksa pengaturan akun, lalu coba lagi.",
+   facebook_page_required:"Tidak ditemukan Facebook Page yang dapat diakses. Pastikan akun memiliki Page dan izin yang diperlukan.",
+   tiktok_profile_not_verified:"TikTok belum berhasil memverifikasi profil. Periksa izin aplikasi dan coba lagi.",
+   authorization_failed:"Otorisasi gagal diselesaikan. Mulai ulang koneksi. Jika berulang, periksa URL callback dan konfigurasi OAuth penyedia."
+  };
+  status.textContent=resultMessages[result]||"Hasil OAuth tidak dikenali. Periksa status koneksi sebelum mengulangi proses.";
+  if(result==="success")setTimeout(()=>button?.click(),100);
+  try{history.replaceState(null,"",location.pathname+location.hash)}catch(_){}
  }
 })();
 </script>

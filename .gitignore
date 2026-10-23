@@ -1,0 +1,5 @@
+# Local OfficeMe browser agent state and downloaded media
+local-video-agent/browser-profile/
+local-video-agent/imports/
+local-video-agent/node_modules/
+local-video-agent/package-lock.json

@@ -49,11 +49,15 @@ CREATE TABLE IF NOT EXISTS agent_tasks (
   result_json TEXT,
   error_code  TEXT,
   created_at  TEXT NOT NULL,
-  updated_at  TEXT NOT NULL
+  updated_at  TEXT NOT NULL,
+  idempotency_key TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_agent_tasks_created
   ON agent_tasks (created_at DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_tasks_idempotency
+  ON agent_tasks (idempotency_key) WHERE idempotency_key IS NOT NULL;
 
 -- Persistent long-term project memory for agents.
 CREATE TABLE IF NOT EXISTS agent_memory (

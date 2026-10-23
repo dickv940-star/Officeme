@@ -80,6 +80,47 @@ test("rejects requests without a valid token", async () => {
 });
 
 
+test("rejects malformed idempotency keys for agent runs", async () => {
+  const request = new Request("https://w.example/api/agents/run", {
+    method: "POST",
+    headers: { Origin: "https://dickv940-star.github.io", Authorization: "Bearer " + TOKEN, "Content-Type": "application/json", "Idempotency-Key": "bad key" },
+    body: JSON.stringify({ task: "test", mode: "team" })
+  });
+  const res = await (await load()).fetch(request, { APP_SHARED_TOKEN: TOKEN });
+  assert.equal(res.status, 400);
+  assert.match((await res.json()).error, /Idempotency-Key/);
+});
+
+test("replays completed agent task for a repeated idempotency key", async () => {
+  const existing = {
+    id: "task-existing", task_text: "test task", mode: "team", status: "COMPLETED",
+    result_json: JSON.stringify({ ok: true, reply: "stored result" }), error_code: null,
+    created_at: "2026-10-23T00:00:00.000Z", updated_at: "2026-10-23T00:01:00.000Z",
+    idempotency_key: "office-task-123"
+  };
+  const db = {
+    prepare(sql) {
+      return {
+        bind() { return this; },
+        async run() { return { success: true }; },
+        async all() { return { results: [{ name: "idempotency_key" }] }; },
+        async first() { return sql.includes("WHERE idempotency_key = ?") ? existing : null; }
+      };
+    }
+  };
+  const request = new Request("https://w.example/api/agents/run", {
+    method: "POST",
+    headers: { Origin: "https://dickv940-star.github.io", Authorization: "Bearer " + TOKEN, "Content-Type": "application/json", "Idempotency-Key": "office-task-123" },
+    body: JSON.stringify({ task: "test task", mode: "team" })
+  });
+  const res = await (await load()).fetch(request, { APP_SHARED_TOKEN: TOKEN, APPROVAL_DB: db });
+  const data = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(data.reply, "stored result");
+  assert.equal(data.taskRecord.replayed, true);
+  assert.equal(data.taskRecord.id, "task-existing");
+});
+
 test("persistent task history requires D1 storage", async () => {
   const res = await (await load()).fetch(req("/api/tasks", undefined, "GET"), { APP_SHARED_TOKEN: TOKEN });
   assert.equal(res.status, 503);

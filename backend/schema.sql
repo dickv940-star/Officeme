@@ -54,3 +54,16 @@ CREATE TABLE IF NOT EXISTS agent_tasks (
 
 CREATE INDEX IF NOT EXISTS idx_agent_tasks_created
   ON agent_tasks (created_at DESC);
+
+-- Persistent long-term project memory for agents.
+CREATE TABLE IF NOT EXISTS agent_memory (
+  id TEXT PRIMARY KEY,
+  memory_key TEXT NOT NULL UNIQUE,
+  category TEXT NOT NULL CHECK (category IN ('project', 'preference', 'sop', 'decision')),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  tags_json TEXT NOT NULL DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_memory_category_updated ON agent_memory (category, updated_at DESC);

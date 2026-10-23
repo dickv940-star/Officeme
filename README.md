@@ -101,6 +101,7 @@ The account-connect UI and backend OAuth callbacks are implemented, but a platfo
    - Meta: META_APP_ID, META_APP_SECRET; optionally META_GRAPH_VERSION.
    - Google: YOUTUBE_OAUTH_CLIENT_ID, YOUTUBE_OAUTH_CLIENT_SECRET; enable YouTube Data API v3 and configure the OAuth consent screen.
    - TikTok: TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET; optionally TIKTOK_SCOPES (default user.info.basic,video.list).
+   - Pinterest: PINTEREST_APP_ID, PINTEREST_APP_SECRET; optionally PINTEREST_SCOPES (default user_accounts:read,boards:read,boards:write,pins:read,pins:write).
 3. In Meta, configure Facebook Login/Instagram API products and request only permissions approved for your app. Instagram requires a Professional (Business/Creator) account linked to a Facebook Page.
 4. In Google Cloud, register the callback as an authorized redirect URI and enable YouTube Data API v3.
 5. In TikTok for Developers, enable Login Kit and register the callback URI. Additional publishing scopes require TikTok approval.

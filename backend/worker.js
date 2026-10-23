@@ -431,9 +431,10 @@ async function metricoolMcpRequest(accessToken,method,params={},sessionId=""){
  };
  if(sessionId)headers["mcp-session-id"]=sessionId;
  const id=crypto.randomUUID();
+ const rpcBody=method==="notifications/initialized"?{jsonrpc:"2.0",method,params}:{jsonrpc:"2.0",id,method,params};
  const response=await fetch(METRICOOL_MCP_URL,{
   method:"POST",redirect:"error",signal:AbortSignal.timeout(20000),headers,
-  body:JSON.stringify({jsonrpc:"2.0",id,method,params})
+  body:JSON.stringify(rpcBody)
  });
  const nextSession=response.headers.get("Mcp-Session-Id")||sessionId;
  const raw=await response.text();
@@ -525,7 +526,14 @@ async function finishIntegrationOAuth(request,env){
  const appUrl=env.OAUTH_APP_URL||OAUTH_APP_DEFAULT;
  const safeAppUrl=/^https:\/\/dickv940-star\.github\.io\/Officeme\/?$/.test(appUrl)?appUrl:OAUTH_APP_DEFAULT;
  const redirect=(status,platform)=>Response.redirect(safeAppUrl+"?integration="+encodeURIComponent(status)+(platform?"&platform="+encodeURIComponent(platform):""),302);
- if(url.searchParams.has("error"))return redirect("denied","");
+ if(url.searchParams.has("error")){
+  const deniedState=url.searchParams.get("state"),deniedKv=oauthKv(env);
+  if(deniedKv&&deniedState&&/^[a-f0-9]{64}$/.test(deniedState)){
+   const deniedKey="oauth-state:"+deniedState,deniedRaw=await deniedKv.get(deniedKey);await deniedKv.delete(deniedKey);
+   try{const deniedSaved=JSON.parse(deniedRaw||"{}");return redirect("denied",String(deniedSaved.platform||""));}catch(_){}
+  }
+  return redirect("denied","");
+ }
  const kv=oauthKv(env);
  if(!kv||!state||!/^[a-f0-9]{64}$/.test(state)||!code||code.length>4096)return redirect("failed","");
  const stateKey="oauth-state:"+state,stateRaw=await kv.get(stateKey);await kv.delete(stateKey);

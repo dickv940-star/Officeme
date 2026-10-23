@@ -816,6 +816,57 @@ async function validatePublishPackage(request, env, origin) {
     message: "Persetujuan valid untuk paket dan channel ini. Endpoint ini hanya memvalidasi; tidak memublikasikan." }, 200, origin);
 }
 
+
+async function ensureAgentTasksTable(env) {
+  const db = env.APPROVAL_DB;
+  if (!db || typeof db.prepare !== "function") throw new Error("TASK_STORE_NOT_CONFIGURED");
+  await db.prepare(`CREATE TABLE IF NOT EXISTS agent_tasks (
+    id TEXT PRIMARY KEY,
+    task_text TEXT NOT NULL,
+    mode TEXT NOT NULL DEFAULT 'team',
+    status TEXT NOT NULL CHECK (status IN ('RUNNING', 'COMPLETED', 'FAILED')),
+    result_json TEXT,
+    error_code TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`).run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_agent_tasks_created ON agent_tasks (created_at DESC)").run();
+  return db;
+}
+
+async function createAgentTaskRecord(input, env) {
+  const db = await ensureAgentTasksTable(env);
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await db.prepare("INSERT INTO agent_tasks (id, task_text, mode, status, result_json, error_code, created_at, updated_at) VALUES (?, ?, ?, 'RUNNING', NULL, NULL, ?, ?)")
+    .bind(id, input.task.trim(), input.mode === "single" ? "single" : "team", now, now).run();
+  return { id, task: input.task.trim(), mode: input.mode === "single" ? "single" : "team", status: "RUNNING", createdAt: now, updatedAt: now };
+}
+
+async function finishAgentTaskRecord(id, status, result, errorCode, env) {
+  const db = await ensureAgentTasksTable(env);
+  const now = new Date().toISOString();
+  const serialized = result == null ? null : JSON.stringify(result).slice(0, 180000);
+  await db.prepare("UPDATE agent_tasks SET status = ?, result_json = ?, error_code = ?, updated_at = ? WHERE id = ?")
+    .bind(status, serialized, errorCode || null, now, id).run();
+}
+
+async function listAgentTaskRecords(env, origin) {
+  try {
+    const db = await ensureAgentTasksTable(env);
+    const rows = await db.prepare("SELECT id, task_text, mode, status, result_json, error_code, created_at, updated_at FROM agent_tasks ORDER BY created_at DESC LIMIT 50").all();
+    const items = (rows.results || []).map(row => {
+      let result = null;
+      try { result = row.result_json ? JSON.parse(row.result_json) : null; } catch (_) {}
+      return { id: row.id, task: row.task_text, mode: row.mode, status: row.status, result, error: row.error_code || null, createdAt: row.created_at, updatedAt: row.updated_at };
+    });
+    return json({ ok: true, items }, 200, origin);
+  } catch (error) {
+    const status = error && error.message === "TASK_STORE_NOT_CONFIGURED" ? 503 : 500;
+    return json({ ok: false, error: status === 503 ? "Penyimpanan tugas belum dikonfigurasi." : "Tidak dapat membaca riwayat tugas." }, status, origin);
+  }
+}
+
 function healthPayload(env) {
   const providers = configuredProviders(env);
   return {
@@ -881,6 +932,7 @@ export default {
       let body;try{body=await request.json()}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
       body.action="status";return updateAgentHelp(helpStatusMatch[1],body,env,origin);
     }
+    if (request.method === "GET" && path === "/api/tasks") return listAgentTaskRecords(env, origin);
     if (request.method === "GET" && path === "/api/session") {
       return json({ ok: true, authenticated: true }, 200, origin);
     }
@@ -927,8 +979,17 @@ export default {
       if (raw.length > MAX_BODY_BYTES) return json({ ok: false, error: "Ukuran permintaan terlalu besar." }, 413, origin);
       const input = JSON.parse(raw);
       if (path === "/api/agents/run") {
-        const result = await runAgents(input, env);
-        return json(result, 200, origin);
+        const record = await createAgentTaskRecord(input, env);
+        try {
+          const result = await runAgents(input, env);
+          const status = result && result.ok === false ? "FAILED" : "COMPLETED";
+          await finishAgentTaskRecord(record.id, status, result, null, env);
+          return json({ ...result, taskRecord: { ...record, status, updatedAt: new Date().toISOString() } }, 200, origin);
+        } catch (error) {
+          const code = error instanceof Error ? error.message : "AGENT_RUN_FAILED";
+          try { await finishAgentTaskRecord(record.id, "FAILED", null, code, env); } catch (_) {}
+          throw error;
+        }
       }
       if (path === "/api/agents/chat") {
         const result = await chatAgent(input, env);

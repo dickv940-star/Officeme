@@ -68,6 +68,12 @@
   workflowPanel.append(metricoolActions);
   researchPanel.parentNode.insertBefore(workflowPanel, list);
 
+  function emitActivity(title, message, kind = "info") {
+    window.dispatchEvent(new CustomEvent("appdigi:director-notification", {
+      detail: { title, message, kind }
+    }));
+  }
+
   function makeMetricoolContentPack(data, url, productName) {
     const lines = [
       "# OfficeMe — Paket Konten untuk Metricool",
@@ -107,7 +113,8 @@
     teamWorkflowRunning = true;
     workflowPanel.hidden = false;
     workflowHeading.textContent = "AI Manager · pembagian tugas otomatis";
-    workflowStatus.textContent = "Manager sedang menugaskan Data Analyst, Product Researcher, Strategist, Content Producer, SEO, Visual Designer, Automation Engineer, lalu Quality & Compliance Reviewer. Tidak perlu instruksi terpisah.";
+    workflowStatus.textContent = "1/3 · Mengirim pekerjaan ke backend AI Team…";
+    emitActivity("Pekerjaan dimulai", "AI Manager mulai menjalankan tim untuk link produk Shopee.", "info");
     workflowResults.replaceChildren();
     const submitButton = form.querySelector('button[type="submit"]');
     if (submitButton) submitButton.disabled = true;
@@ -144,6 +151,12 @@
       }
       const successful = data.results.filter(item => item && item.ok).length;
       workflowHeading.textContent = "Alur kerja Tim AI · " + successful + "/" + data.results.length + " agen selesai";
+      workflowStatus.textContent = "2/3 · Hasil agen diterima. Menampilkan pekerjaan dan pemeriksaan kualitas…";
+      data.results.forEach(item => emitActivity(
+        (item && item.ok ? "Agen selesai: " : "Agen gagal: ") + ((item && item.name) || (item && item.agentId) || "AI Agent"),
+        item && item.ok ? "Hasil agen diterima dan ditampilkan pada panel Alur kerja Tim AI." : ((item && item.error) || "Agen tidak mengembalikan hasil."),
+        item && item.ok ? "success" : "error"
+      ));
       workflowStatus.textContent = data.qualityStatus
         ? "Status pemeriksaan: " + data.qualityStatus + ". " + (data.ok ? "Hasil tim tersedia untuk ditinjau." : "Sebagian tugas gagal atau perlu diperiksa; lihat status tiap agen.")
         : "Hasil tim diterima. Periksa status tiap agen sebelum menggunakan rekomendasi.";
@@ -175,11 +188,14 @@
         card.append(summary, body);
         workflowResults.append(card);
       });
+      workflowStatus.textContent += "\n3/3 · Pemrosesan selesai. Tinjau hasil sebelum menyetujui tindakan eksternal.";
       setStatus("Link tersimpan. Riset dan alur Tim AI sudah diproses; tinjau hasil serta keterbatasannya sebelum mengambil tindakan.");
+      emitActivity("Alur kerja selesai", successful + " dari " + data.results.length + " hasil agen berhasil diterima. Publikasi belum dilakukan.", successful === data.results.length ? "success" : "info");
     } catch (error) {
       workflowHeading.textContent = "Alur kerja Tim AI belum berhasil";
       workflowStatus.textContent = (error.message || "Backend AI Team gagal merespons.") + "\nLink tetap tersimpan. Periksa provider AI yang dikonfigurasi di backend; tidak ada publikasi otomatis yang dilakukan.";
       setStatus("Link tersimpan, tetapi alur Tim AI gagal: " + (error.message || "koneksi gagal"), true);
+      emitActivity("Alur kerja gagal", error.message || "Backend AI Team gagal merespons.", "error");
     } finally {
       teamWorkflowRunning = false;
       if (submitButton) submitButton.disabled = false;
@@ -199,14 +215,25 @@
     } catch (_) {
       researchPanel.hidden = false;
       researchBody.textContent = "Link tersimpan di browser, tetapi URL backend Cloudflare tidak valid. Periksa panel Analisis AI.";
+      workflowPanel.hidden = false;
+      workflowHeading.textContent = "Pekerjaan belum dimulai";
+      workflowStatus.textContent = "Aktivitas terhenti sebelum AI Team dijalankan: URL backend Cloudflare tidak valid. Periksa konfigurasi backend, lalu kirim ulang link.";
+      workflowResults.replaceChildren();
+      emitActivity("Pekerjaan tertahan", "URL backend Cloudflare tidak valid; AI Team belum dijalankan.", "error");
       return;
     }
     const token = tokenInput?.value.trim();
     if (!token) {
       researchPanel.hidden = false;
       researchBody.textContent = "Link tersimpan di browser. Untuk menjalankan riset Google Search otomatis, masukkan APP_SHARED_TOKEN di panel Analisis AI. Token tidak perlu dikirim ke chat.";
+      workflowPanel.hidden = false;
+      workflowHeading.textContent = "Pekerjaan menunggu konfigurasi";
+      workflowStatus.textContent = "Link tersimpan, tetapi belum ada aktivitas AI karena APP_SHARED_TOKEN belum dimasukkan pada panel Analisis AI. Masukkan token di situs OfficeMe saja, lalu kirim ulang link. Jangan kirim token ke chat.";
+      workflowResults.replaceChildren();
+      emitActivity("Pekerjaan tertahan", "APP_SHARED_TOKEN belum tersedia pada sesi browser ini; riset dan AI Team belum dijalankan.", "error");
       return;
     }
+    emitActivity("Riset produk dimulai", "OfficeMe mengirim link ke backend untuk riset produk.", "info");
     researchPanel.hidden = false;
     researchBody.textContent = "Gemini sedang meneliti link dan mencari sumber publik melalui Google Search…";
     researchSources.replaceChildren();
@@ -249,6 +276,7 @@
       note.textContent = data.note || "Data komisi dan penjualan pribadi tetap memerlukan laporan resmi Shopee Affiliate.";
       researchSources.append(note);
       setStatus("Link tersimpan. Riset AI selesai; periksa fakta dan sumber sebelum memakai konten.");
+      emitActivity("Riset produk selesai", "Backend mengembalikan hasil riset. AI Manager melanjutkan pembagian tugas.", "success");
       void runTeamWorkflow(url.href, productName, base, token, data, null);
     } catch (error) {
       researchHeading.textContent = "Riset otomatis belum berhasil";
@@ -257,6 +285,7 @@
       note.textContent = "Link tetap tersimpan secara lokal. Periksa backend, token, kuota Gemini, dan konfigurasi Google Search grounding.";
       researchSources.replaceChildren(note);
       setStatus("Link tersimpan, tetapi riset gagal: " + (error.message || "koneksi gagal"), true);
+      emitActivity("Riset produk gagal", error.message || "Riset Google Search tidak berhasil. AI Team akan mencoba melanjutkan dari data yang tersedia.", "error");
       void runTeamWorkflow(url.href, productName, base, token, null, error.message || "Riset Google Search tidak berhasil.");
     } finally {
       if (submitButton) submitButton.disabled = false;
@@ -399,6 +428,7 @@
     form.reset();
     render();
     setStatus("Tautan disimpan di browser ini. Memulai riset produk otomatis jika backend dan token tersedia.");
+    emitActivity("Link affiliate diterima", "Link tersimpan di browser. OfficeMe memeriksa konfigurasi sebelum menjalankan agen.", "info");
     runResearch(url.href, researchName);
   });
 

@@ -1021,6 +1021,7 @@ export default {
         INVALID_DELEGATION_INPUT: [400, "Delegasi harus berisi tugas 1–8000 karakter dan memilih spesialis selain Charlotte, yang bertugas sebagai reviewer."],
         INVALID_CHAT_INPUT: [400, "Riwayat percakapan tidak valid. Gunakan 1–16 pesan user/assistant, masing-masing maksimal 4000 karakter, dan akhiri dengan pesan pengguna."],
         INVALID_AGENT: [400, "ID agent tidak dikenal."],
+        TASK_STORE_NOT_CONFIGURED: [503, "Penyimpanan tugas belum dikonfigurasi. Pastikan binding D1 APP_SHARED_TOKEN tersedia."],
         INVALID_MODEL: [500, "Nama model backend tidak valid."]
       };
       const [status, message] = messages[code] || [500, "Terjadi kesalahan pada backend."];

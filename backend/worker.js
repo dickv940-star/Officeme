@@ -362,27 +362,65 @@ async function metricoolOAuthMetadata(){
   "https://ai.metricool.com/.well-known/oauth-protected-resource",
   "https://ai.metricool.com/mcp/.well-known/oauth-protected-resource"
  ];
- let resourceMeta=null;
- for(const candidate of resourceCandidates){
-  try{resourceMeta=await fetchIntegrationJson(candidate);if(resourceMeta&&Array.isArray(resourceMeta.authorization_servers))break;}catch(_){}
+ let challengedResourceUrl="";
+ try{
+  const response=await fetch(METRICOOL_MCP_URL,{
+   method:"POST",redirect:"error",signal:AbortSignal.timeout(12000),
+   headers:{"content-type":"application/json","accept":"application/json, text/event-stream"},
+   body:JSON.stringify({jsonrpc:"2.0",id:"office-me-discovery",method:"initialize",params:{protocolVersion:"2025-03-26",capabilities:{},clientInfo:{name:"OfficeMe",version:"1.0.0"}}})
+  });
+  const challenge=response.headers.get("www-authenticate")||"";
+  const match=challenge.match(/resource_metadata\s*=\s*"?([^",\s]+)"?/i);
+  if(match)challengedResourceUrl=match[1];
+  await response.body?.cancel().catch(()=>{});
+ }catch(_){}
+ const resourceUrls=[challengedResourceUrl,...resourceCandidates].filter(Boolean);
+ let resourceMeta=null,resourceMetaUrl="";
+ for(const candidate of [...new Set(resourceUrls)]){
+  try{
+   const parsedUrl=new URL(candidate);
+   if(parsedUrl.protocol!=="https:"||!/(^|\.)metricool\.com$/i.test(parsedUrl.hostname))continue;
+   const candidateMeta=await fetchIntegrationJson(candidate);
+   if(candidateMeta&&Array.isArray(candidateMeta.authorization_servers)&&candidateMeta.authorization_servers.length){
+    resourceMeta=candidateMeta;resourceMetaUrl=candidate;break;
+   }
+  }catch(_){}
  }
- const authServers=resourceMeta&&Array.isArray(resourceMeta.authorization_servers)?resourceMeta.authorization_servers:["https://app.metricool.com"];
+ if(!resourceMeta){
+  throw new Error("METRICOOL_RESOURCE_METADATA_NOT_FOUND");
+ }
+ const authServers=resourceMeta.authorization_servers;
  for(const server of authServers){
   let parsed;try{parsed=new URL(server)}catch(_){continue}
   if(parsed.protocol!=="https:"||!/(^|\.)metricool\.com$/i.test(parsed.hostname))continue;
-  const candidates=[
-   parsed.origin+"/.well-known/oauth-authorization-server",
-   parsed.origin+"/.well-known/oauth-authorization-server"+(parsed.pathname==="/"?"":parsed.pathname),
-   parsed.origin+"/.well-known/openid-configuration"
-  ];
+  const path=parsed.pathname.replace(/\/+$/,"");
+  const candidates=path
+   ?[
+     parsed.origin+"/.well-known/oauth-authorization-server"+path,
+     parsed.origin+"/.well-known/openid-configuration"+path,
+     parsed.origin+path+"/.well-known/openid-configuration"
+    ]
+   :[
+     parsed.origin+"/.well-known/oauth-authorization-server",
+     parsed.origin+"/.well-known/openid-configuration"
+    ];
   for(const candidate of [...new Set(candidates)]){
    try{
     const meta=await fetchIntegrationJson(candidate);
-    if(meta&&meta.authorization_endpoint&&meta.token_endpoint&&meta.registration_endpoint)return {resource:METRICOOL_MCP_URL,authorizationServer:parsed.origin,metadata:meta};
+    if(!meta||!meta.authorization_endpoint||!meta.token_endpoint)continue;
+    if(meta.issuer&&meta.issuer.replace(/\/+$/,"")!==server.replace(/\/+$/,""))continue;
+    const supportsDcr=Boolean(meta.registration_endpoint);
+    const supportsCimd=meta.client_id_metadata_document_supported===true;
+    if(!supportsDcr&&!supportsCimd)continue;
+    return {
+     resource:METRICOOL_MCP_URL,resourceMetadataUrl:resourceMetaUrl,
+     authorizationServer:server,metadata:meta,
+     registrationMode:supportsDcr?"dcr":"cimd"
+    };
    }catch(_){}
   }
  }
- throw new Error("METRICOOL_OAUTH_DISCOVERY_FAILED");
+ throw new Error("METRICOOL_OAUTH_CLIENT_REGISTRATION_UNSUPPORTED");
 }
 async function startMetricoolMcpOAuth(env){
  const kv=oauthKv(env);if(!kv)throw new Error("INTEGRATION_STORAGE_NOT_CONFIGURED");
@@ -391,17 +429,25 @@ async function startMetricoolMcpOAuth(env){
  const meta=discovered.metadata;
  const verifier=b64url(crypto.getRandomValues(new Uint8Array(32)));
  const challenge=b64url(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(verifier)));
- const registration=await fetchIntegrationJson(meta.registration_endpoint,{
-  method:"POST",headers:{"content-type":"application/json","accept":"application/json"},
-  body:JSON.stringify({
-   client_name:"OfficeMe",
-   redirect_uris:[redirectUri],
-   grant_types:["authorization_code","refresh_token"],
-   response_types:["code"],
+ let registration;
+ if(discovered.registrationMode==="dcr"){
+  registration=await fetchIntegrationJson(meta.registration_endpoint,{
+   method:"POST",headers:{"content-type":"application/json","accept":"application/json"},
+   body:JSON.stringify({
+    client_name:"OfficeMe",
+    redirect_uris:[redirectUri],
+    grant_types:["authorization_code","refresh_token"],
+    response_types:["code"],
+    token_endpoint_auth_method:"none"
+   })
+  });
+  if(!registration.client_id)throw new Error("METRICOOL_OAUTH_CLIENT_REGISTRATION_FAILED");
+ }else{
+  registration={
+   client_id:"https://dickv940-star.github.io/Officeme/metricool-oauth-client.json",
    token_endpoint_auth_method:"none"
-  })
- });
- if(!registration.client_id)throw new Error("METRICOOL_OAUTH_CLIENT_REGISTRATION_FAILED");
+  };
+ }
  const state=randomState();
  const scope="mcp:read mcp:write";
  const saved={
@@ -1375,7 +1421,8 @@ export default {
         const code = error instanceof Error ? error.message : "";
         const message = code === "INTEGRATION_STORAGE_NOT_CONFIGURED" ? "Penyimpanan integrasi belum dikonfigurasi." :
           code === "OAUTH_CALLBACK_URL_INVALID" ? "URL callback backend belum valid." :
-          code === "METRICOOL_OAUTH_DISCOVERY_FAILED" ? "Metadata OAuth Metricool tidak dapat ditemukan. Periksa endpoint resmi dan coba lagi." :
+          code === "METRICOOL_RESOURCE_METADATA_NOT_FOUND" ? "Server Metricool tidak mengembalikan metadata OAuth yang dapat ditemukan oleh backend. Periksa endpoint MCP resmi atau gunakan konektor MCP klien yang mendukung OAuth otomatis." :
+          code === "METRICOOL_OAUTH_CLIENT_REGISTRATION_UNSUPPORTED" ? "Metadata OAuth Metricool ditemukan, tetapi tidak mengiklankan pendaftaran klien dinamis maupun client metadata URL. OfficeMe memerlukan klien OAuth yang didaftarkan Metricool sebelum bisa terhubung langsung." :
           code === "METRICOOL_OAUTH_CLIENT_REGISTRATION_FAILED" ? "Metricool tidak menerima pendaftaran OAuth otomatis untuk OfficeMe. Integrasi memerlukan registrasi klien yang didukung Metricool." :
           "Tidak dapat memulai koneksi Metricool MCP. Periksa konfigurasi backend; jangan kirim token rahasia ke chat.";
         return json({ ok: false, error: message }, 502, origin);

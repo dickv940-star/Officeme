@@ -75,6 +75,10 @@ In Cloudflare Dashboard → Workers & Pages → `appdigi-w001-backend` → Setti
 Do not put credentials in GitHub, frontend code, screenshots, or chat. The API is usable only if Shopee has granted Open API access to the account. If access has not been approved, request it through the official Affiliate Open API portal first. Human approval remains required before publication; this gateway does not publish social posts.
 
 
+## Agent memory and playbooks
+
+Agents can propose a reusable lesson or playbook (`<MEMORY_NOTE>` block in their answer). Proposed notes are stored as `PROPOSED` and are **never** used in prompts until you set them `ACTIVE`. Active notes (per agent, or `team` for everyone) are injected as reference data only. API (shared token): `GET /api/agent-memory?status=PROPOSED`, `POST /api/agent-memory` (create, active immediately), `POST /api/agent-memory/:id/status` with `{"status":"ACTIVE"|"ARCHIVED"}`. Storage failures never break an agent answer.
+
 ## AI providers with automatic fallback (limited paid first, then free)
 
 Order for every agent: `claude` → `openai` → free providers. Claude and OpenAI keys are **pay-as-you-go**, so they are guarded:

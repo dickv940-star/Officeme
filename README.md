@@ -75,9 +75,18 @@ In Cloudflare Dashboard → Workers & Pages → `appdigi-w001-backend` → Setti
 Do not put credentials in GitHub, frontend code, screenshots, or chat. The API is usable only if Shopee has granted Open API access to the account. If access has not been approved, request it through the official Affiliate Open API portal first. Human approval remains required before publication; this gateway does not publish social posts.
 
 
-## Free AI providers (0 rupiah) with automatic fallback
+## AI providers with automatic fallback (limited paid first, then free)
 
-The Worker never calls paid-only APIs. Each agent has an ordered list of free providers; if one is rate-limited, out of daily budget, or failing, the next one answers automatically. Set any of these as Cloudflare Worker **secrets** (all have free tiers, no credit card; limits change, check each site):
+Order for every agent: `claude` → `openai` → free providers. Claude and OpenAI keys are **pay-as-you-go**, so they are guarded:
+
+- Hard daily call cap per provider (default **500**; `CLAUDE_DAILY_LIMIT`, `OPENAI_DAILY_LIMIT`).
+- Hard daily token cap per provider (default 500,000; `CLAUDE_DAILY_TOKEN_LIMIT`, `OPENAI_DAILY_TOKEN_LIMIT`).
+- Fail-closed: if the D1 counter is unavailable, they are not called.
+- Auth, billing, or quota errors switch that provider off until the next UTC day, and the next provider answers.
+- Cheap default models (`CLAUDE_MODEL`, `OPENAI_MODEL` override them). Output is capped at 1000 tokens per call.
+- These caps bound usage; they do not make it free. To guarantee 0 rupiah, keep the provider account balance at zero or set the provider's own spend limit (Anthropic Console / OpenAI Billing).
+
+Each agent otherwise has an ordered list of free providers; if one is rate-limited, out of daily budget, or failing, the next one answers automatically. Set any of these as Cloudflare Worker **secrets** (all have free tiers, no credit card; limits change, check each site):
 
 - `GEMINI_API_KEY` - Google AI Studio. Note: free-tier prompts may be used by Google for training; avoid sensitive data.
 - `GROQ_API_KEY` - Groq (Llama 3.3 70B).

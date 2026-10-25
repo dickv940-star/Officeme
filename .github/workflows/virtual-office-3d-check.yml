@@ -27,16 +27,16 @@ jobs:
         run: |
           node --check backend/worker.js
           grep -q 'async function callWorkersAI' backend/worker.js
-          ! grep -q 'fetch("https://api.openai.com' backend/worker.js
-          ! grep -q 'fetch("https://api.anthropic.com' backend/worker.js
           ! grep -q 'fetch("https://generativelanguage.googleapis.com' backend/worker.js
+          grep -q 'async function paidProviderAllowed' backend/worker.js
+          grep -q 'LIMITED_PROVIDER_ORDER' backend/worker.js
           grep -q 'AGENT_PROVIDER_PREFERENCES' backend/worker.js
           grep -q 'async function delegateAgent' backend/worker.js
           grep -q 'path === "/api/agents/delegate"' backend/worker.js
           grep -q 'INVALID_DELEGATION_INPUT' backend/worker.js
           grep -q 'async function callLLM' backend/worker.js
           grep -q 'FREE_PROVIDERS' backend/worker.js
-          grep -q 'paidProvidersDisabled' backend/worker.js
+          grep -q 'limitedProviders' backend/worker.js
           grep -q 'result.provider' index.html
       - name: Smoke test deployed Worker health
         run: |
@@ -48,12 +48,14 @@ jobs:
             throw new Error('Worker health payload did not match the expected service.');
           }
           // Accept the legacy Workers-AI-only mode and the newer free-provider fallback chain.
-          const freeModes = ['workers-ai-only', 'workers-ai-default', 'free-provider-fallback-chain'];
+          // The newer mode keeps Claude/OpenAI behind hard daily call and token caps.
+          const okModes = ['workers-ai-only', 'workers-ai-default', 'free-provider-fallback-chain', 'limited-then-free-fallback-chain'];
           const paidOff = data.paidProvidersDisabled === true || data.externalProvidersDisabled === true || data.externalProviderOptInRequired === true;
-          if (!freeModes.includes(data.llmMode) || !paidOff || data.publishingEnabled !== false) {
-            throw new Error('Live Worker is not in the expected Rp0-only AI mode.');
+          const paidCapped = data.llmMode === 'limited-then-free-fallback-chain' && Array.isArray(data.limitedProviders) && data.dailyTokenLimits && typeof data.dailyTokenLimits === 'object';
+          if (!okModes.includes(data.llmMode) || !(paidOff || paidCapped) || data.publishingEnabled !== false) {
+            throw new Error('Live Worker is not in an expected capped AI mode.');
           }
-          console.log('Live Worker free-AI-only mode check passed; provider secret values were not read or logged.');
+          console.log('Live Worker AI mode check passed; provider secret values were not read or logged.');
           NODE
       - name: Check module syntax
         run: node --input-type=module --check < virtual-office-3d.js

@@ -103,6 +103,9 @@ const providerCooldownUntil = new Map(); // per Worker isolate; best-effort only
 function providerConfigured(provider, env) {
   const spec = FREE_PROVIDERS[provider];
   if (!spec) return false;
+  // Safety switch: pay-as-you-go providers stay OFF unless the owner explicitly
+  // sets PAID_AI_ENABLED=true (after checking balance / spend limit at the provider).
+  if (spec.paid && String(env.PAID_AI_ENABLED || "").toLowerCase() !== "true") return false;
   if (provider === "workers-ai") return Boolean(env.AI && typeof env.AI.run === "function");
   return Boolean(env[spec.keyEnv]);
 }
@@ -1442,6 +1445,7 @@ function healthPayload(env) {
     service: "appdigi-w001-worker",
     llmMode: "limited-then-free-fallback-chain",
     limitedProviders: LIMITED_PROVIDER_ORDER,
+    paidAiEnabled: String(env.PAID_AI_ENABLED || "").toLowerCase() === "true",
     dailyTokenLimits: Object.fromEntries(LIMITED_PROVIDER_ORDER.map((p) => [p, providerTokenLimit(p, env)])),
     llmProvidersConfigured: providers,
     llmProvidersAvailable: Object.keys(FREE_PROVIDERS),

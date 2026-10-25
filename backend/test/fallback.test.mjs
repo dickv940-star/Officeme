@@ -112,7 +112,7 @@ test("Claude answers first, then OpenAI, then free providers", async () => {
     "api.anthropic.com": () => claudeOk("dari claude"),
   });
   const db = fakeDb();
-  const env = { APP_SHARED_TOKEN: TOKEN, CLAUDE_API_KEY: "c", OPENAI_API_KEY: "o", GEMINI_API_KEY: "g", APPROVAL_DB: db };
+  const env = { APP_SHARED_TOKEN: TOKEN, PAID_AI_ENABLED: "true", CLAUDE_API_KEY: "c", OPENAI_API_KEY: "o", GEMINI_API_KEY: "g", APPROVAL_DB: db };
   const res = await (await load()).fetch(req("/api/agents/chat", chat), env);
   const data = await res.json();
   assert.equal(data.provider, "claude");
@@ -129,7 +129,7 @@ test("falls to OpenAI when Claude daily call limit is reached, then to Gemini", 
   const db = fakeDb();
   const day = new Date().toISOString().slice(0, 10);
   db.calls.set(day + "|claude", 2);
-  const env = { APP_SHARED_TOKEN: TOKEN, CLAUDE_API_KEY: "c", OPENAI_API_KEY: "o", GEMINI_API_KEY: "g", CLAUDE_DAILY_LIMIT: "2", OPENAI_DAILY_LIMIT: "1", APPROVAL_DB: db };
+  const env = { APP_SHARED_TOKEN: TOKEN, PAID_AI_ENABLED: "true", CLAUDE_API_KEY: "c", OPENAI_API_KEY: "o", GEMINI_API_KEY: "g", CLAUDE_DAILY_LIMIT: "2", OPENAI_DAILY_LIMIT: "1", APPROVAL_DB: db };
   const w = await load();
   const first = await (await w.fetch(req("/api/agents/chat", chat), env)).json();
   assert.equal(first.provider, "openai");
@@ -144,7 +144,7 @@ test("billing/auth error disables the paid provider for the day and falls back",
     "generativelanguage.googleapis.com": () => geminiOk("dari gemini")
   });
   const db = fakeDb();
-  const env = { APP_SHARED_TOKEN: TOKEN, CLAUDE_API_KEY: "c", GEMINI_API_KEY: "g", APPROVAL_DB: db };
+  const env = { APP_SHARED_TOKEN: TOKEN, PAID_AI_ENABLED: "true", CLAUDE_API_KEY: "c", GEMINI_API_KEY: "g", APPROVAL_DB: db };
   const w = await load();
   assert.equal((await (await w.fetch(req("/api/agents/chat", chat), env)).json()).provider, "gemini");
   assert.equal([...db.usage.values()][0].disabled, 1);
@@ -161,7 +161,7 @@ test("daily token cap stops paid provider", async () => {
   const db = fakeDb();
   const day = new Date().toISOString().slice(0, 10);
   db.usage.set(day + "|claude", { tokens: 1000, disabled: 0 });
-  const env = { APP_SHARED_TOKEN: TOKEN, CLAUDE_API_KEY: "c", GEMINI_API_KEY: "g", CLAUDE_DAILY_TOKEN_LIMIT: "1000", APPROVAL_DB: db };
+  const env = { APP_SHARED_TOKEN: TOKEN, PAID_AI_ENABLED: "true", CLAUDE_API_KEY: "c", GEMINI_API_KEY: "g", CLAUDE_DAILY_TOKEN_LIMIT: "1000", APPROVAL_DB: db };
   const data = await (await (await load()).fetch(req("/api/agents/chat", chat), env)).json();
   assert.equal(data.provider, "gemini");
   assert.ok(!calls.includes("api.anthropic.com"));
@@ -172,7 +172,7 @@ test("paid providers are never called without a working D1 counter (fail-closed)
     "api.anthropic.com": () => claudeOk("x"),
     "generativelanguage.googleapis.com": () => geminiOk("dari gemini")
   });
-  const env = { APP_SHARED_TOKEN: TOKEN, CLAUDE_API_KEY: "c", GEMINI_API_KEY: "g" };
+  const env = { APP_SHARED_TOKEN: TOKEN, PAID_AI_ENABLED: "true", CLAUDE_API_KEY: "c", GEMINI_API_KEY: "g" };
   const data = await (await (await load()).fetch(req("/api/agents/chat", chat), env)).json();
   assert.equal(data.provider, "gemini");
   assert.ok(!calls.includes("api.anthropic.com"));
@@ -184,4 +184,20 @@ test("rejects requests without a valid token", async () => {
   });
   const res = await (await load()).fetch(r, { APP_SHARED_TOKEN: TOKEN, GROQ_API_KEY: "q" });
   assert.equal(res.status, 401);
+});
+
+test("Claude/OpenAI stay OFF by default even when keys exist (0 rupiah safety switch)", async () => {
+  const calls = mockFetch({
+    "api.anthropic.com": () => claudeOk("tidak boleh"),
+    "api.openai.com": () => new Response("{}", { status: 200 }),
+    "generativelanguage.googleapis.com": () => geminiOk("dari gemini")
+  });
+  const env = { APP_SHARED_TOKEN: TOKEN, CLAUDE_API_KEY: "c", OPENAI_API_KEY: "o", GEMINI_API_KEY: "g", APPROVAL_DB: fakeDb() };
+  const w = await load();
+  const data = await (await w.fetch(req("/api/agents/chat", chat), env)).json();
+  assert.equal(data.provider, "gemini");
+  assert.deepEqual(calls, ["generativelanguage.googleapis.com"]);
+  const health = await (await w.fetch(new Request("https://w.example/health"), env)).json();
+  assert.equal(health.paidAiEnabled, false);
+  assert.deepEqual(health.llmProvidersConfigured, ["gemini"]);
 });

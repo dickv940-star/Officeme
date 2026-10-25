@@ -79,6 +79,7 @@ Do not put credentials in GitHub, frontend code, screenshots, or chat. The API i
 
 Order for every agent: `claude` → `openai` → free providers. Claude and OpenAI keys are **pay-as-you-go**, so they are guarded:
 
+- **OFF by default.** Even if `CLAUDE_API_KEY` / `OPENAI_API_KEY` exist, they are never called unless the Worker variable `PAID_AI_ENABLED` is exactly `true`. Set it only after checking the provider balance / spend limit. Remove it (or set anything else) to return to free-only instantly.
 - Hard daily call cap per provider (default **500**; `CLAUDE_DAILY_LIMIT`, `OPENAI_DAILY_LIMIT`).
 - Hard daily token cap per provider (default 500,000; `CLAUDE_DAILY_TOKEN_LIMIT`, `OPENAI_DAILY_TOKEN_LIMIT`).
 - Fail-closed: if the D1 counter is unavailable, they are not called.

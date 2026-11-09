@@ -8,7 +8,7 @@ function json(data, status = 200, origin = "*") {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
       "access-control-allow-origin": origin,
-      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
       "access-control-allow-headers": "Content-Type, Authorization",
       "vary": "Origin"
     }
@@ -1467,6 +1467,121 @@ async function setAgentMemoryStatus(id, body, env, origin) {
   return json({ ok: true, item: memoryItem({ ...row, status: body.status, updated_at: now }) }, 200, origin);
 }
 
+
+const OWNER_WORKSPACE_KINDS = new Set(["accounts", "contents"]);
+const OWNER_WORKSPACE_LIMITS = { accounts: 100, contents: 500 };
+
+async function ensureOwnerWorkspaceTables(db) {
+  await db.prepare("CREATE TABLE IF NOT EXISTS owner_workspace_records (kind TEXT NOT NULL, record_id TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (kind, record_id))").run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_owner_workspace_updated ON owner_workspace_records (kind, updated_at DESC)").run();
+}
+
+function ownerRecordValid(kind, record) {
+  if (!record || typeof record !== "object" || Array.isArray(record) ||
+      typeof record.id !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(record.id)) return false;
+  if (kind === "accounts") {
+    return typeof record.name === "string" && record.name.trim().length > 0 && record.name.length <= 160 &&
+      typeof record.platform === "string" && ["youtube", "pinterest", "instagram", "facebook", "tiktok", "shopee", "blog", "other"].includes(record.platform) &&
+      (record.handle === undefined || (typeof record.handle === "string" && record.handle.length <= 200)) &&
+      (record.notes === undefined || (typeof record.notes === "string" && record.notes.length <= 1000));
+  }
+  if (kind === "contents") {
+    return typeof record.productName === "string" && record.productName.trim().length > 0 && record.productName.length <= 180 &&
+      typeof record.link === "string" && record.link.length <= 2048 && /^https:\/\//i.test(record.link) &&
+      typeof record.caption === "string" && record.caption.length <= 12000 &&
+      typeof record.status === "string" && ["DRAFT", "PENDING_APPROVAL", "APPROVED", "REVISION_REQUIRED", "REJECTED"].includes(record.status) &&
+      typeof record.accountId === "string" && record.accountId.length <= 80 &&
+      (record.platform === undefined || (typeof record.platform === "string" && record.platform.length <= 40));
+  }
+  return false;
+}
+
+async function ownerWorkspace(request, env, origin, kind, recordId) {
+  if (!env.APP_OWNER_TOKEN || !ownerAuthorized(request, env)) return json({ ok: false, error: "Token pemilik tidak valid." }, 401, origin);
+  const db = approvalDb(env);
+  if (!db) return json({ ok: false, error: "D1 belum dikonfigurasi." }, 503, origin);
+  await ensureOwnerWorkspaceTables(db);
+  if (request.method === "GET" && !kind) {
+    const url = new URL(request.url);
+    const selected = url.searchParams.get("kind");
+    if (!OWNER_WORKSPACE_KINDS.has(selected)) return json({ ok: false, error: "Jenis data tidak valid." }, 400, origin);
+    const rows = await db.prepare("SELECT record_id, payload_json, created_at, updated_at FROM owner_workspace_records WHERE kind = ? ORDER BY updated_at DESC LIMIT ?")
+      .bind(selected, OWNER_WORKSPACE_LIMITS[selected]).all();
+    return json({ ok: true, kind: selected, items: (rows.results || []).map(row => ({ ...JSON.parse(row.payload_json), createdAt: row.created_at, updatedAt: row.updated_at })) }, 200, origin);
+  }
+  if (!OWNER_WORKSPACE_KINDS.has(kind)) return json({ ok: false, error: "Jenis data tidak valid." }, 400, origin);
+  if (request.method === "PUT") {
+    let record;
+    try { const raw = await request.text(); if (raw.length > 20000) return json({ ok: false, error: "Record terlalu besar." }, 413, origin); record = JSON.parse(raw); }
+    catch (_) { return json({ ok: false, error: "JSON tidak valid." }, 400, origin); }
+    if (!ownerRecordValid(kind, record) || record.id !== recordId) return json({ ok: false, error: "Record tidak valid." }, 400, origin);
+    const now = new Date().toISOString();
+    await db.prepare("INSERT INTO owner_workspace_records (kind, record_id, payload_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(kind, record_id) DO UPDATE SET payload_json = excluded.payload_json, updated_at = excluded.updated_at")
+      .bind(kind, recordId, JSON.stringify(record), now, now).run();
+    return json({ ok: true, kind, id: recordId, updatedAt: now }, 200, origin);
+  }
+  if (request.method === "DELETE") {
+    const result = await db.prepare("DELETE FROM owner_workspace_records WHERE kind = ? AND record_id = ?").bind(kind, recordId).run();
+    if (!result.meta?.changes) return json({ ok: false, error: "Record tidak ditemukan." }, 404, origin);
+    return json({ ok: true, kind, id: recordId, deleted: true }, 200, origin);
+  }
+  return json({ ok: false, error: "Metode tidak didukung." }, 405, origin);
+}
+
+
+async function ensureAffiliateApprovalTables(db) {
+  await db.prepare("CREATE TABLE IF NOT EXISTS affiliate_content_versions (content_id TEXT NOT NULL, version INTEGER NOT NULL, payload_json TEXT NOT NULL, fingerprint TEXT NOT NULL, status TEXT NOT NULL CHECK (status IN ('PENDING_OWNER_APPROVAL','APPROVED','REVISION_REQUIRED','REJECTED')), decision_note TEXT, created_at TEXT NOT NULL, decided_at TEXT, PRIMARY KEY (content_id, version))").run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_affiliate_content_versions_status ON affiliate_content_versions (status, created_at DESC)").run();
+}
+
+function validAffiliateContent(record) {
+  return record && typeof record === "object" && !Array.isArray(record) &&
+    typeof record.id === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(record.id) &&
+    typeof record.productName === "string" && record.productName.trim().length > 0 && record.productName.length <= 180 &&
+    typeof record.caption === "string" && record.caption.trim().length > 0 && record.caption.length <= 12000 &&
+    typeof record.link === "string" && /^https:\/\//i.test(record.link) && record.link.length <= 2048 &&
+    typeof record.accountId === "string" && record.accountId.length <= 80 &&
+    typeof record.platform === "string" && ["shopee","youtube","pinterest","instagram","facebook","tiktok","blog","other"].includes(record.platform);
+}
+
+async function createAffiliateContentApproval(request, env, origin) {
+  if (!env.APP_OWNER_TOKEN || !ownerAuthorized(request, env)) return json({ok:false,error:"Token pemilik tidak valid."},401,origin);
+  const db=approvalDb(env); if(!db)return json({ok:false,error:"D1 belum dikonfigurasi."},503,origin);
+  const raw=await request.text(); if(raw.length>20000)return json({ok:false,error:"Paket konten terlalu besar."},413,origin);
+  let body;try{body=JSON.parse(raw)}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
+  const c=body?.content;
+  if(!validAffiliateContent(c))return json({ok:false,error:"Konten tidak valid untuk diajukan. Pastikan ID, produk, tautan HTTPS, kanal, dan caption terisi."},400,origin);
+  await ensureAffiliateApprovalTables(db);
+  const prior=await db.prepare("SELECT COALESCE(MAX(version),0) AS version FROM affiliate_content_versions WHERE content_id=?").bind(c.id).first();
+  const version=Number(prior?.version||0)+1, now=new Date().toISOString();
+  const snapshot={id:c.id,accountId:c.accountId,platform:c.platform,productName:c.productName,link:c.link,caption:c.caption,audience:c.audience||"",goal:c.goal||"",format:c.format||"",facts:c.facts||"",research:c.research||"",aiSource:c.aiSource||"",createdAt:c.createdAt||now,submittedAt:now};
+  const hash=await fingerprint({productName:snapshot.productName,affiliateLink:snapshot.link,videoUrl:"",caption:snapshot.caption,channels:[snapshot.platform]});
+  await db.prepare("INSERT INTO affiliate_content_versions (content_id,version,payload_json,fingerprint,status,decision_note,created_at,decided_at) VALUES (?,?,?,?,'PENDING_OWNER_APPROVAL',NULL,?,NULL)")
+    .bind(c.id,version,JSON.stringify(snapshot),hash,now).run();
+  return json({ok:true,contentId:c.id,version,fingerprint:hash,status:"PENDING_OWNER_APPROVAL",createdAt:now,message:"Versi konten tersimpan di D1 dan menunggu keputusan pemilik. Tidak ada publikasi."},201,origin);
+}
+
+async function listAffiliateContentApprovals(request,env,origin) {
+  if(!env.APP_OWNER_TOKEN||!ownerAuthorized(request,env))return json({ok:false,error:"Token pemilik tidak valid."},401,origin);
+  const db=approvalDb(env);if(!db)return json({ok:false,error:"D1 belum dikonfigurasi."},503,origin);
+  await ensureAffiliateApprovalTables(db);
+  const result=await db.prepare("SELECT content_id,version,payload_json,fingerprint,status,decision_note,created_at,decided_at FROM affiliate_content_versions ORDER BY created_at DESC LIMIT 200").all();
+  return json({ok:true,items:(result.results||[]).map(r=>({contentId:r.content_id,version:r.version,payload:JSON.parse(r.payload_json),fingerprint:r.fingerprint,status:r.status,decisionNote:r.decision_note,createdAt:r.created_at,decidedAt:r.decided_at}))},200,origin);
+}
+
+async function decideAffiliateContentApproval(request,env,origin,contentId) {
+  if(!env.APP_OWNER_TOKEN||!ownerAuthorized(request,env))return json({ok:false,error:"Token pemilik tidak valid."},401,origin);
+  const db=approvalDb(env);if(!db)return json({ok:false,error:"D1 belum dikonfigurasi."},503,origin);
+  let body;try{body=await request.json()}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
+  const version=Number(body.version),decision=body.decision;
+  if(!Number.isSafeInteger(version)||version<1||!["approve","revise","reject"].includes(decision)||(body.note!==undefined&&(typeof body.note!=="string"||body.note.length>1000)))return json({ok:false,error:"Versi atau keputusan tidak valid."},400,origin);
+  await ensureAffiliateApprovalTables(db);
+  const status=decision==="approve"?"APPROVED":decision==="revise"?"REVISION_REQUIRED":"REJECTED",now=new Date().toISOString();
+  const result=await db.prepare("UPDATE affiliate_content_versions SET status=?,decision_note=?,decided_at=? WHERE content_id=? AND version=? AND status='PENDING_OWNER_APPROVAL'").bind(status,body.note||null,now,contentId,version).run();
+  if(!result.meta?.changes)return json({ok:false,error:"Versi tidak ditemukan atau sudah diputuskan. Muat ulang antrean."},409,origin);
+  return json({ok:true,contentId,version,status,decidedAt:now,message:status==="APPROVED"?"Disetujui pemilik; belum ada publikasi yang dijalankan.":"Keputusan tersimpan di D1."},200,origin);
+}
+
 const APPROVAL_CHANNELS = new Set(["shopee_video", "instagram", "youtube"]);
 
 function ownerAuthorized(request, env) {
@@ -1606,7 +1721,7 @@ export default {
       if (!origin) return new Response(null, { status: 403 });
       return new Response(null, { status: 204, headers: {
         "access-control-allow-origin": origin,
-        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
         "access-control-allow-headers": "Content-Type, Authorization",
         "access-control-max-age": "86400",
         "vary": "Origin"
@@ -1622,7 +1737,13 @@ export default {
     // Health is intentionally read-only and may be checked before secrets are configured.
     if (request.method === "GET" && path === "/health") return json(healthPayload(env), 200, origin);
     if (!env.APP_SHARED_TOKEN) return json({ ok: false, error: "Backend belum dikonfigurasi." }, 503, origin);
-    const ownerRoute = (request.method === "GET" && path === "/api/approvals") ||
+    const ownerWorkspaceMatch = path.match(/^\/api\/owner\/workspace\/(accounts|contents)\/([a-zA-Z0-9_-]{1,80})$/);
+    const ownerWorkspaceList = request.method === "GET" && path === "/api/owner/workspace";
+    const ownerApprovalList = request.method === "GET" && path === "/api/owner/content-approvals";
+    const ownerApprovalCreate = request.method === "POST" && path === "/api/owner/content-approvals";
+    const ownerApprovalDecision = path.match(/^\/api\/owner\/content-approvals\/([a-zA-Z0-9_-]{1,80})\/decision$/);
+
+    const ownerRoute = ownerWorkspaceList || ownerApprovalList || ownerApprovalCreate || Boolean(ownerApprovalDecision) || Boolean(ownerWorkspaceMatch) || (request.method === "GET" && path === "/api/approvals") ||
       (request.method === "POST" && /^\/api\/approvals\/[a-zA-Z0-9_-]{1,80}\/decision$/.test(path));
     if (ownerRoute) {
       if (!env.APP_OWNER_TOKEN) return json({ ok: false, error: "Token pemilik belum dikonfigurasi." }, 503, origin);
@@ -1630,6 +1751,12 @@ export default {
       return json({ ok: false, error: "Token tidak valid." }, 401, origin);
     }
 
+    if (ownerWorkspaceList) return ownerWorkspace(request, env, origin, null, null);
+    if (ownerApprovalList) return listAffiliateContentApprovals(request,env,origin);
+    if (ownerApprovalCreate) return createAffiliateContentApproval(request,env,origin);
+    if (ownerApprovalDecision && request.method === "POST") return decideAffiliateContentApproval(request,env,origin,ownerApprovalDecision[1]);
+
+    if (ownerWorkspaceMatch) return ownerWorkspace(request, env, origin, ownerWorkspaceMatch[1], ownerWorkspaceMatch[2]);
     if (request.method === "GET" && path === "/api/agent-help") return listAgentHelp(env, origin);
     if (request.method === "POST" && path === "/api/agent-help") {
       const declared=Number(request.headers.get("Content-Length")||0);if(declared>450000)return json({ok:false,error:"Ukuran permintaan terlalu besar (maksimal 450 KB)."},413,origin);

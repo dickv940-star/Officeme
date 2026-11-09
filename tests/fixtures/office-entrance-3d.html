@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OfficeMe real 3D integration test</title>
+  <style>body{margin:0;background:#0c1624;color:#eef5ff;font-family:system-ui}.section{padding:20px}#virtualOffice3d{height:620px}.vo3d-canvas-wrap{width:100%;height:560px;min-height:560px}</style>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
+  <script type="module" src="/virtual-office-3d.js"></script>
+  <script src="/office-entrance.js" defer></script>
+</head>
+<body>
+  <section id="roomSection" class="section">
+    <div id="roomView" hidden>
+      <h2 id="roomTitle">Ruangan</h2><p id="roomDescription"></p>
+      <div id="virtualOffice3d"><div class="vo3d-canvas-wrap"></div><div id="virtualOfficeStatus" role="status"></div></div>
+    </div>
+  </section>
+  <section id="affiliateWorkflowPanel">Affiliate workflow</section>
+  <section id="affiliateLinkManager">Affiliate links</section>
+</body></html>

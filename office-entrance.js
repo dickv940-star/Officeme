@@ -122,7 +122,9 @@
         if (affiliatePanel && roomSection) roomSection.insertAdjacentElement("afterend", affiliatePanel);
         const linkManager = document.getElementById("affiliateLinkManager");
         if (linkManager && roomSection) roomSection.insertAdjacentElement("afterend", linkManager);
-        window.dispatchEvent(new CustomEvent("appdigi:room-open",{detail:{id:"workers"}}));
+        const openWorkersRoom = () => window.appdigiOpenVirtualRoom?.("workers");
+        if (typeof window.appdigiOpenVirtualRoom === "function") openWorkersRoom();
+        else window.addEventListener("appdigi:virtual-office-ready",openWorkersRoom,{once:true});
       }
       document.dispatchEvent(new CustomEvent("officeme:entrance-opened"));
     }, 2050);

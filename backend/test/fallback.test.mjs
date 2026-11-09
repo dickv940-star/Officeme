@@ -57,7 +57,8 @@ test("returns 503 when no provider is configured", async () => {
 
 test("returns safe provider diagnostics to Team Chat when every provider fails", async () => {
   mockFetch({ "api.groq.com": () => new Response(JSON.stringify({ error: { message: "model unavailable" } }), { status: 500 }) });
-  const res = await (await load()).fetch(req("/api/agents/chat", chat), { APP_SHARED_TOKEN: TOKEN, GROQ_API_KEY: "q" });
+  const privateKey = "never-expose-this-groq-key";
+  const res = await (await load()).fetch(req("/api/agents/chat", chat), { APP_SHARED_TOKEN: TOKEN, GROQ_API_KEY: privateKey });
   const data = await res.json();
   assert.equal(res.status, 502);
   assert.equal(data.ok, false);
@@ -65,7 +66,7 @@ test("returns safe provider diagnostics to Team Chat when every provider fails",
   assert.equal(data.diagnostics[0].model, "llama-3.3-70b-versatile");
   assert.equal(data.diagnostics[0].status, 500);
   assert.equal(data.diagnostics[0].reason, "model unavailable");
-  assert.ok(!JSON.stringify(data).includes("secret"));
+  assert.ok(!JSON.stringify(data).includes(privateKey));
 });
 
 test("health lists configured providers and never exposes keys", async () => {

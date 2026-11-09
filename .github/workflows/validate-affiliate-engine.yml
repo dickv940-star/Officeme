@@ -33,7 +33,7 @@ jobs:
           )}
           required = {"owner_workspace_records", "approval_packages",
                       "affiliate_products", "affiliate_content_queue",
-                      "affiliate_performance_daily"}
+                      "affiliate_performance_daily", "affiliate_content_versions"}
           missing = required - names
           if missing:
               raise SystemExit("Missing schema tables: " + ", ".join(sorted(missing)))

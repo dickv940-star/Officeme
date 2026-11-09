@@ -133,3 +133,18 @@ CREATE TABLE IF NOT EXISTS affiliate_ops_config (
   config_value TEXT NOT NULL,
   updated_at   TEXT NOT NULL
 );
+
+ 
+-- Owner-authenticated workspace records. These contain account/channel metadata
+-- and content drafts only; never store OAuth tokens, API keys, cookies or passwords.
+CREATE TABLE IF NOT EXISTS owner_workspace_records (
+  kind         TEXT NOT NULL CHECK (kind IN ('accounts', 'contents')),
+  record_id    TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL,
+  PRIMARY KEY (kind, record_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_owner_workspace_updated
+  ON owner_workspace_records (kind, updated_at DESC);

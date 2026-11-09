@@ -310,7 +310,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
       for(let i=0;i<Math.min(workers.length,8);i++){
         const angle=(-Math.PI/2)+(i*2*Math.PI/Math.max(workers.length,1));
         const x=Math.cos(angle)*3.05,z=Math.sin(angle)*2.55;
-        const actor=makeActor(workers[i],i);actor.position.set(x,0,z);actor.rotation.y=-angle-Math.PI/2;actor.userData.mode="sit";
+        const actor=makeActor(workers[i],i);actor.position.set(x,0,z);actor.rotation.y=-angle-Math.PI/2;actor.userData.mode="type"; // Demonstration pose: seated and actively typing at the laptop.
         actor.userData.base.position.set(x,0,z);actor.userData.base.rotation=actor.rotation.y;
         scene.add(actor);actors.push(actor);loadCustomCharacterModel(actor);makeChair(x+Math.cos(angle)*.35,z+Math.sin(angle)*.35,actor.rotation.y);
       }
@@ -665,6 +665,9 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
       active=true;motionPaused=reducedMotion.matches;lastTime=0;elapsed=0;
       const motionButton=document.getElementById("vo3dMotion");if(motionButton)motionButton.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
       buildRoom(currentRoom,loadWorkers(),invite);refreshControlPanel();
+      host.dataset.room = currentRoom;
+      host.dataset.agentCount = String(actors.length);
+      window.dispatchEvent(new CustomEvent("appdigi:virtual-office-room-ready",{detail:{roomId:currentRoom,agentCount:actors.length}}));
       resetCamera();
       if(cctvEnabled){
         if(requestedCctvTarget==="room:"+currentRoom)cctvTarget=requestedCctvTarget;

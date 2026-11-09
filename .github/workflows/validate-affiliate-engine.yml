@@ -20,7 +20,8 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check backend/worker.js
-          node --check affiliate-workflow.js\n          node --check office-entrance.js
+          node --check affiliate-workflow.js
+          node --check office-entrance.js
       - name: Validate D1 schema with SQLite
         run: |
           python - <<'PY'

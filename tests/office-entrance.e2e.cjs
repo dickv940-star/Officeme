@@ -83,7 +83,11 @@ const server = http.createServer((req,res) => {
     const appPage = await browser.newPage({ viewport: { width: 1440, height: 960 } });
     const appErrors = [];
     appPage.on("pageerror", error => appErrors.push(error.message));
+    // Test-only authentication: never use a production token in CI.
+    await appPage.addInitScript(() => sessionStorage.setItem("appdigi.sharedToken.session.v1", "ci-test-token"));
+    await appPage.route("**/api/session", route => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ authenticated: true }) }));
     await appPage.goto("http://127.0.0.1:" + address.port + "/index.html", { waitUntil: "domcontentloaded" });
+    await appPage.waitForFunction(() => document.getElementById("appLoginGate")?.hidden === true, null, { timeout: 5000 });
     await appPage.waitForSelector("#officeMeEntrance", { timeout: 15000 });
     await appPage.locator(".ome-enter").click();
     await appPage.waitForFunction(() => !document.getElementById("officeMeEntrance"), null, { timeout: 7000 });
@@ -114,6 +118,11 @@ const server = http.createServer((req,res) => {
     assert.equal(appState.linksAfterWorkflow, true, "Affiliate links must follow the workflow");
     await appPage.waitForSelector("#officeGlobalAffiliate", { timeout: 10000 });
     assert.equal(await appPage.locator("#ofwNav button").count(), 8, "Unified affiliate workspace must expose all eight feature areas");
+    await appPage.locator('#ofwNav button[data-page="chat"]').click();
+    assert.equal(await appPage.locator("#ofw-chat").isVisible(), true, "Team Chat must open from the workspace navigation");
+    assert.equal(await appPage.locator("#ofwChatTarget option").count(), 10, "Team Chat must offer the whole team and all nine agents");
+    assert.equal(await appPage.locator("#ofwChatSend").isVisible(), true, "Team Chat must expose its send control");
+    await appPage.locator('#ofwNav button[data-page="dashboard"]').click();
     await appPage.locator("#ofwBatch").fill("https://shopee.co.id/product-test");
     await appPage.locator("#ofwBatchAdd").click();
     assert.equal(await appPage.locator("#ofwStatProducts").textContent(), "1", "Affiliate batch import must add a product candidate");

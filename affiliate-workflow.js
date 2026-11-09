@@ -60,8 +60,27 @@ async function createDraft(e){
  const fmt=String(fd.get("format")||"Video pendek"),aud=String(fd.get("audience")||"").trim(),goal=String(fd.get("goal")||""),facts=String(fd.get("facts")||"").trim();
  const task=["Anda adalah tim AI Affiliate OfficeMe untuk pasar Indonesia. Buat paket konten affiliate yang siap ditinjau manusia, bukan dipublikasikan.","Nama produk (belum diverifikasi): "+productName,"Tautan yang diberikan: "+link,"Kanal tujuan: "+label(a.platform),"Format: "+fmt,"Audiens: "+(aud||"Usulkan segmen sebagai hipotesis."),"Tujuan: "+goal,"Fakta dari pengguna: "+(facts||"Tidak ada fakta tambahan; jangan mengarang spesifikasi."),"Jawab dalam Bahasa Indonesia dengan: sudut strategi; hook; naskah/struktur; caption; CTA; kata kunci/hashtag; penempatan tautan yang sesuai aturan; klaim yang perlu diverifikasi; ide A/B dan metrik sukses.","Jangan mengarang harga, stok, rating, ulasan, komisi, statistik audiens, tren, atau penjualan. Jangan menjanjikan viral/komisi. Jangan menyarankan spam, DM massal, engagement palsu, atau melanggar kebijakan. Sarankan disclosure tautan affiliate bila relevan. Pisahkan fakta dan asumsi.","Ini DRAF yang wajib disetujui pemilik sebelum publikasi. Jangan mengklaim telah memublikasikan."].join("\n\n");
  const c={id:uid(),accountId:a.id,platform:a.platform,productName,link,audience:aud,goal,format:fmt,facts,caption:"",research:"",metrics:{reach:0,clicks:0,orders:0,commission:0},status:"DRAFT",aiSource:"",createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};state.contents.push(c);save();render();const btn=f.querySelector('button[type="submit"]');btn.disabled=true;status("Menghubungi tim AI backend. Belum ada publikasi.");
- try{const d=await api("/api/agents/run",{task,mode:"team"}),parts=(d.results||[]).filter(x=>x&&x.ok&&(x.result||x.output)).map(x=>(x.name||x.agentId||"Agen")+":\n"+(x.result||x.output));c.caption=[d.finalReview?"REVIEW TIM / CHARLOTTE\n"+d.finalReview:"",...parts].filter(Boolean).join("\n\n---\n\n").slice(0,10000);c.aiSource=(d.providersConfigured||[]).join(", ")||"Backend AI";c.aiQualityStatus=d.qualityStatus||"Tidak tersedia";c.updatedAt=new Date().toISOString();save();render();status(d.ok?"Draf AI diterima. Sunting dan ajukan persetujuan.":"Hasil parsial diterima; sebagian agen gagal. Periksa sebelum digunakan.","success")}
- catch(err){c.caption="Pembuatan AI gagal: "+err.message+"\nAnda dapat mengedit draf atau mencoba lagi.";c.aiSource="Gagal";c.updatedAt=new Date().toISOString();save();render();status("AI gagal: "+err.message+". Tidak ada publikasi.","error")}finally{btn.disabled=false}
+ const teamAgents=["alexander","olivia","ethan","sophia","daniel","isabella","lucas"];
+ const emitAgentState=(agentId,agentState)=>window.dispatchEvent(new CustomEvent("appdigi:agent-activity",{detail:{agentId,state:agentState,source:"affiliate-team-run"}}));
+ teamAgents.forEach(id=>emitAgentState(id,"working"));emitAgentState("charlotte","waiting");
+ try{
+  const d=await api("/api/agents/run",{task,mode:"team"});
+  const results=Array.isArray(d.results)?d.results:[];
+  for(const result of results){
+   const id=String(result?.agentId||"").toLowerCase();
+   if(teamAgents.includes(id)||id==="charlotte")emitAgentState(id,result.ok?"completed":"failed");
+  }
+  for(const id of teamAgents)if(!results.some(r=>String(r?.agentId||"").toLowerCase()===id))emitAgentState(id,"failed");
+  if(!results.some(r=>String(r?.agentId||"").toLowerCase()==="charlotte"))emitAgentState("charlotte","failed");
+  const parts=results.filter(x=>x&&x.ok&&(x.result||x.output)).map(x=>(x.name||x.agentId||"Agen")+":\n"+(x.result||x.output));
+  c.caption=[d.finalReview?"REVIEW TIM / CHARLOTTE\n"+d.finalReview:"",...parts].filter(Boolean).join("\n\n---\n\n").slice(0,10000);
+  c.aiSource=(d.providersConfigured||[]).join(", ")||"Backend AI";c.aiQualityStatus=d.qualityStatus||"Tidak tersedia";c.updatedAt=new Date().toISOString();save();render();
+  status(d.ok?"Draf AI diterima. Sunting dan ajukan persetujuan.":"Hasil parsial diterima; sebagian agen gagal. Periksa status setiap agen.","success");
+ }
+ catch(err){
+  [...teamAgents,"charlotte"].forEach(id=>emitAgentState(id,"failed"));
+  c.caption="Pembuatan AI gagal: "+err.message+"\nAnda dapat mengedit draf atau mencoba lagi.";c.aiSource="Gagal";c.updatedAt=new Date().toISOString();save();render();status("AI gagal: "+err.message+". Tidak ada publikasi.","error")
+ }finally{btn.disabled=false}
 }
 async function research(){
  const f=$("afwContentForm"),fd=new FormData(f),link=String(fd.get("link")||"").trim(),name=String(fd.get("productName")||"").trim(),out=$("afwResearchResult");let u;

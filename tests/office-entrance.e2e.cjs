@@ -20,7 +20,7 @@ const server = http.createServer((req,res) => {
 (async () => {
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
-  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
+  const browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--enable-webgl", "--ignore-gpu-blocklist", "--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   try {
     for (const viewport of [{width:1365,height:900},{width:390,height:844}]) {
       const page = await browser.newPage({ viewport, reducedMotion: "no-preference" });
@@ -53,6 +53,31 @@ const server = http.createServer((req,res) => {
       await page.close();
       console.log("PASS entrance flow at " + viewport.width + "x" + viewport.height);
     }
+
+    // Full integration: use the real Three.js virtual-office module, not a mocked room opener.
+    const realPage = await browser.newPage({ viewport: { width: 1365, height: 900 } });
+    const realErrors = [];
+    realPage.on("pageerror", error => realErrors.push(error.message));
+    await realPage.goto("http://127.0.0.1:" + address.port + "/tests/fixtures/office-entrance-3d.html");
+    await realPage.waitForSelector("#officeMeEntrance");
+    await realPage.locator(".ome-enter").click();
+    await realPage.waitForFunction(() => !document.getElementById("officeMeEntrance"), null, { timeout: 6000 });
+    await realPage.waitForFunction(() => {
+      const host = document.getElementById("virtualOffice3d");
+      return host?.dataset.agentCount === "8" || /gagal dibuat/i.test(document.getElementById("virtualOfficeStatus")?.textContent || "");
+    }, null, { timeout: 20000 });
+    const roomState = await realPage.evaluate(() => ({
+      count: document.getElementById("virtualOffice3d")?.dataset.agentCount || "0",
+      room: document.getElementById("virtualOffice3d")?.dataset.room || "",
+      canvas: Boolean(document.querySelector("#virtualOffice3d canvas")),
+      status: document.getElementById("virtualOfficeStatus")?.textContent || ""
+    }));
+    assert.equal(roomState.count, "8", "Real 3D room must create all eight agents. Status: " + roomState.status);
+    assert.equal(roomState.room, "workers");
+    assert.equal(roomState.canvas, true, "Real Three.js renderer must create a canvas");
+    assert.deepEqual(realErrors, [], "Real 3D integration must not throw browser errors");
+    await realPage.close();
+    console.log("PASS real Three.js workers room: " + roomState.count + " agents");
   } finally {
     await browser.close();
     await new Promise(resolve => server.close(resolve));

@@ -148,3 +148,19 @@ CREATE TABLE IF NOT EXISTS owner_workspace_records (
 
 CREATE INDEX IF NOT EXISTS idx_owner_workspace_updated
   ON owner_workspace_records (kind, updated_at DESC);
+
+
+-- Immutable versions and owner decisions for the affiliate workflow UI.
+CREATE TABLE IF NOT EXISTS affiliate_content_versions (
+  content_id    TEXT NOT NULL,
+  version       INTEGER NOT NULL,
+  payload_json  TEXT NOT NULL,
+  fingerprint   TEXT NOT NULL,
+  status        TEXT NOT NULL CHECK (status IN ('PENDING_OWNER_APPROVAL', 'APPROVED', 'REVISION_REQUIRED', 'REJECTED')),
+  decision_note TEXT,
+  created_at    TEXT NOT NULL,
+  decided_at    TEXT,
+  PRIMARY KEY (content_id, version)
+);
+CREATE INDEX IF NOT EXISTS idx_affiliate_content_versions_status
+  ON affiliate_content_versions (status, created_at DESC);

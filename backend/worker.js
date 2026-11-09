@@ -108,10 +108,9 @@ function providerDailyLimit(provider, env) {
   return Number.isFinite(configured) && configured > 0 ? Math.floor(configured) : spec.daily;
 }
 
-// Reserve one call in the per-provider daily counter (D1). Returns true if allowed.
-// Workers AI is fail-closed (exceeding its free allowance can cost money).
-// Other providers are limited by their own free-tier quotas, so a missing or
-// broken counter only skips the local guard.
+// Reserve one call in the per-provider daily counter (D1). All providers
+// fail closed: a missing or broken counter blocks the call rather than
+// bypassing the local free-tier safety cap.
 async function reserveProviderCall(provider, env) {
   const db = env.APPROVAL_DB;
   const failClosed = true;

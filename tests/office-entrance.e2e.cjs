@@ -6,7 +6,9 @@ const vm = require("node:vm");
 const { chromium } = require("playwright");
 
 const workspaceSource = fs.readFileSync(path.join(__dirname, "..", "global-affiliate-workspace.js"), "utf8");
-const routerSource = workspaceSource.match(/const CHAT_AGENTS=\\[[\\s\\S]*?\\n\\];\\nfunction routeChatRecipients\\([\\s\\S]*?\\n\\}/)?.[0];
+const routerStart = workspaceSource.indexOf("const CHAT_AGENTS=[");
+const routerEnd = workspaceSource.indexOf("\\nconst CHAT_CSS=", routerStart);
+const routerSource = workspaceSource.slice(routerStart, routerEnd).trim();
 assert.ok(routerSource, "Team Chat must expose its automatic role-routing implementation in the workspace source");
 const chatRouter = vm.runInNewContext(routerSource + "; ({ CHAT_AGENTS, routeChatRecipients })");
 assert.deepEqual(Array.from(chatRouter.routeChatRecipients("Siapa yang bertugas membuat content? Jawab yang bertugas saja, yang tidak bertugas tidak perlu menjawab."), agent => agent.id), ["sophia"], "Content questions must be routed only to Sophia");

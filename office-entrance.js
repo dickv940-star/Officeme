@@ -105,6 +105,25 @@
     window.setTimeout(() => {
       overlay.remove();
       style.remove();
+      // Reveal the existing 3D workers room as the first view inside the unified workspace.
+      const roomView = document.getElementById("roomView");
+      const roomSection = roomView?.closest("section");
+      if (roomSection) roomSection.classList.remove("office-simple-hidden");
+      if (roomView) {
+        roomView.hidden = false;
+        roomView.style.setProperty("display","block","important");
+        const roomHeading = roomSection?.querySelector("h2");
+        if (roomHeading) roomHeading.textContent = "Ruang Kerja AI · Global Affiliate Engine";
+        const roomDescription = document.getElementById("roomDescription");
+        if (roomDescription) roomDescription.textContent = "Delapan spesialis AI berada di workstation masing-masing. Gerakan karakter adalah simulasi visual; status tugas berasal dari backend.";
+        const title = document.getElementById("roomTitle");
+        if (title) title.textContent = "AI Agent Workspace";
+        const affiliatePanel = document.getElementById("affiliateWorkflowPanel");
+        if (affiliatePanel && roomSection) roomSection.insertAdjacentElement("afterend", affiliatePanel);
+        const linkManager = document.getElementById("affiliateLinkManager");
+        if (linkManager && roomSection) roomSection.insertAdjacentElement("afterend", linkManager);
+        window.dispatchEvent(new CustomEvent("appdigi:room-open",{detail:{id:"workers"}}));
+      }
       document.dispatchEvent(new CustomEvent("officeme:entrance-opened"));
     }, 2050);
   }

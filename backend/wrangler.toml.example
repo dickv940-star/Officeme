@@ -19,6 +19,9 @@ ALLOWED_ORIGINS = "https://dickv940-star.github.io"
 # Secrets (never put these in this file). Set with: wrangler secret put NAME
 #   APP_SHARED_TOKEN, APP_OWNER_TOKEN
 #   GEMINI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY   (free-tier keys; set any you have)
+#   APP_SHARED_TOKEN, APP_OWNER_TOKEN
 #   SHOPEE_AFFILIATE_APP_ID, SHOPEE_AFFILIATE_SECRET
-# Optional per-provider daily limits (vars): GEMINI_DAILY_LIMIT, GROQ_DAILY_LIMIT, ...
+# Optional per-provider daily limits (vars): GEMINI_DAILY_LIMIT=30, GROQ_DAILY_LIMIT=30,
+#   CEREBRAS_DAILY_LIMIT=30, OPENROUTER_DAILY_LIMIT=20, WORKERS_AI_DAILY_LIMIT=40
+# Budget enforcement is fail-closed: APP_APPROVAL_DB (D1) must be available.
 # Optional model overrides (vars): GEMINI_MODEL, GROQ_MODEL, CEREBRAS_MODEL, OPENROUTER_MODEL

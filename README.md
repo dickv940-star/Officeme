@@ -79,27 +79,31 @@ Do not put credentials in GitHub, frontend code, screenshots, or chat. The API i
 
 Agents can propose a reusable lesson or playbook (`<MEMORY_NOTE>` block in their answer). Proposed notes are stored as `PROPOSED` and are **never** used in prompts until you set them `ACTIVE`. Active notes (per agent, or `team` for everyone) are injected as reference data only. API (shared token): `GET /api/agent-memory?status=PROPOSED`, `POST /api/agent-memory` (create, active immediately), `POST /api/agent-memory/:id/status` with `{"status":"ACTIVE"|"ARCHIVED"}`. Storage failures never break an agent answer.
 
-## AI providers with automatic fallback (limited paid first, then free)
+## Free-only AI providers with automatic fallback
 
-Order for every agent: `claude` → `openai` → free providers. Claude and OpenAI keys are **pay-as-you-go**, so they are guarded:
+OfficeMe's backend uses a free-tier-only provider allowlist. The backend no longer contains paid-vendor API adapters or paid-provider priority routes.
 
-- **OFF by default.** Even if `CLAUDE_API_KEY` / `OPENAI_API_KEY` exist, they are never called unless the Worker variable `PAID_AI_ENABLED` is exactly `true`. Set it only after checking the provider balance / spend limit. Remove it (or set anything else) to return to free-only instantly.
-- Hard daily call cap per provider (default **500**; `CLAUDE_DAILY_LIMIT`, `OPENAI_DAILY_LIMIT`).
-- Hard daily token cap per provider (default 500,000; `CLAUDE_DAILY_TOKEN_LIMIT`, `OPENAI_DAILY_TOKEN_LIMIT`).
-- Fail-closed: if the D1 counter is unavailable, they are not called.
-- Auth, billing, or quota errors switch that provider off until the next UTC day, and the next provider answers.
-- Cheap default models (`CLAUDE_MODEL`, `OPENAI_MODEL` override them). Output is capped at 1000 tokens per call.
-- These caps bound usage; they do not make it free. To guarantee 0 rupiah, keep the provider account balance at zero or set the provider's own spend limit (Anthropic Console / OpenAI Billing).
+Default fallback order:
 
-Each agent otherwise has an ordered list of free providers; if one is rate-limited, out of daily budget, or failing, the next one answers automatically. Set any of these as Cloudflare Worker **secrets** (all have free tiers, no credit card; limits change, check each site):
+1. Gemini API — `GEMINI_API_KEY`, default model `gemini-2.5-flash`.
+2. Groq — `GROQ_API_KEY`, default model `llama-3.3-70b-versatile`.
+3. Cerebras — `CEREBRAS_API_KEY`, default model `llama-3.3-70b`.
+4. OpenRouter — `OPENROUTER_API_KEY`, default model `meta-llama/llama-3.3-70b-instruct:free`.
+5. Cloudflare Workers AI — the existing `AI` binding; no provider API key.
 
-- `GEMINI_API_KEY` - Google AI Studio. Note: free-tier prompts may be used by Google for training; avoid sensitive data.
-- `GROQ_API_KEY` - Groq (Llama 3.3 70B).
-- `CEREBRAS_API_KEY` - Cerebras (Llama 3.3 70B).
-- `OPENROUTER_API_KEY` - OpenRouter free models.
-- Cloudflare Workers AI works through the `AI` binding with no key.
+Only configured providers are attempted. An agent's preferred provider is tried first only if it is on this allowlist; unsupported provider names are ignored. Rate limits, timeouts, provider errors, and empty responses trigger fallback to the next configured provider.
 
-Optional variables: `<PROVIDER>_DAILY_LIMIT` and `<PROVIDER>_MODEL`. See `backend/wrangler.toml.example`. The approvals table already exists in your `appdigi-approvals` D1 database; `backend/schema.sql` documents it. Run tests with `node --test backend/test/*.test.mjs`.
+### Zero-cost guardrails
+
+- Provider accounts and keys must be on their no-cost tiers. Free quotas and model availability vary by provider, account, region, and date; they are not unlimited or guaranteed.
+- The Worker has conservative local daily call caps (default: Gemini 30, Groq 30, Cerebras 30, OpenRouter 20, Workers AI 40). Override only after checking the provider's current free-tier limits: `GEMINI_DAILY_LIMIT`, `GROQ_DAILY_LIMIT`, `CEREBRAS_DAILY_LIMIT`, `OPENROUTER_DAILY_LIMIT`, and `WORKERS_AI_DAILY_LIMIT`.
+- The D1 budget counter is fail-closed for every provider: if `APPROVAL_DB` is unavailable or the counter cannot be updated, AI calls are blocked instead of bypassing the local cap.
+- These application caps are an additional safety layer, not a guarantee against charges on an account with billing enabled. Keep provider billing disabled and do not attach a paid billing method if the requirement is strictly Rp0. Check each provider's current pricing and account settings.
+- No Claude/Anthropic or OpenAI API secret is required or read by the Worker. Remove obsolete secrets from Cloudflare after confirming no other service uses them.
+
+Configure only the provider secrets you actually have in Cloudflare Worker settings. Never put API keys in GitHub or frontend code. Workers AI additionally requires the existing `AI` binding and D1 budget storage.
+
+Run the provider-policy tests with `npm test`.
 
 ## Secure account connections (OAuth)
 

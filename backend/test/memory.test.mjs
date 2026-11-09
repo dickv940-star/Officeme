@@ -117,8 +117,13 @@ test("duplicate titles and invalid notes are skipped", async () => {
 
 test("broken memory storage never breaks the agent answer", async () => {
   mockGemini("jawaban aman <MEMORY_NOTE>{\"kind\":\"fact\",\"title\":\"t\",\"content\":\"c\"}</MEMORY_NOTE>");
-  const brokenDb = { prepare() { throw new Error("D1 down"); } };
-  const res = await (await load()).fetch(req("/api/agents/chat", chat), baseEnv(brokenDb));
+  const budgetDb = fakeMemoryDb();
+  const originalPrepare = budgetDb.prepare;
+  budgetDb.prepare = (sql) => {
+    if (/ai_provider_daily_budget/.test(sql)) return originalPrepare(sql);
+    throw new Error("agent memory storage unavailable");
+  };
+  const res = await (await load()).fetch(req("/api/agents/chat", chat), baseEnv(budgetDb));
   assert.equal(res.status, 200);
   assert.equal((await res.json()).reply, "jawaban aman");
 });

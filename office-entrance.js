@@ -16,7 +16,7 @@
   const style = document.createElement("style");
   style.id = "officeMeEntranceStyles";
   style.textContent = `
-    #officeMeEntrance{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;
+    #officeMeEntrance{position:fixed;inset:0;z-index:100001;display:grid;place-items:center;overflow:hidden;
       color:#f4f7ff;background:radial-gradient(ellipse at 50% 35%,#294b68 0,#14283e 42%,#081321 100%);
       isolation:isolate;opacity:1;transition:opacity .85s ease,visibility .85s ease}
     #officeMeEntrance[hidden]{display:none}

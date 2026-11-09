@@ -16,7 +16,7 @@
   const style = document.createElement("style");
   style.id = "officeMeEntranceStyles";
   style.textContent = `
-    #officeMeEntrance{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;
+    #officeMeEntrance{position:fixed;inset:0;z-index:100001;display:grid;place-items:center;overflow:hidden;
       color:#f4f7ff;background:radial-gradient(ellipse at 50% 35%,#294b68 0,#14283e 42%,#081321 100%);
       isolation:isolate;opacity:1;transition:opacity .85s ease,visibility .85s ease}
     #officeMeEntrance[hidden]{display:none}
@@ -42,7 +42,7 @@
     #officeMeEntrance .ome-worker{width:10%;max-width:58px;display:grid;justify-items:center;gap:4px;animation:omeFloat 2.8s ease-in-out infinite;animation-delay:var(--delay)}
     #officeMeEntrance .ome-worker img{width:100%;aspect-ratio:1;object-fit:cover;object-position:top;border-radius:13px;border:2px solid #e1f4ff;box-shadow:0 5px 16px #06101b99}
     #officeMeEntrance .ome-worker i{display:block;width:125%;height:5px;border-radius:9px;background:#b7d4e6;box-shadow:0 4px 0 #536b7c}
-    #officeMeEntrance .ome-door{position:absolute;inset:0;z-index:5;display:grid;grid-template-columns:1fr 1fr;transform-style:preserve-3d;pointer-events:none}
+    #officeMeEntrance .ome-door{position:absolute;inset:0;z-index:5;display:grid;grid-template-columns:1fr 1fr;transform-style:preserve-3d;pointer-events:auto;cursor:pointer}
     #officeMeEntrance .ome-leaf{position:relative;overflow:hidden;border:2px solid #b98c5c;background:
       linear-gradient(90deg,#4b3329 0%,#9b704e 10%,#6e4935 48%,#3a2b27 100%);
       box-shadow:inset 0 0 0 8px #2d2929,inset 0 0 0 12px #c69a68,0 15px 45px #0009;transform-style:preserve-3d;transition:transform 1.45s cubic-bezier(.2,.72,.16,1)}
@@ -86,7 +86,7 @@
         <div class="ome-room"><div class="ome-window"></div><div class="ome-workers">
           ${agents.map((a,i)=>'<div class="ome-worker" style="--delay:'+(-i*.19)+'s"><img src="./assets/'+a[2]+'" alt=""><i></i></div>').join("")}
         </div><div class="ome-monitor"></div><div class="ome-desk"></div><div class="ome-floor"></div></div>
-        <div class="ome-door"><div class="ome-leaf left"></div><div class="ome-leaf right"></div></div>
+        <div class="ome-door" role="button" tabindex="0" aria-label="Klik untuk membuka pintu ruang kerja"><div class="ome-leaf left"></div><div class="ome-leaf right"></div></div>
       </div>
       <button class="ome-enter" type="button">BUKA PINTU · MASUK KE RUANG KERJA <span aria-hidden="true">↗</span></button>
       <div class="ome-foot">8 AI SPECIALISTS · ONE CONNECTED WORKSPACE</div>
@@ -111,7 +111,6 @@
       if (roomSection) roomSection.classList.remove("office-simple-hidden");
       if (roomView) {
         roomView.hidden = false;
-        if (roomSection) roomSection.insertBefore(roomView, roomSection.firstChild);
         roomView.style.setProperty("display","block","important");
         const roomHeading = roomSection?.querySelector("h2");
         if (roomHeading) roomHeading.textContent = "Ruang Kerja AI · Global Affiliate Engine";
@@ -122,13 +121,18 @@
         const affiliatePanel = document.getElementById("affiliateWorkflowPanel");
         if (affiliatePanel && roomSection) roomSection.insertAdjacentElement("afterend", affiliatePanel);
         const linkManager = document.getElementById("affiliateLinkManager");
-        if (linkManager && roomSection) roomSection.insertAdjacentElement("afterend", linkManager);
-        window.dispatchEvent(new CustomEvent("appdigi:room-open",{detail:{id:"workers"}}));
+        if (linkManager && roomSection) (affiliatePanel || roomSection).insertAdjacentElement("afterend", linkManager);
+        const openWorkersRoom = () => window.appdigiOpenVirtualRoom?.("workers");
+        if (typeof window.appdigiOpenVirtualRoom === "function") openWorkersRoom();
+        else window.addEventListener("appdigi:virtual-office-ready",openWorkersRoom,{once:true});
       }
       document.dispatchEvent(new CustomEvent("officeme:entrance-opened"));
     }, 2050);
   }
   enter.addEventListener("click",openOffice);
+  const door = overlay.querySelector(".ome-door");
+  door.addEventListener("click",openOffice);
+  door.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();openOffice();}});
   overlay.addEventListener("keydown",event=>{
     if(event.key==="Escape" && !opened) openOffice();
   });

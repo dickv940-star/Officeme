@@ -310,7 +310,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
       for(let i=0;i<Math.min(workers.length,8);i++){
         const angle=(-Math.PI/2)+(i*2*Math.PI/Math.max(workers.length,1));
         const x=Math.cos(angle)*3.05,z=Math.sin(angle)*2.55;
-        const actor=makeActor(workers[i],i);actor.position.set(x,0,z);actor.rotation.y=-angle-Math.PI/2;actor.userData.mode="sit";
+        const actor=makeActor(workers[i],i);actor.position.set(x,0,z);actor.rotation.y=-angle-Math.PI/2;actor.userData.mode="type"; // Demonstration pose: seated and actively typing at the laptop.
         actor.userData.base.position.set(x,0,z);actor.userData.base.rotation=actor.rotation.y;
         scene.add(actor);actors.push(actor);loadCustomCharacterModel(actor);makeChair(x+Math.cos(angle)*.35,z+Math.sin(angle)*.35,actor.rotation.y);
       }
@@ -407,17 +407,9 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     const roster=[{name:"William Bigboss",role:"Direktur"},...loadWorkers()];
     roster.forEach(person=>{
       const key=String(person.name||"").toLowerCase();
-      const actor=actors.find(a=>String(a.userData.worker?.name||"").toLowerCase()===key);
-      let state=activityStates.get(key)||"idle";
-      if(actor?.userData.walkTarget)state="walking";
-      else if(actor?.userData.conversationMode==="thinking")state="thinking";
-      else if(actor?.userData.conversationMode==="speaking")state="speaking";
-      else if(actor?.userData.mode==="rest")state="rest";
-      else if(actor?.userData.mode==="talk")state="talk";
-      else if(actor?.userData.working)state="working";
-      else if(actor?.userData.mode==="type")state="working";
-      else if(actor?.userData.mode==="sit"&&!activityStates.has(key))state="at desk";
-      const labels={idle:"Siaga",walking:"Berjalan",thinking:"Berpikir",speaking:"Berbicara",working:"Bekerja",type:"Bekerja",sit:"Duduk",stand:"Berdiri",rest:"Rest · minum kopi",talk:"Berbincang","at desk":"Di tempat kerja"};
+      // HUD reports backend task state only. Character poses/typing are decorative.
+      const state=activityStates.get(key)||"idle";
+      const labels={idle:"Siaga",queued:"Dalam antrean",working:"Sedang bekerja",reviewing:"Pemeriksaan QA",waiting:"Menunggu hasil tim",completed:"Tugas selesai",failed:"Gagal · perlu diperiksa"};
       const row=document.createElement("div");Object.assign(row.style,{display:"flex",justifyContent:"space-between",gap:"8px",padding:"3px 0",borderBottom:"1px solid rgba(255,255,255,.08)"});
       const name=document.createElement("span");name.textContent=person.name;name.style.fontWeight="600";
       const statusText=document.createElement("span");statusText.textContent=labels[state]||state;statusText.style.color=state==="walking"?"#ffd58a":state==="rest"?"#ffcf9e":state==="working"?"#9be8a9":state==="thinking"?"#b8c7ff":state==="speaking"?"#8fe1dc":"#d3dfeb";
@@ -665,6 +657,9 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
       active=true;motionPaused=reducedMotion.matches;lastTime=0;elapsed=0;
       const motionButton=document.getElementById("vo3dMotion");if(motionButton)motionButton.textContent=motionPaused?"Lanjutkan gerakan":"Jeda gerakan";
       buildRoom(currentRoom,loadWorkers(),invite);refreshControlPanel();
+      host.dataset.room = currentRoom;
+      host.dataset.agentCount = String(actors.length);
+      window.dispatchEvent(new CustomEvent("appdigi:virtual-office-room-ready",{detail:{roomId:currentRoom,agentCount:actors.length}}));
       resetCamera();
       if(cctvEnabled){
         if(requestedCctvTarget==="room:"+currentRoom)cctvTarget=requestedCctvTarget;
@@ -685,21 +680,26 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     }
   }
   function hideRoom(){active=false;}
+  window.appdigiOpenVirtualRoom = showRoom;
+  window.dispatchEvent(new Event("appdigi:virtual-office-ready"));
   window.addEventListener("appdigi:room-open",e=>showRoom(e.detail?.id||"workers",e.detail?.invite||null));
   window.addEventListener("appdigi:agent-activity",e=>{
     const id=String(e.detail?.agentId||"").toLowerCase();
-    const state=e.detail?.state;
-    activityStates.set(canonicalAgentKey(id),state==="thinking"?"thinking":state==="speaking"?"speaking":state==="working"?"working":"idle");
-    if(state==="thinking"&&id){
-      const person=loadWorkers().find(w=>String(w.name||"").toLowerCase()===id);
-      const alreadyPresent=person&&currentRoom==="director"&&actors.some(a=>String(a.userData.worker?.name||"").toLowerCase()===id);
-      if(person&&!alreadyPresent)window.dispatchEvent(new CustomEvent("appdigi:cctv-room-select",{detail:{id:"director",invite:{id,name:person.name,role:person.role}}}));
-    }
+    const state=String(e.detail?.state||"idle");
+    const allowed=["idle","queued","working","reviewing","waiting","completed","failed"];
+    if(!id||!allowed.includes(state))return;
+    const key=canonicalAgentKey(id);
+    activityStates.set(key,state);
     actors.forEach(actor=>{
       const name=String(actor.userData.worker?.name||"").toLowerCase();
-      const match=(id==="william"&&name.includes("william"))||name===id;
-      if(match){actor.userData.conversationMode=["thinking","speaking"].includes(state)?state:null;if(state==="working")actor.userData.mode="type";if(state==="idle"){actor.userData.conversationMode=null;if(actor.userData.mode==="type")actor.userData.mode="sit";}}
+      const match=(id==="william"&&name.includes("william"))||name===id||canonicalAgentKey(name)===key;
+      if(match){
+        actor.userData.conversationMode=null;
+        if(state==="working"||state==="reviewing")actor.userData.mode="type";
+        else if(["completed","failed","idle","waiting","queued"].includes(state))actor.userData.mode="sit";
+      }
     });
+    renderStatusHud();
   });
   window.addEventListener("appdigi:agent-pose",e=>{
     const id=String(e.detail?.agentId||"").toLowerCase();
@@ -715,7 +715,7 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
         found=true;
       }
     });
-    if(found){activityStates.set(canonicalAgentKey(id),mode==="type"||mode==="work"?"working":mode);renderStatusHud();setStatus("Pose visual "+mode+" diterapkan pada "+id+". Gerakan karakter adalah visualisasi; status kerja mengikuti event aplikasi.");}
+    if(found){renderStatusHud();setStatus("Pose visual "+mode+" diterapkan pada "+id+". Pose karakter tidak mengubah status tugas AI.");}
   });
   window.addEventListener("appdigi:room-close",hideRoom);
   window.addEventListener("storage",e=>{if(e.key===storageKey&&active)showRoom(currentRoom);});

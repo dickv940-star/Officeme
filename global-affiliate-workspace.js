@@ -82,7 +82,11 @@ function chatConfig(){
 async function requestAgentChat(agentId,messages,config){
  const response=await fetch(config.url+"/api/agents/chat",{method:"POST",headers:{"Authorization":"Bearer "+config.token,"Content-Type":"application/json"},body:JSON.stringify({agentId,messages}),cache:"no-store"});
  const data=await response.json().catch(()=>({}));
- if(!response.ok||data.ok===false)throw Error(data.error||("Backend HTTP "+response.status));
+ if(!response.ok||data.ok===false){
+  const error=new Error(data.error||("Backend HTTP "+response.status));
+  error.diagnostics=Array.isArray(data.diagnostics)?data.diagnostics:[];
+  throw error;
+ }
  if(typeof data.reply!=="string"||!data.reply.trim())throw Error("Agent mengembalikan jawaban kosong.");
  return data;
 }
@@ -112,7 +116,10 @@ async function sendTeamMessage(){
     chatMessages.push({role:"assistant",agentId:agent.id,name:data.name||agent.name,provider:data.provider,model:data.model,content:data.reply,at:new Date().toISOString()});
     chatMessages=chatMessages.slice(-300);saveChat();renderChat();
    }catch(error){
-    chatMessages.push({kind:"error",content:agent.name+" belum dapat menjawab: "+error.message,at:new Date().toISOString()});
+    const details=Array.isArray(error.diagnostics)&&error.diagnostics.length
+     ? " ("+error.diagnostics.map(item=>[item.provider,item.model,item.status?"HTTP "+item.status:"",item.reason].filter(Boolean).join(" · ")).join("; ")+")"
+     : "";
+    chatMessages.push({kind:"error",content:agent.name+" belum dapat menjawab: "+error.message+details,at:new Date().toISOString()});
     chatMessages=chatMessages.slice(-300);saveChat();renderChat();
    }
   }

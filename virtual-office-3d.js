@@ -685,6 +685,8 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/
     }
   }
   function hideRoom(){active=false;}
+  window.appdigiOpenVirtualRoom = showRoom;
+  window.dispatchEvent(new Event("appdigi:virtual-office-ready"));
   window.addEventListener("appdigi:room-open",e=>showRoom(e.detail?.id||"workers",e.detail?.invite||null));
   window.addEventListener("appdigi:agent-activity",e=>{
     const id=String(e.detail?.agentId||"").toLowerCase();

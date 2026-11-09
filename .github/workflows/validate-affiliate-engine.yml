@@ -22,6 +22,13 @@ jobs:
           node --check backend/worker.js
           node --check affiliate-workflow.js
           node --check office-entrance.js
+          node --check --input-type=module < virtual-office-3d.js
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Test unified entrance in desktop and mobile browsers
+        run: npm run test:e2e
       - name: Validate D1 schema with SQLite
         run: |
           python - <<'PY'

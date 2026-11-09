@@ -264,8 +264,16 @@ async function callGemini(systemPrompt, userPrompt, env, maxTokens) {
       generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 }
     })
   });
-  if (response.status === 429) throw llmError("LLM_RATE_LIMIT");
-  if (!response.ok) throw llmError("LLM_REQUEST_FAILED");
+  if (response.status === 429) {
+    const error = llmError("LLM_RATE_LIMIT");
+    error.providerDiagnostic = { provider: "gemini", model, status: response.status, reason: String(data?.error?.message || "Rate limited").slice(0, 180) };
+    throw error;
+  }
+  if (!response.ok) {
+    const error = llmError("LLM_REQUEST_FAILED");
+    error.providerDiagnostic = { provider: "gemini", model, status: response.status, reason: String(data?.error?.message || data?.error?.status || "Provider request failed").slice(0, 180) };
+    throw error;
+  }
   const parts = data?.candidates?.[0]?.content?.parts;
   const answer = cleanAnswer(Array.isArray(parts) ? parts.map((part) => part?.text || "").join("") : "");
   if (!answer) throw llmError("EMPTY_LLM_RESPONSE");
@@ -383,11 +391,13 @@ async function callLLM(preferred, systemPrompt, userPrompt, env, maxTokens = 120
     } catch (error) {
       const code = error && error.llmCode ? error.llmCode : "LLM_REQUEST_FAILED";
       if (code === "LLM_RATE_LIMIT") providerCooldownUntil.set(provider, Date.now() + PROVIDER_COOLDOWN_MS);
-      attempts.push({ provider, outcome: code === "LLM_RATE_LIMIT" ? "rate_limited" : code === "LLM_PAID_DISABLED" ? "paid_disabled" : code === "EMPTY_LLM_RESPONSE" ? "empty" : "failed" });
+      attempts.push({ provider, outcome: code === "LLM_RATE_LIMIT" ? "rate_limited" : code === "LLM_PAID_DISABLED" ? "paid_disabled" : code === "EMPTY_LLM_RESPONSE" ? "empty" : "failed", ...(error?.providerDiagnostic || {}) });
     }
   }
   const limited = attempts.length && attempts.every((a) => ["rate_limited", "cooldown", "daily_limit", "paid_limit", "paid_disabled"].includes(a.outcome));
-  throw llmError(limited ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
+  const failure = llmError(limited ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
+  failure.llmAttempts = attempts;
+  throw failure;
 }
 
 
@@ -1804,7 +1814,14 @@ export default {
           EMPTY_LLM_RESPONSE: [502, "Gemini tidak mengembalikan hasil riset."]
         };
         const [status, message] = map[code] || [502, "Riset produk gagal. Periksa status backend dan konfigurasi Gemini."];
-        return json({ ok: false, error: message }, status, origin);
+        const diagnostics = Array.isArray(error?.llmAttempts) ? error.llmAttempts.map((item) => ({
+        provider: item.provider,
+        outcome: item.outcome,
+        ...(item.model ? { model: item.model } : {}),
+        ...(item.status ? { status: item.status } : {}),
+        ...(item.reason ? { reason: item.reason } : {})
+      })) : undefined;
+      return json({ ok: false, error: message, ...(diagnostics ? { diagnostics } : {}) }, status, origin);
       }
     }
     if (request.method === "GET" && path === "/api/session") {

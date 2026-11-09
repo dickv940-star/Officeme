@@ -1528,6 +1528,60 @@ async function ownerWorkspace(request, env, origin, kind, recordId) {
   return json({ ok: false, error: "Metode tidak didukung." }, 405, origin);
 }
 
+
+async function ensureAffiliateApprovalTables(db) {
+  await db.prepare("CREATE TABLE IF NOT EXISTS affiliate_content_versions (content_id TEXT NOT NULL, version INTEGER NOT NULL, payload_json TEXT NOT NULL, fingerprint TEXT NOT NULL, status TEXT NOT NULL CHECK (status IN ('PENDING_OWNER_APPROVAL','APPROVED','REVISION_REQUIRED','REJECTED')), decision_note TEXT, created_at TEXT NOT NULL, decided_at TEXT, PRIMARY KEY (content_id, version))").run();
+  await db.prepare("CREATE INDEX IF NOT EXISTS idx_affiliate_content_versions_status ON affiliate_content_versions (status, created_at DESC)").run();
+}
+
+function validAffiliateContent(record) {
+  return record && typeof record === "object" && !Array.isArray(record) &&
+    typeof record.id === "string" && /^[a-zA-Z0-9_-]{1,80}$/.test(record.id) &&
+    typeof record.productName === "string" && record.productName.trim().length > 0 && record.productName.length <= 180 &&
+    typeof record.caption === "string" && record.caption.trim().length > 0 && record.caption.length <= 12000 &&
+    typeof record.link === "string" && /^https:\/\//i.test(record.link) && record.link.length <= 2048 &&
+    typeof record.accountId === "string" && record.accountId.length <= 80 &&
+    typeof record.platform === "string" && ["shopee","youtube","pinterest","instagram","facebook","tiktok","blog","other"].includes(record.platform);
+}
+
+async function createAffiliateContentApproval(request, env, origin) {
+  if (!env.APP_OWNER_TOKEN || !ownerAuthorized(request, env)) return json({ok:false,error:"Token pemilik tidak valid."},401,origin);
+  const db=approvalDb(env); if(!db)return json({ok:false,error:"D1 belum dikonfigurasi."},503,origin);
+  const raw=await request.text(); if(raw.length>20000)return json({ok:false,error:"Paket konten terlalu besar."},413,origin);
+  let body;try{body=JSON.parse(raw)}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
+  const c=body?.content;
+  if(!validAffiliateContent(c))return json({ok:false,error:"Konten tidak valid untuk diajukan. Pastikan ID, produk, tautan HTTPS, kanal, dan caption terisi."},400,origin);
+  await ensureAffiliateApprovalTables(db);
+  const prior=await db.prepare("SELECT COALESCE(MAX(version),0) AS version FROM affiliate_content_versions WHERE content_id=?").bind(c.id).first();
+  const version=Number(prior?.version||0)+1, now=new Date().toISOString();
+  const snapshot={id:c.id,accountId:c.accountId,platform:c.platform,productName:c.productName,link:c.link,caption:c.caption,audience:c.audience||"",goal:c.goal||"",format:c.format||"",facts:c.facts||"",research:c.research||"",aiSource:c.aiSource||"",createdAt:c.createdAt||now,submittedAt:now};
+  const hash=await fingerprint({productName:snapshot.productName,affiliateLink:snapshot.link,videoUrl:"",caption:snapshot.caption,channels:[snapshot.platform]});
+  await db.prepare("INSERT INTO affiliate_content_versions (content_id,version,payload_json,fingerprint,status,decision_note,created_at,decided_at) VALUES (?,?,?,?,'PENDING_OWNER_APPROVAL',NULL,?,NULL)")
+    .bind(c.id,version,JSON.stringify(snapshot),hash,now).run();
+  return json({ok:true,contentId:c.id,version,fingerprint:hash,status:"PENDING_OWNER_APPROVAL",createdAt:now,message:"Versi konten tersimpan di D1 dan menunggu keputusan pemilik. Tidak ada publikasi."},201,origin);
+}
+
+async function listAffiliateContentApprovals(request,env,origin) {
+  if(!env.APP_OWNER_TOKEN||!ownerAuthorized(request,env))return json({ok:false,error:"Token pemilik tidak valid."},401,origin);
+  const db=approvalDb(env);if(!db)return json({ok:false,error:"D1 belum dikonfigurasi."},503,origin);
+  await ensureAffiliateApprovalTables(db);
+  const result=await db.prepare("SELECT content_id,version,payload_json,fingerprint,status,decision_note,created_at,decided_at FROM affiliate_content_versions ORDER BY created_at DESC LIMIT 200").all();
+  return json({ok:true,items:(result.results||[]).map(r=>({contentId:r.content_id,version:r.version,payload:JSON.parse(r.payload_json),fingerprint:r.fingerprint,status:r.status,decisionNote:r.decision_note,createdAt:r.created_at,decidedAt:r.decided_at}))},200,origin);
+}
+
+async function decideAffiliateContentApproval(request,env,origin,contentId) {
+  if(!env.APP_OWNER_TOKEN||!ownerAuthorized(request,env))return json({ok:false,error:"Token pemilik tidak valid."},401,origin);
+  const db=approvalDb(env);if(!db)return json({ok:false,error:"D1 belum dikonfigurasi."},503,origin);
+  let body;try{body=await request.json()}catch(_){return json({ok:false,error:"JSON tidak valid."},400,origin)}
+  const version=Number(body.version),decision=body.decision;
+  if(!Number.isSafeInteger(version)||version<1||!["approve","revise","reject"].includes(decision)||(body.note!==undefined&&(typeof body.note!=="string"||body.note.length>1000)))return json({ok:false,error:"Versi atau keputusan tidak valid."},400,origin);
+  await ensureAffiliateApprovalTables(db);
+  const status=decision==="approve"?"APPROVED":decision==="revise"?"REVISION_REQUIRED":"REJECTED",now=new Date().toISOString();
+  const result=await db.prepare("UPDATE affiliate_content_versions SET status=?,decision_note=?,decided_at=? WHERE content_id=? AND version=? AND status='PENDING_OWNER_APPROVAL'").bind(status,body.note||null,now,contentId,version).run();
+  if(!result.meta?.changes)return json({ok:false,error:"Versi tidak ditemukan atau sudah diputuskan. Muat ulang antrean."},409,origin);
+  return json({ok:true,contentId,version,status,decidedAt:now,message:status==="APPROVED"?"Disetujui pemilik; belum ada publikasi yang dijalankan.":"Keputusan tersimpan di D1."},200,origin);
+}
+
 const APPROVAL_CHANNELS = new Set(["shopee_video", "instagram", "youtube"]);
 
 function ownerAuthorized(request, env) {
@@ -1685,7 +1739,11 @@ export default {
     if (!env.APP_SHARED_TOKEN) return json({ ok: false, error: "Backend belum dikonfigurasi." }, 503, origin);
     const ownerWorkspaceMatch = path.match(/^\/api\/owner\/workspace\/(accounts|contents)\/([a-zA-Z0-9_-]{1,80})$/);
     const ownerWorkspaceList = request.method === "GET" && path === "/api/owner/workspace";
-    const ownerRoute = ownerWorkspaceList || Boolean(ownerWorkspaceMatch) || (request.method === "GET" && path === "/api/approvals") ||
+    const ownerApprovalList = request.method === "GET" && path === "/api/owner/content-approvals";
+    const ownerApprovalCreate = request.method === "POST" && path === "/api/owner/content-approvals";
+    const ownerApprovalDecision = path.match(/^\/api\/owner\/content-approvals\/([a-zA-Z0-9_-]{1,80})\/decision$/);
+
+    const ownerRoute = ownerWorkspaceList || ownerApprovalList || ownerApprovalCreate || Boolean(ownerApprovalDecision) || Boolean(ownerWorkspaceMatch) || (request.method === "GET" && path === "/api/approvals") ||
       (request.method === "POST" && /^\/api\/approvals\/[a-zA-Z0-9_-]{1,80}\/decision$/.test(path));
     if (ownerRoute) {
       if (!env.APP_OWNER_TOKEN) return json({ ok: false, error: "Token pemilik belum dikonfigurasi." }, 503, origin);
@@ -1694,6 +1752,10 @@ export default {
     }
 
     if (ownerWorkspaceList) return ownerWorkspace(request, env, origin, null, null);
+    if (ownerApprovalList) return listAffiliateContentApprovals(request,env,origin);
+    if (ownerApprovalCreate) return createAffiliateContentApproval(request,env,origin);
+    if (ownerApprovalDecision && request.method === "POST") return decideAffiliateContentApproval(request,env,origin,ownerApprovalDecision[1]);
+
     if (ownerWorkspaceMatch) return ownerWorkspace(request, env, origin, ownerWorkspaceMatch[1], ownerWorkspaceMatch[2]);
     if (request.method === "GET" && path === "/api/agent-help") return listAgentHelp(env, origin);
     if (request.method === "POST" && path === "/api/agent-help") {

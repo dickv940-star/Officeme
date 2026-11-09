@@ -52,22 +52,22 @@ function validProduct(p) {
 const FREE_PROVIDERS = {
   gemini: {
     keyEnv: "GEMINI_API_KEY", modelEnv: "GEMINI_MODEL", model: "gemini-2.5-flash",
-    dailyEnv: "GEMINI_DAILY_LIMIT", daily: 200, maxTokens: 2000
+    dailyEnv: "GEMINI_DAILY_LIMIT", daily: 30, maxTokens: 2000
   },
   groq: {
     keyEnv: "GROQ_API_KEY", modelEnv: "GROQ_MODEL", model: "llama-3.3-70b-versatile",
     url: "https://api.groq.com/openai/v1/chat/completions",
-    dailyEnv: "GROQ_DAILY_LIMIT", daily: 800, maxTokens: 2000
+    dailyEnv: "GROQ_DAILY_LIMIT", daily: 30, maxTokens: 2000
   },
   cerebras: {
     keyEnv: "CEREBRAS_API_KEY", modelEnv: "CEREBRAS_MODEL", model: "llama-3.3-70b",
     url: "https://api.cerebras.ai/v1/chat/completions",
-    dailyEnv: "CEREBRAS_DAILY_LIMIT", daily: 800, maxTokens: 2000
+    dailyEnv: "CEREBRAS_DAILY_LIMIT", daily: 30, maxTokens: 2000
   },
   openrouter: {
     keyEnv: "OPENROUTER_API_KEY", modelEnv: "OPENROUTER_MODEL", model: "meta-llama/llama-3.3-70b-instruct:free",
     url: "https://openrouter.ai/api/v1/chat/completions",
-    dailyEnv: "OPENROUTER_DAILY_LIMIT", daily: 40, maxTokens: 2000
+    dailyEnv: "OPENROUTER_DAILY_LIMIT", daily: 20, maxTokens: 2000
   },
   "workers-ai": {
     keyEnv: null, modelEnv: "WORKERS_AI_MODEL", model: "@cf/google/gemma-4-26b-a4b-it",
@@ -114,7 +114,7 @@ function providerDailyLimit(provider, env) {
 // broken counter only skips the local guard.
 async function reserveProviderCall(provider, env) {
   const db = env.APPROVAL_DB;
-  const failClosed = provider === "workers-ai";
+  const failClosed = true;
   if (!db || typeof db.prepare !== "function") return !failClosed;
   const day = new Date().toISOString().slice(0, 10);
   try {

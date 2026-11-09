@@ -209,3 +209,24 @@ test("Claude/OpenAI stay OFF by default even when keys exist (0 rupiah safety sw
   assert.equal(health.paidAiEnabled, false);
   assert.deepEqual(health.llmProvidersConfigured, ["gemini"]);
 });
+
+test("reports exhausted local Workers AI budget separately with actionable diagnostics", async () => {
+  let aiCalls = 0;
+  const db = fakeDb();
+  const day = new Date().toISOString().slice(0, 10);
+  db.calls.set(day + "|workers-ai", 40);
+  const env = {
+    APP_SHARED_TOKEN: TOKEN,
+    APPROVAL_DB: db,
+    AI: { async run() { aiCalls++; return { response: "should not run" }; } }
+  };
+  const res = await (await load()).fetch(req("/api/agents/chat", { ...chat, agentId: "william" }), env);
+  const data = await res.json();
+  assert.equal(res.status, 429);
+  assert.match(data.error, /Batas panggilan harian internal OfficeMe/);
+  assert.equal(data.diagnostics[0].provider, "workers-ai");
+  assert.equal(data.diagnostics[0].model, "@cf/google/gemma-4-26b-a4b-it");
+  assert.equal(data.diagnostics[0].outcome, "daily_limit");
+  assert.match(data.diagnostics[0].reason, /tanggal UTC/);
+  assert.equal(aiCalls, 0);
+});

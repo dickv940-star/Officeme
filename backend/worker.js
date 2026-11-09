@@ -1095,10 +1095,11 @@ async function chatAgent(input, env) {
   if (!Array.isArray(messages) || messages.length < 1 || messages.length > 16) throw new Error("INVALID_CHAT_INPUT");
   const history = messages.map((message) => {
     if (!message || !["user", "assistant"].includes(message.role) ||
-        typeof message.content !== "string" || !message.content.trim() || message.content.length > 4000) {
+        typeof message.content !== "string" || !message.content.trim() || message.content.length > 4000 ||
+        (message.name !== undefined && (typeof message.name !== "string" || message.name.length > 80))) {
       throw new Error("INVALID_CHAT_INPUT");
     }
-    return { role: message.role, content: message.content.trim() };
+    return { role: message.role, content: message.content.trim(), ...(message.role === "assistant" && message.name ? { name: message.name.trim() } : {}) };
   });
   if (history[history.length - 1].role !== "user") throw new Error("INVALID_CHAT_INPUT");
 
@@ -1106,10 +1107,11 @@ async function chatAgent(input, env) {
     ? { name: "William Bigboss", role: "Direktur dan koordinator AI TEAM", focus: "memahami tujuan pengguna, bertanya jika instruksi penting ambigu, membagi tugas ke spesialis, merangkum keputusan dan langkah berikutnya" }
     : AGENTS[agentId];
   const transcript = history.slice(-12).map((message) =>
-    (message.role === "user" ? "PENGGUNA" : agent.name) + ": " + message.content
+    (message.role === "user" ? "PENGGUNA" : (message.name || agent.name)) + ": " + message.content
   ).join("\n\n");
   const system = [
     "Anda adalah " + agent.name + ", " + agent.role + " dalam AI TEAM AppDIGI.",
+    "Anda sedang berada di grup chat bersama pemilik dan agen spesialis lain. Tanggapi pesan terakhir pengguna dengan mempertimbangkan kontribusi anggota lain. Jangan mengulang jawaban yang sudah diberikan; tambahkan analisis dari keahlian Anda atau nyatakan singkat jika tidak ada tambahan penting.",
     "Keahlian utama: " + agent.focus + ".",
     "Anda juga teman bicara yang ramah: pengguna boleh menyapa, bercanda ringan, bertanya kabar, atau mengobrol biasa. Balas percakapan santai secara alami; jangan memaksa setiap pesan menjadi tugas teknis. Jika pertanyaan masuk bidang spesialisasi Anda, gunakan keahlian tersebut. Jika di luar bidang, tetap bantu secara umum dan jelaskan batasan bila relevan.",
     "Bahasa percakapan: Bahasa Indonesia yang alami, hangat, jelas, profesional, dan mudah dipahami. Pengguna mungkin memakai bahasa sehari-hari, salah ketik, huruf kapital, atau instruksi singkat; pahami maksudnya tanpa mengoreksi bahasa kecuali diminta.",

@@ -336,8 +336,15 @@ async function callWorkersAI(systemPrompt, userPrompt, env, maxTokens) {
     });
   } catch (error) {
     console.error("Workers AI request failed");
-    if (error && (error.status === 429 || error.code === 429)) throw llmError("LLM_RATE_LIMIT");
-    throw llmError("LLM_REQUEST_FAILED");
+    const rateLimited = Boolean(error && (error.status === 429 || error.code === 429));
+    const failure = llmError(rateLimited ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
+    failure.providerDiagnostic = {
+      provider: "workers-ai",
+      model,
+      ...(Number(error?.status || error?.code) ? { status: Number(error.status || error.code) } : {}),
+      reason: rateLimited ? "Rate limited" : "Workers AI inference failed"
+    };
+    throw failure;
   }
   const answer = typeof result === "string" ? result.trim() :
     [result?.response, result?.choices?.[0]?.message?.content, result?.result?.response]

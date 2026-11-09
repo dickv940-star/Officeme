@@ -73,7 +73,11 @@ Implementation started on the feature branch:
 - Added manual push/pull controls to the affiliate workflow UI. The owner token is held only in page memory, is not written to localStorage, and can be cleared. Pull merges by ID and preserves local records on conflicts.
 - CORS preflight now permits the required PUT and DELETE methods.
 - The UI deliberately does not auto-sync or delete server data. Unsupported legacy account platform values are reported/skipped by the frontend until their mappings are confirmed.
-- This is a first persistence slice, not yet full product/job/version/run-log persistence or server-backed approval decisions.
+- Added immutable D1 content approval versions in `affiliate_content_versions`.
+- Added owner-only endpoints to submit a content snapshot, list approval versions, and record approve/revise/reject decisions. Decisions are conditional updates from `PENDING_OWNER_APPROVAL`, preventing a second decision on an already-decided version.
+- Connected the affiliate workflow's submit and decision buttons to those server endpoints. The UI reads the latest server decision during manual workspace pull.
+- Approval is explicitly not publication. No publishing route is activated by these controls.
+- This is still a first persistence slice: product/job/version history beyond approval snapshots, run logs, server-side metrics, and automatic conflict resolution remain pending.
 - Use owner-scoped authorization; do not expose Worker secrets to browser JavaScript.
 - Migrate local browser records through an explicit export/import path. Do not silently overwrite or delete existing local data.
 - Keep an explicit local-only mode if secure owner authentication cannot be established.

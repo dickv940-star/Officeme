@@ -44,28 +44,12 @@ function validProduct(p) {
 }
 
 // ---------------------------------------------------------------------------
-// Multi-provider AI chain.
-// Order: Claude -> OpenAI (both LIMITED: hard daily call cap + daily token cap,
-// fail-closed, auto-disabled for the day on auth/billing/quota errors) and then
-// the free providers. When one provider is rate-limited, out of budget, or
-// failing, the next provider is tried.
-// NOTE: Claude/OpenAI API keys are pay-as-you-go. The caps below bound usage,
-// but the account balance/spend limit at the provider is what guarantees 0 rupiah.
+// Free-only multi-provider AI chain.
+// Paid vendor integrations are intentionally not present.
+// Providers remain subject to their own free-tier quotas and terms.
+// Workers AI is locally fail-closed against the D1 usage cap.
 // ---------------------------------------------------------------------------
 const FREE_PROVIDERS = {
-  claude: {
-    paid: true,
-    keyEnv: "CLAUDE_API_KEY", modelEnv: "CLAUDE_MODEL", model: "claude-haiku-5-5",
-    dailyEnv: "CLAUDE_DAILY_LIMIT", daily: 500, maxTokens: 1000,
-    tokenEnv: "CLAUDE_DAILY_TOKEN_LIMIT", dailyTokens: 500000
-  },
-  openai: {
-    paid: true,
-    keyEnv: "OPENAI_API_KEY", modelEnv: "OPENAI_MODEL", model: "gpt-4o-mini",
-    url: "https://api.openai.com/v1/chat/completions",
-    dailyEnv: "OPENAI_DAILY_LIMIT", daily: 500, maxTokens: 1000,
-    tokenEnv: "OPENAI_DAILY_TOKEN_LIMIT", dailyTokens: 500000
-  },
   gemini: {
     keyEnv: "GEMINI_API_KEY", modelEnv: "GEMINI_MODEL", model: "gemini-2.5-flash",
     dailyEnv: "GEMINI_DAILY_LIMIT", daily: 200, maxTokens: 2000
@@ -91,10 +75,8 @@ const FREE_PROVIDERS = {
   }
 };
 
-// Default fallback order, used when an agent has no specific order.
+// Preferred provider first, then the shared fallback sequence.
 const DEFAULT_PROVIDER_ORDER = ["gemini", "groq", "cerebras", "openrouter", "workers-ai"];
-// Limited (pay-as-you-go) providers always go first, in this order, for every agent.
-const LIMITED_PROVIDER_ORDER = ["claude", "openai"];
 
 const PROVIDER_COOLDOWN_MS = 60_000;
 const PROVIDER_TIMEOUT_MS = 25_000;
@@ -103,9 +85,6 @@ const providerCooldownUntil = new Map(); // per Worker isolate; best-effort only
 function providerConfigured(provider, env) {
   const spec = FREE_PROVIDERS[provider];
   if (!spec) return false;
-  // Safety switch: pay-as-you-go providers stay OFF unless the owner explicitly
-  // sets PAID_AI_ENABLED=true (after checking balance / spend limit at the provider).
-  if (spec.paid && String(env.PAID_AI_ENABLED || "").toLowerCase() !== "true") return false;
   if (provider === "workers-ai") return Boolean(env.AI && typeof env.AI.run === "function");
   return Boolean(env[spec.keyEnv]);
 }
@@ -135,7 +114,7 @@ function providerDailyLimit(provider, env) {
 // broken counter only skips the local guard.
 async function reserveProviderCall(provider, env) {
   const db = env.APPROVAL_DB;
-  const failClosed = provider === "workers-ai" || isPaidProvider(provider);
+  const failClosed = provider === "workers-ai";
   if (!db || typeof db.prepare !== "function") return !failClosed;
   const day = new Date().toISOString().slice(0, 10);
   try {
@@ -155,62 +134,6 @@ function llmError(code) {
   return error;
 }
 
-// ---- Limited (pay-as-you-go) provider guards: Claude, OpenAI ----------------
-function isPaidProvider(provider) {
-  return Boolean(FREE_PROVIDERS[provider] && FREE_PROVIDERS[provider].paid);
-}
-
-function providerTokenLimit(provider, env) {
-  const spec = FREE_PROVIDERS[provider];
-  const configured = Number(env[spec.tokenEnv]);
-  return Number.isFinite(configured) && configured > 0 ? Math.floor(configured) : spec.dailyTokens;
-}
-
-async function ensurePaidUsageTable(db) {
-  await db.prepare("CREATE TABLE IF NOT EXISTS ai_paid_usage (day TEXT NOT NULL, provider TEXT NOT NULL, tokens INTEGER NOT NULL DEFAULT 0, disabled INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, provider))").run();
-}
-
-// Fail-closed: without a working D1 counter, limited providers are never called.
-async function paidProviderAllowed(provider, env) {
-  const db = env.APPROVAL_DB;
-  if (!db || typeof db.prepare !== "function") return false;
-  const day = new Date().toISOString().slice(0, 10);
-  try {
-    await ensurePaidUsageTable(db);
-    const row = await db.prepare("SELECT tokens, disabled FROM ai_paid_usage WHERE day = ? AND provider = ?").bind(day, provider).first();
-    if (!row) return true;
-    return !row.disabled && Number(row.tokens) < providerTokenLimit(provider, env);
-  } catch (_) {
-    console.error("Paid provider guard unavailable");
-    return false;
-  }
-}
-
-async function recordPaidUsage(provider, env, tokens, disable = false) {
-  const db = env.APPROVAL_DB;
-  if (!db || typeof db.prepare !== "function") return;
-  const day = new Date().toISOString().slice(0, 10);
-  try {
-    await ensurePaidUsageTable(db);
-    await db.prepare("INSERT INTO ai_paid_usage (day, provider, tokens, disabled) VALUES (?, ?, ?, ?) ON CONFLICT(day, provider) DO UPDATE SET tokens = tokens + excluded.tokens, disabled = MAX(disabled, excluded.disabled)")
-      .bind(day, provider, Math.max(0, Math.floor(Number(tokens) || 0)), disable ? 1 : 0).run();
-  } catch (_) {
-    console.error("Paid provider usage record failed");
-  }
-}
-
-// Auth, billing and quota failures switch the provider off until the next UTC day.
-async function checkPaidStatus(provider, response, data, env) {
-  const message = String(data?.error?.message || data?.error?.code || data?.error?.type || "");
-  const billing = /credit|billing|quota|balance|insufficient|payment/i.test(message);
-  if ([401, 402, 403].includes(response.status) || ((response.status === 400 || response.status === 429) && billing)) {
-    await recordPaidUsage(provider, env, 0, true);
-    throw llmError("LLM_PAID_DISABLED");
-  }
-  if (response.status === 429) throw llmError("LLM_RATE_LIMIT");
-  if (!response.ok) throw llmError("LLM_REQUEST_FAILED");
-}
-
 async function fetchJsonWithTimeout(url, init) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
@@ -228,7 +151,7 @@ function cleanAnswer(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-async function callOpenAICompatible(provider, systemPrompt, userPrompt, env, maxTokens) {
+async function callCompatibleChatCompletions(provider, systemPrompt, userPrompt, env, maxTokens) {
   const spec = FREE_PROVIDERS[provider];
   const headers = { "content-type": "application/json", "authorization": "Bearer " + env[spec.keyEnv] };
   if (provider === "openrouter") headers["x-title"] = "Officeme AI Team";
@@ -288,47 +211,6 @@ async function callGemini(systemPrompt, userPrompt, env, maxTokens) {
   return answer;
 }
 
-async function callClaude(systemPrompt, userPrompt, env, maxTokens) {
-  const { response, data } = await fetchJsonWithTimeout("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": env.CLAUDE_API_KEY, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({
-      model: providerModel("claude", env),
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }]
-    })
-  });
-  await checkPaidStatus("claude", response, data, env);
-  const used = Number(data?.usage?.input_tokens || 0) + Number(data?.usage?.output_tokens || 0);
-  await recordPaidUsage("claude", env, used || (maxTokens + Math.ceil((systemPrompt.length + userPrompt.length) / 3)));
-  const answer = cleanAnswer(Array.isArray(data?.content) ? data.content.map((b) => (b && b.type === "text" ? b.text : "")).join("") : "");
-  if (!answer) throw llmError("EMPTY_LLM_RESPONSE");
-  return answer;
-}
-
-async function callOpenAILimited(systemPrompt, userPrompt, env, maxTokens) {
-  const spec = FREE_PROVIDERS.openai;
-  const { response, data } = await fetchJsonWithTimeout(spec.url, {
-    method: "POST",
-    headers: { "content-type": "application/json", "authorization": "Bearer " + env[spec.keyEnv] },
-    body: JSON.stringify({
-      model: providerModel("openai", env),
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      max_completion_tokens: maxTokens
-    })
-  });
-  await checkPaidStatus("openai", response, data, env);
-  const used = Number(data?.usage?.total_tokens || 0);
-  await recordPaidUsage("openai", env, used || (maxTokens + Math.ceil((systemPrompt.length + userPrompt.length) / 3)));
-  const answer = cleanAnswer(data?.choices?.[0]?.message?.content);
-  if (!answer) throw llmError("EMPTY_LLM_RESPONSE");
-  return answer;
-}
-
 async function callWorkersAI(systemPrompt, userPrompt, env, maxTokens) {
   const model = providerModel("workers-ai", env);
   let result;
@@ -363,17 +245,17 @@ async function callWorkersAI(systemPrompt, userPrompt, env, maxTokens) {
 
 async function callProvider(provider, systemPrompt, userPrompt, env, maxTokens) {
   const spec = FREE_PROVIDERS[provider];
+  if (!spec) throw llmError("LLM_PROVIDER_UNSUPPORTED");
   const limit = Math.max(1, Math.min(Number(maxTokens) || 600, spec.maxTokens));
-  if (provider === "claude") return callClaude(systemPrompt, userPrompt, env, limit);
-  if (provider === "openai") return callOpenAILimited(systemPrompt, userPrompt, env, limit);
   if (provider === "gemini") return callGemini(systemPrompt, userPrompt, env, limit);
   if (provider === "workers-ai") return callWorkersAI(systemPrompt, userPrompt, env, limit);
-  return callOpenAICompatible(provider, systemPrompt, userPrompt, env, limit);
+  return callCompatibleChatCompletions(provider, systemPrompt, userPrompt, env, limit);
 }
 
 function providerOrder(preferred) {
   const wanted = Array.isArray(preferred) ? preferred : (typeof preferred === "string" ? [preferred] : []);
-  const ordered = [...LIMITED_PROVIDER_ORDER, ...wanted, ...DEFAULT_PROVIDER_ORDER].filter((p) => Object.prototype.hasOwnProperty.call(FREE_PROVIDERS, p));
+  const ordered = [...wanted, ...DEFAULT_PROVIDER_ORDER]
+    .filter((provider) => Object.prototype.hasOwnProperty.call(FREE_PROVIDERS, provider));
   return [...new Set(ordered)];
 }
 
@@ -390,10 +272,6 @@ async function callLLM(preferred, systemPrompt, userPrompt, env, maxTokens = 120
   for (const provider of order) {
     if ((providerCooldownUntil.get(provider) || 0) > now) {
       attempts.push({ provider, model: providerModel(provider, env), outcome: "cooldown", reason: "Provider sedang cooldown 60 detik setelah rate limit." });
-      continue;
-    }
-    if (isPaidProvider(provider) && !(await paidProviderAllowed(provider, env))) {
-      attempts.push({ provider, model: providerModel(provider, env), outcome: "paid_limit", reason: "Provider berbayar diblokir oleh pengaman biaya atau batas penggunaan." });
       continue;
     }
     if (!(await reserveProviderCall(provider, env))) {
@@ -413,11 +291,11 @@ async function callLLM(preferred, systemPrompt, userPrompt, env, maxTokens = 120
         reason: error?.name === "AbortError" ? "Provider request timed out" :
           error?.name === "TypeError" ? "Provider network request failed" : "Provider request failed"
       };
-      attempts.push({ provider, outcome: code === "LLM_RATE_LIMIT" ? "rate_limited" : code === "LLM_PAID_DISABLED" ? "paid_disabled" : code === "EMPTY_LLM_RESPONSE" ? "empty" : "failed", ...diagnostic });
+      attempts.push({ provider, outcome: code === "LLM_RATE_LIMIT" ? "rate_limited" : code === "EMPTY_LLM_RESPONSE" ? "empty" : "failed", ...diagnostic });
     }
   }
   const dailyBudgetExhausted = attempts.length > 0 && attempts.every((a) => a.outcome === "daily_limit");
-  const limited = attempts.length && attempts.every((a) => ["rate_limited", "cooldown", "daily_limit", "paid_limit", "paid_disabled"].includes(a.outcome));
+  const limited = attempts.length && attempts.every((a) => ["rate_limited", "cooldown", "daily_limit"].includes(a.outcome));
   const failure = llmError(dailyBudgetExhausted ? "LLM_DAILY_BUDGET_EXHAUSTED" : limited ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
   failure.llmAttempts = attempts;
   throw failure;
@@ -1733,10 +1611,7 @@ function healthPayload(env) {
   return {
     ok: true,
     service: "appdigi-w001-worker",
-    llmMode: "limited-then-free-fallback-chain",
-    limitedProviders: LIMITED_PROVIDER_ORDER,
-    paidAiEnabled: String(env.PAID_AI_ENABLED || "").toLowerCase() === "true",
-    dailyTokenLimits: Object.fromEntries(LIMITED_PROVIDER_ORDER.map((p) => [p, providerTokenLimit(p, env)])),
+    llmMode: "free-only-fallback-chain",
     llmProvidersConfigured: providers,
     llmProvidersAvailable: Object.keys(FREE_PROVIDERS),
     dailyLimits: Object.fromEntries(Object.keys(FREE_PROVIDERS).map((p) => [p, providerDailyLimit(p, env)])),

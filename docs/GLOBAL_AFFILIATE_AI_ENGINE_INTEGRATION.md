@@ -63,7 +63,17 @@ OfficeMe remains the user-facing control plane. The affiliate engine is not a se
 
 ### Phase 2 — Connect the OfficeMe dashboard to a server-backed workspace
 
-- Add authenticated D1-backed APIs for affiliate account/channel metadata, product records, content jobs, content versions, and run status.
+Implementation started on the feature branch:
+
+- Added owner-authenticated D1 workspace endpoints for account/channel metadata and content drafts:
+  - `GET /api/owner/workspace?kind=accounts|contents`
+  - `PUT /api/owner/workspace/accounts/:id` and `PUT /api/owner/workspace/contents/:id`
+  - `DELETE /api/owner/workspace/accounts/:id` and `DELETE /api/owner/workspace/contents/:id`
+- Added `owner_workspace_records` to `backend/schema.sql`; Worker also creates the table/index defensively.
+- Added manual push/pull controls to the affiliate workflow UI. The owner token is held only in page memory, is not written to localStorage, and can be cleared. Pull merges by ID and preserves local records on conflicts.
+- CORS preflight now permits the required PUT and DELETE methods.
+- The UI deliberately does not auto-sync or delete server data. Unsupported legacy account platform values are reported/skipped by the frontend until their mappings are confirmed.
+- This is a first persistence slice, not yet full product/job/version/run-log persistence or server-backed approval decisions.
 - Use owner-scoped authorization; do not expose Worker secrets to browser JavaScript.
 - Migrate local browser records through an explicit export/import path. Do not silently overwrite or delete existing local data.
 - Keep an explicit local-only mode if secure owner authentication cannot be established.
@@ -110,4 +120,4 @@ OfficeMe remains the user-facing control plane. The affiliate engine is not a se
 
 ## Verification note
 
-This document is a repository-grounded implementation plan, not a claim that the backend is currently deployed or that any social/Shopee account is connected. Live Worker and GitHub Pages endpoints could not be verified with the available read-only browser check in this session. Runtime tests and deployment checks remain required before release.
+The owner token was reported as created by the owner, but its presence/value has not been independently verified from the Worker runtime. The new APIs and UI are committed only to the feature branch; D1 schema application, syntax/runtime tests, deployed Worker health, and browser end-to-end tests remain pending. This document is a repository-grounded implementation plan, not a claim that the backend is currently deployed or that any social/Shopee account is connected. Live Worker and GitHub Pages endpoints could not be verified with the available read-only browser check in this session. Runtime tests and deployment checks remain required before release.

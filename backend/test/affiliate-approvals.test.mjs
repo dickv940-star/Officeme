@@ -27,9 +27,9 @@ function fakeApprovalDb() {
         bind(...args) { this.args = args; return this; },
         async run() {
           if (/INSERT INTO affiliate_content_versions/.test(sql)) {
-            const [content_id, version, payload_json, fingerprint, status, decision_note, created_at, decided_at] = this.args;
+            const [content_id, version, payload_json, fingerprint, created_at] = this.args;
             if (rows.some(r => r.content_id === content_id && r.version === version)) throw new Error("duplicate version");
-            rows.push({ content_id, version, payload_json, fingerprint, status, decision_note, created_at, decided_at });
+            rows.push({ content_id, version, payload_json, fingerprint, status: "PENDING_OWNER_APPROVAL", decision_note: null, created_at, decided_at: null });
             return { meta: { changes: 1 } };
           }
           if (/UPDATE affiliate_content_versions SET status/.test(sql)) {

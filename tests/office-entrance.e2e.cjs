@@ -78,6 +78,43 @@ const server = http.createServer((req,res) => {
     assert.deepEqual(realErrors, [], "Real 3D integration must not throw browser errors");
     await realPage.close();
     console.log("PASS real Three.js workers room: " + roomState.count + " agents");
+
+    // End-to-end against the real OfficeMe index, including its existing scripts and injected affiliate panel.
+    const appPage = await browser.newPage({ viewport: { width: 1440, height: 960 } });
+    const appErrors = [];
+    appPage.on("pageerror", error => appErrors.push(error.message));
+    await appPage.goto("http://127.0.0.1:" + address.port + "/index.html", { waitUntil: "domcontentloaded" });
+    await appPage.waitForSelector("#officeMeEntrance", { timeout: 15000 });
+    await appPage.locator(".ome-enter").click();
+    await appPage.waitForFunction(() => !document.getElementById("officeMeEntrance"), null, { timeout: 7000 });
+    await appPage.waitForFunction(() => {
+      const host = document.getElementById("virtualOffice3d");
+      return host?.dataset.agentCount === "8" || /gagal dibuat/i.test(document.getElementById("virtualOfficeStatus")?.textContent || "");
+    }, null, { timeout: 25000 });
+    const appState = await appPage.evaluate(() => {
+      const host = document.getElementById("virtualOffice3d");
+      const section = document.getElementById("roomView")?.closest("section");
+      const workflow = document.getElementById("affiliateWorkflowPanel");
+      const links = document.getElementById("affiliateLinkManager");
+      return {
+        roomVisible: Boolean(document.getElementById("roomView") && !document.getElementById("roomView").hidden && document.getElementById("roomView").getClientRects().length),
+        room: host?.dataset.room || "",
+        agentCount: host?.dataset.agentCount || "0",
+        canvas: Boolean(host?.querySelector("canvas")),
+        workflowAfterRoom: Boolean(section && workflow && section.compareDocumentPosition(workflow) & Node.DOCUMENT_POSITION_FOLLOWING),
+        linksAfterWorkflow: Boolean(workflow && links && workflow.compareDocumentPosition(links) & Node.DOCUMENT_POSITION_FOLLOWING),
+        status: document.getElementById("virtualOfficeStatus")?.textContent || ""
+      };
+    });
+    assert.equal(appState.roomVisible, true, "Real OfficeMe index must reveal its existing room. " + appState.status);
+    assert.equal(appState.room, "workers");
+    assert.equal(appState.agentCount, "8", "Real OfficeMe page must instantiate eight agents");
+    assert.equal(appState.canvas, true, "Real OfficeMe page must render the 3D canvas");
+    assert.equal(appState.workflowAfterRoom, true, "Affiliate workflow must follow the room");
+    assert.equal(appState.linksAfterWorkflow, true, "Affiliate links must follow the workflow");
+    assert.deepEqual(appErrors, [], "Real OfficeMe page must not throw JavaScript errors");
+    await appPage.close();
+    console.log("PASS real OfficeMe index: entrance → 3D workspace → affiliate workflow");
   } finally {
     await browser.close();
     await new Promise(resolve => server.close(resolve));

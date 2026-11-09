@@ -52,12 +52,9 @@ jobs:
           }
           // Accept the legacy Workers-AI-only mode and the newer free-provider fallback chain.
           // The newer mode keeps Claude/OpenAI behind hard daily call and token caps.
-          const okModes = ['workers-ai-only', 'workers-ai-default', 'free-provider-fallback-chain', 'limited-then-free-fallback-chain', 'free-only-fallback-chain'];
           const freeOnly = data.llmMode === 'free-only-fallback-chain' && !('limitedProviders' in data) && !('paidAiEnabled' in data);
-          const legacySafe = data.llmMode === 'limited-then-free-fallback-chain' && Array.isArray(data.limitedProviders) && data.dailyTokenLimits && typeof data.dailyTokenLimits === 'object';
-          const paidOff = data.paidProvidersDisabled === true || data.externalProvidersDisabled === true || data.externalProviderOptInRequired === true;
-          if (!okModes.includes(data.llmMode) || !(freeOnly || legacySafe || paidOff) || data.publishingEnabled !== false) {
-            throw new Error('Live Worker is not in an expected safe AI mode.');
+          if (!freeOnly || data.publishingEnabled !== false) {
+            throw new Error('Live Worker is not running the free-only provider architecture.');
           }
           console.log('Live Worker AI mode check passed; provider secret values were not read or logged.');
           NODE

@@ -2,7 +2,16 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
+const vm = require("node:vm");
 const { chromium } = require("playwright");
+
+const workspaceSource = fs.readFileSync(path.join(__dirname, "..", "global-affiliate-workspace.js"), "utf8");
+const routerSource = workspaceSource.match(/const CHAT_AGENTS=\\[[\\s\\S]*?\\n\\];\\nfunction routeChatRecipients\\([\\s\\S]*?\\n\\}/)?.[0];
+assert.ok(routerSource, "Team Chat must expose its automatic role-routing implementation in the workspace source");
+const chatRouter = vm.runInNewContext(routerSource + "; ({ CHAT_AGENTS, routeChatRecipients })");
+assert.deepEqual(Array.from(chatRouter.routeChatRecipients("Siapa yang bertugas membuat content? Jawab yang bertugas saja, yang tidak bertugas tidak perlu menjawab."), agent => agent.id), ["sophia"], "Content questions must be routed only to Sophia");
+assert.deepEqual(Array.from(chatRouter.routeChatRecipients("Tolong minta pendapat semua tim tentang strategi ini."), agent => agent.id), Array.from(chatRouter.CHAT_AGENTS, agent => agent.id), "Explicit whole-team requests must reach all agents");
+assert.deepEqual(Array.from(chatRouter.routeChatRecipients("Halo, apa kabar?"), agent => agent.id), ["william"], "General conversation must go to the director by default");
 
 const root = path.resolve(__dirname, "..");
 const mime = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8", ".png":"image/png", ".css":"text/css; charset=utf-8" };
@@ -120,7 +129,8 @@ const server = http.createServer((req,res) => {
     assert.equal(await appPage.locator("#ofwNav button").count(), 8, "Unified affiliate workspace must expose all eight feature areas");
     await appPage.locator('#ofwNav button[data-page="chat"]').click();
     assert.equal(await appPage.locator("#ofw-chat").isVisible(), true, "Team Chat must open from the workspace navigation");
-    assert.equal(await appPage.locator("#ofwChatTarget option").count(), 10, "Team Chat must offer the whole team and all nine agents");
+    assert.equal(await appPage.locator("#ofwChatTarget option").count(), 11, "Team Chat must offer automatic routing, the whole team and all nine agents");
+    assert.equal(await appPage.locator("#ofwChatTarget").inputValue(), "auto", "Team Chat must default to automatic specialist routing");
     assert.equal(await appPage.locator("#ofwChatSend").isVisible(), true, "Team Chat must expose its send control");
     await appPage.locator('#ofwNav button[data-page="dashboard"]').click();
     await appPage.locator("#ofwBatch").fill("https://shopee.co.id/product-test");

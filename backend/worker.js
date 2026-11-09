@@ -245,8 +245,16 @@ async function callOpenAICompatible(provider, systemPrompt, userPrompt, env, max
       temperature: 0.3
     })
   });
-  if (response.status === 429) throw llmError("LLM_RATE_LIMIT");
-  if (!response.ok) throw llmError("LLM_REQUEST_FAILED");
+  if (response.status === 429) {
+    const error = llmError("LLM_RATE_LIMIT");
+    error.providerDiagnostic = { provider, model: providerModel(provider, env), status: response.status, reason: String(data?.error?.message || "Rate limited").slice(0, 180) };
+    throw error;
+  }
+  if (!response.ok) {
+    const error = llmError("LLM_REQUEST_FAILED");
+    error.providerDiagnostic = { provider, model: providerModel(provider, env), status: response.status, reason: String(data?.error?.message || data?.error?.code || "Provider request failed").slice(0, 180) };
+    throw error;
+  }
   const answer = cleanAnswer(data?.choices?.[0]?.message?.content);
   if (!answer) throw llmError("EMPTY_LLM_RESPONSE");
   return answer;
@@ -398,7 +406,14 @@ async function callLLM(preferred, systemPrompt, userPrompt, env, maxTokens = 120
     } catch (error) {
       const code = error && error.llmCode ? error.llmCode : "LLM_REQUEST_FAILED";
       if (code === "LLM_RATE_LIMIT") providerCooldownUntil.set(provider, Date.now() + PROVIDER_COOLDOWN_MS);
-      attempts.push({ provider, outcome: code === "LLM_RATE_LIMIT" ? "rate_limited" : code === "LLM_PAID_DISABLED" ? "paid_disabled" : code === "EMPTY_LLM_RESPONSE" ? "empty" : "failed", ...(error?.providerDiagnostic || {}) });
+      const diagnostic = error?.providerDiagnostic || {
+        provider,
+        model: providerModel(provider, env),
+        ...(Number(error?.status || error?.code) ? { status: Number(error.status || error.code) } : {}),
+        reason: error?.name === "AbortError" ? "Provider request timed out" :
+          error?.name === "TypeError" ? "Provider network request failed" : "Provider request failed"
+      };
+      attempts.push({ provider, outcome: code === "LLM_RATE_LIMIT" ? "rate_limited" : code === "LLM_PAID_DISABLED" ? "paid_disabled" : code === "EMPTY_LLM_RESPONSE" ? "empty" : "failed", ...diagnostic });
     }
   }
   const limited = attempts.length && attempts.every((a) => ["rate_limited", "cooldown", "daily_limit", "paid_limit", "paid_disabled"].includes(a.outcome));
@@ -1983,7 +1998,16 @@ export default {
         INVALID_MODEL: [500, "Nama model backend tidak valid."]
       };
       const [status, message] = messages[code] || [500, "Terjadi kesalahan pada backend."];
-      return json({ ok: false, error: message }, status, origin);
+      // Return safe provider/model diagnostics to Team Chat and agent callers.
+      // Never include request headers, API keys, or raw provider response bodies.
+      const diagnostics = Array.isArray(error?.llmAttempts) ? error.llmAttempts.map((item) => ({
+        provider: item.provider,
+        outcome: item.outcome,
+        ...(item.model ? { model: item.model } : {}),
+        ...(item.status ? { status: item.status } : {}),
+        ...(item.reason ? { reason: String(item.reason).slice(0, 180) } : {})
+      })) : undefined;
+      return json({ ok: false, error: message, ...(diagnostics ? { diagnostics } : {}) }, status, origin);
     }
   }
 };

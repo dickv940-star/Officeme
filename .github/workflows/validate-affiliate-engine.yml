@@ -1,0 +1,49 @@
+name: Validate Global Affiliate Engine foundation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - integration/global-affiliate-engine-foundation
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript syntax
+        run: |
+          node --check backend/worker.js
+          node --check affiliate-workflow.js
+          node --check office-entrance.js
+          node --check --input-type=module < virtual-office-3d.js
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Test unified entrance in desktop and mobile browsers
+        run: npm run test:e2e
+      - name: Validate D1 schema with SQLite
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          db = sqlite3.connect(":memory:")
+          db.executescript(Path("backend/schema.sql").read_text(encoding="utf-8"))
+          names = {row[0] for row in db.execute(
+              "SELECT name FROM sqlite_master WHERE type='table'"
+          )}
+          required = {"owner_workspace_records", "approval_packages",
+                      "affiliate_products", "affiliate_content_queue",
+                      "affiliate_performance_daily", "affiliate_content_versions"}
+          missing = required - names
+          if missing:
+              raise SystemExit("Missing schema tables: " + ", ".join(sorted(missing)))
+          print("D1 schema syntax and required tables: OK")
+          PY

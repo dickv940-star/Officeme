@@ -389,15 +389,15 @@ async function callLLM(preferred, systemPrompt, userPrompt, env, maxTokens = 120
   const now = Date.now();
   for (const provider of order) {
     if ((providerCooldownUntil.get(provider) || 0) > now) {
-      attempts.push({ provider, outcome: "cooldown" });
+      attempts.push({ provider, model: providerModel(provider, env), outcome: "cooldown", reason: "Provider sedang cooldown 60 detik setelah rate limit." });
       continue;
     }
     if (isPaidProvider(provider) && !(await paidProviderAllowed(provider, env))) {
-      attempts.push({ provider, outcome: "paid_limit" });
+      attempts.push({ provider, model: providerModel(provider, env), outcome: "paid_limit", reason: "Provider berbayar diblokir oleh pengaman biaya atau batas penggunaan." });
       continue;
     }
     if (!(await reserveProviderCall(provider, env))) {
-      attempts.push({ provider, outcome: "daily_limit" });
+      attempts.push({ provider, model: providerModel(provider, env), outcome: "daily_limit", reason: "Batas panggilan harian internal tercapai; penghitung direset berdasarkan tanggal UTC." });
       continue;
     }
     try {
@@ -416,8 +416,9 @@ async function callLLM(preferred, systemPrompt, userPrompt, env, maxTokens = 120
       attempts.push({ provider, outcome: code === "LLM_RATE_LIMIT" ? "rate_limited" : code === "LLM_PAID_DISABLED" ? "paid_disabled" : code === "EMPTY_LLM_RESPONSE" ? "empty" : "failed", ...diagnostic });
     }
   }
+  const dailyBudgetExhausted = attempts.length > 0 && attempts.every((a) => a.outcome === "daily_limit");
   const limited = attempts.length && attempts.every((a) => ["rate_limited", "cooldown", "daily_limit", "paid_limit", "paid_disabled"].includes(a.outcome));
-  const failure = llmError(limited ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
+  const failure = llmError(dailyBudgetExhausted ? "LLM_DAILY_BUDGET_EXHAUSTED" : limited ? "LLM_RATE_LIMIT" : "LLM_REQUEST_FAILED");
   failure.llmAttempts = attempts;
   throw failure;
 }
@@ -1988,7 +1989,8 @@ export default {
         SHOPEE_API_RATE_LIMIT: [429, "Batas permintaan Shopee Affiliate API tercapai."],
         INVALID_INPUT: [400, "Data CSV tidak valid atau melebihi batas 30 produk."],
         LLM_NOT_CONFIGURED: [503, "Belum ada provider AI gratis yang dikonfigurasi. Tambahkan minimal satu secret: GEMINI_API_KEY, GROQ_API_KEY, CEREBRAS_API_KEY, atau OPENROUTER_API_KEY."],
-        LLM_RATE_LIMIT: [429, "Semua provider AI gratis sedang mencapai batas. Coba lagi beberapa menit lagi."],
+        LLM_RATE_LIMIT: [429, "Provider AI sedang terkena rate limit. Coba lagi beberapa menit lagi atau periksa kuota provider."],
+        LLM_DAILY_BUDGET_EXHAUSTED: [429, "Batas panggilan harian internal OfficeMe tercapai. Provider cadangan akan tersedia kembali setelah reset UTC; periksa juga konfigurasi Gemini API Key."],
         LLM_REQUEST_FAILED: [502, "Semua provider AI gagal merespons. Periksa secret, nama model, dan kuota provider."],
         EMPTY_LLM_RESPONSE: [502, "Provider AI tidak menghasilkan jawaban."],
         INVALID_AGENT_INPUT: [400, "Tugas agent harus berupa teks 1 sampai 8000 karakter."],

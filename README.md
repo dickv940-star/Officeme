@@ -165,3 +165,7 @@ The frontend loads `affiliate-workflow.js` with these capabilities:
 Account records, draft content, approval decisions, and metrics are stored in the current browser's localStorage. They are not shared across devices and do not constitute a server audit log. Metric fields are manual inputs, not live analytics. Multi-platform OAuth, automatic platform publishing, automatic commission sync, and persistent server-side account storage are not activated by this UI. Each platform's official API access, review, scopes, and account eligibility must be completed before enabling those actions. Every real publication must have explicit owner approval and server-side authorization.
 
 After deployment, hard-refresh the GitHub Pages site (Ctrl+F5). Test with a non-sensitive dummy account first.
+
+## Reusable agent skills
+
+- [Instagram Agent Skill](.agents/skills/instagram-agent/SKILL.md) — original Instagram strategy/content workflows, affiliate disclosure, QA, analytics, and safe Meta API integration guidance. Skill/playbook only; it does not itself connect or publish to an Instagram account.

@@ -125,3 +125,16 @@ Implementation started on the feature branch:
 ## Verification note
 
 The owner token was reported as created by the owner, but its presence/value has not been independently verified from the Worker runtime. The unified entrance and real 3D workers-room integration now pass GitHub Actions browser tests (run 42591652309): desktop and mobile entrance flows, all eight portrait assets, the actual Three.js module, a WebGL canvas, and eight generated agent actors. JavaScript syntax and D1 schema validation also pass in CI. These tests use Chromium with software WebGL and do not prove that Cloudflare D1 has been migrated, the Worker is deployed, OAuth/Shopee accounts are connected, or the live GitHub Pages site has updated. The changes remain in the draft feature PR; no content is published. Live Worker and GitHub Pages behavior must still be checked after an explicitly approved release.
+
+
+## Instagram Agent Skill
+
+Reusable skill added at `.agents/skills/instagram-agent/SKILL.md`.
+
+- Covers Instagram content research, Reels/feed/Stories planning, captions, affiliate disclosures, QA, analytics interpretation, and publication readiness.
+- Uses an Rp0-first policy and official Meta Instagram Platform APIs only.
+- Requires a professional (Business or Creator) account for API capabilities; exact login path, permissions, app review, and API version must be verified against current Meta documentation.
+- Prohibits scraping, browser/session automation, unofficial endpoints, spam, fake engagement, and unapproved DMs/comments/publication.
+- Produces draft packages and requires explicit approval for the exact content version and destination before any external action.
+
+**Integration status:** this commit adds the reusable agent skill only. It does not add a new Instagram OAuth connection, grant Meta permissions, activate an Instagram publishing endpoint, or prove an account is connected. The current OfficeMe platform readiness/connection state must be checked separately before enabling live operations.

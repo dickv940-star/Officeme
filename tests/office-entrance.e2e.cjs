@@ -7,7 +7,7 @@ const { chromium } = require("playwright");
 
 const workspaceSource = fs.readFileSync(path.join(__dirname, "..", "global-affiliate-workspace.js"), "utf8");
 const routerStart = workspaceSource.indexOf("const CHAT_AGENTS=[");
-const routerEnd = workspaceSource.indexOf("\\nconst CHAT_CSS=", routerStart);
+const routerEnd = workspaceSource.indexOf("\nconst CHAT_CSS=", routerStart);
 const routerSource = workspaceSource.slice(routerStart, routerEnd).trim();
 assert.ok(routerSource, "Team Chat must expose its automatic role-routing implementation in the workspace source");
 const chatRouter = vm.runInNewContext(routerSource + "; ({ CHAT_AGENTS, routeChatRecipients })");

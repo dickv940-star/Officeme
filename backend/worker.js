@@ -8,7 +8,7 @@ function json(data, status = 200, origin = "*") {
       "content-type": "application/json; charset=utf-8",
       "cache-control": "no-store",
       "access-control-allow-origin": origin,
-      "access-control-allow-methods": "GET, POST, OPTIONS",
+      "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
       "access-control-allow-headers": "Content-Type, Authorization",
       "vary": "Origin"
     }
@@ -1481,7 +1481,7 @@ function ownerRecordValid(kind, record) {
       typeof record.id !== "string" || !/^[a-zA-Z0-9_-]{1,80}$/.test(record.id)) return false;
   if (kind === "accounts") {
     return typeof record.name === "string" && record.name.trim().length > 0 && record.name.length <= 160 &&
-      typeof record.platform === "string" && ["youtube", "pinterest", "instagram", "facebook", "tiktok", "other"].includes(record.platform) &&
+      typeof record.platform === "string" && ["youtube", "pinterest", "instagram", "facebook", "tiktok", "shopee", "blog", "other"].includes(record.platform) &&
       (record.handle === undefined || (typeof record.handle === "string" && record.handle.length <= 200)) &&
       (record.notes === undefined || (typeof record.notes === "string" && record.notes.length <= 1000));
   }
@@ -1667,7 +1667,7 @@ export default {
       if (!origin) return new Response(null, { status: 403 });
       return new Response(null, { status: 204, headers: {
         "access-control-allow-origin": origin,
-        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
         "access-control-allow-headers": "Content-Type, Authorization",
         "access-control-max-age": "86400",
         "vary": "Origin"
@@ -1683,7 +1683,9 @@ export default {
     // Health is intentionally read-only and may be checked before secrets are configured.
     if (request.method === "GET" && path === "/health") return json(healthPayload(env), 200, origin);
     if (!env.APP_SHARED_TOKEN) return json({ ok: false, error: "Backend belum dikonfigurasi." }, 503, origin);
-    const ownerWorkspaceMatch = path.match(/^\\/api\\/owner\\/workspace\\/(accounts|contents)\\/([a-zA-Z0-9_-]{1,80})$/);\n    const ownerWorkspaceList = request.method === "GET" && path === "/api/owner/workspace";\n    const ownerRoute = ownerWorkspaceList || Boolean(ownerWorkspaceMatch) || (request.method === "GET" && path === "/api/approvals") ||
+    const ownerWorkspaceMatch = path.match(/^\/api\/owner\/workspace\/(accounts|contents)\/([a-zA-Z0-9_-]{1,80})$/);
+    const ownerWorkspaceList = request.method === "GET" && path === "/api/owner/workspace";
+    const ownerRoute = ownerWorkspaceList || Boolean(ownerWorkspaceMatch) || (request.method === "GET" && path === "/api/approvals") ||
       (request.method === "POST" && /^\/api\/approvals\/[a-zA-Z0-9_-]{1,80}\/decision$/.test(path));
     if (ownerRoute) {
       if (!env.APP_OWNER_TOKEN) return json({ ok: false, error: "Token pemilik belum dikonfigurasi." }, 503, origin);

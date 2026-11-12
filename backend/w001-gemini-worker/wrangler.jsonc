@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "officeme-w001-gemini-test",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-20",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "vars": {
+    "ALLOWED_ORIGIN": "https://dickv940-star.github.io",
+    "GEMINI_MODEL": "gemini-3.5-flash-lite"
+  }
+}
